@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "networker (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "networker (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

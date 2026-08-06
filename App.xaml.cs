@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
+using networker.Services;
 using Windows.ApplicationModel.Activation;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -52,7 +53,7 @@ namespace networker
         private static ServiceProvider BuildServiceProvider()
         {
             var services = new ServiceCollection();
-            // LLM providers and the routing service are registered in the Llm module.
+            services.AddSingleton(LlmRuntime.Router);
             return services.BuildServiceProvider();
         }
 

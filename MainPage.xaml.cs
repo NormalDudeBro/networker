@@ -34,7 +34,13 @@ namespace networker
             if (ProviderComboBox.Items.Count == 0)
             {
                 ProviderComboBox.Items.Add("ollama");
-                ProviderComboBox.SelectedIndex = 0;
+                ProviderComboBox.Items.Add("grok");
+                ProviderComboBox.Items.Add("gemini");
+                ProviderComboBox.SelectedItem = AppSettings.SelectedProvider;
+                if (ProviderComboBox.SelectedItem is null)
+                {
+                    ProviderComboBox.SelectedIndex = 0;
+                }
             }
 
             UpdateProviderLabel();
@@ -109,7 +115,8 @@ namespace networker
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            // Real cancellation lands with the streaming provider layer.
+            LlmRuntime.Router.Cancel();
+            Toaster.Show("Request cancelled.", InfoBarSeverity.Informational, "Cancelled");
         }
 
         private void SetBusy(bool busy)
@@ -225,17 +232,28 @@ namespace networker
             HealthText.Text = "Checking";
             HealthDot.Fill = new SolidColorBrush(Colors.Gray);
 
+            bool connected = false;
             try
             {
-                var models = await OllamaService.GetModelsAsync(AppSettings.OllamaEndpoint, AppSettings.OllamaApiKey);
-                SetHealthy(models);
+                var status = await LlmRuntime.GetSelectedProviderHealthAsync(AppSettings.SelectedProvider);
+                connected = status.IsAvailable;
+                if (!connected)
+                {
+                    SetUnhealthy(status.Message ?? "Provider unavailable");
+                }
             }
             catch (Exception ex)
             {
                 SetUnhealthy(ex.Message);
             }
 
-            await LoadModelsAsync();
+            bool hasModels = await LoadModelsAsync();
+
+            if (connected)
+            {
+                SetHealthy(hasModels);
+            }
+
             UpdateProviderLabel();
         }
 
@@ -244,7 +262,7 @@ namespace networker
             _ = RefreshConnectionAsync();
         }
 
-        private void SetHealthy(IReadOnlyList<string> models)
+        private void SetHealthy(bool hasModels)
         {
             var green = new SolidColorBrush(Colors.LightGreen);
             PanelHealthDot.Fill = green;
@@ -252,7 +270,7 @@ namespace networker
             PanelHealthText.Text = "Connected";
             HealthText.Text = "Connected";
 
-            if (models.Count == 0)
+            if (!hasModels)
             {
                 PanelHealthText.Text = "Connected — no models";
             }
@@ -268,37 +286,40 @@ namespace networker
             HealthText.Text = "Offline";
         }
 
-        private async Task LoadModelsAsync()
+        private async Task<bool> LoadModelsAsync()
         {
             ModelLoadingRing.IsActive = true;
             try
             {
-                var models = await OllamaService.GetModelsAsync(AppSettings.OllamaEndpoint, AppSettings.OllamaApiKey);
-                if (models == null || models.Count == 0)
+                var models = await LlmRuntime.GetModelsAsync();
+                if (models.Count == 0)
                 {
                     ModelComboBox.ItemsSource = null;
                     ModelComboBox.IsEnabled = false;
                     AppSettings.SelectedModel = "";
+                    return false;
                 }
-                else
-                {
-                    ModelComboBox.IsEnabled = true;
-                    ModelComboBox.ItemsSource = models;
 
-                    string previous = AppSettings.SelectedModel;
-                    ModelComboBox.SelectedItem = !string.IsNullOrEmpty(previous) && models.Contains(previous)
-                        ? previous
-                        : models[0];
-                    if (ModelComboBox.SelectedItem is string selected)
-                    {
-                        AppSettings.SelectedModel = selected;
-                    }
+                var ids = models.Select(m => m.Id).ToList();
+                ModelComboBox.IsEnabled = true;
+                ModelComboBox.ItemsSource = ids;
+
+                string previous = AppSettings.SelectedModel;
+                ModelComboBox.SelectedItem = !string.IsNullOrEmpty(previous) && ids.Contains(previous)
+                    ? previous
+                    : ids[0];
+                if (ModelComboBox.SelectedItem is string selected)
+                {
+                    AppSettings.SelectedModel = selected;
                 }
+
+                return true;
             }
             catch
             {
                 ModelComboBox.ItemsSource = null;
                 ModelComboBox.IsEnabled = false;
+                return false;
             }
             finally
             {
@@ -312,7 +333,9 @@ namespace networker
             if (ProviderComboBox.SelectedItem is string provider)
             {
                 AppSettings.SelectedProvider = provider;
+                LlmRuntime.ApplyProviderSelection(provider, AppSettings.SelectedModel);
                 UpdateProviderLabel();
+                _ = RefreshConnectionAsync();
             }
         }
 
@@ -321,6 +344,7 @@ namespace networker
             if (ModelComboBox.SelectedItem is string model)
             {
                 AppSettings.SelectedModel = model;
+                LlmRuntime.ApplyProviderSelection(AppSettings.SelectedProvider, model);
                 UpdateProviderLabel();
             }
         }

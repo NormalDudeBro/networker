@@ -73,6 +73,7 @@ namespace networker
         {
             if (_isInitializing || ProviderComboBox.SelectedItem is not string provider) return;
             AppSettings.SelectedProvider = provider;
+            LlmRuntime.ApplyProviderSelection(provider, AppSettings.SelectedModel);
 
             if (provider != "ollama")
             {
@@ -128,12 +129,26 @@ namespace networker
 
             try
             {
-                AppSettings.OllamaEndpoint = (EndpointTextBox.Text ?? "").Trim();
-                AppSettings.OllamaApiKey = ApiKeyPasswordBox.Password ?? "";
+                string endpoint = (EndpointTextBox.Text ?? "").Trim();
+                string apiKey = ApiKeyPasswordBox.Password ?? "";
+                bool connectionChanged = endpoint != AppSettings.OllamaEndpoint || apiKey != AppSettings.OllamaApiKey;
 
-                var models = await OllamaService.GetModelsAsync(AppSettings.OllamaEndpoint, AppSettings.OllamaApiKey);
+                AppSettings.OllamaEndpoint = endpoint;
+                AppSettings.OllamaApiKey = apiKey;
 
-                if (models == null || models.Count == 0)
+                if (connectionChanged)
+                {
+                    LlmRuntime.Reset();
+                }
+                else
+                {
+                    LlmRuntime.ApplyProviderSelection(AppSettings.SelectedProvider, AppSettings.SelectedModel);
+                }
+
+                var models = await LlmRuntime.GetModelsAsync();
+                var modelIds = models.Select(m => m.Id).ToList();
+
+                if (modelIds.Count == 0)
                 {
                     ConnectionStatusText.Text = "Connected, but no models found.";
                     ConnectionStatusText.Foreground = new SolidColorBrush(Colors.OrangeRed);
@@ -143,22 +158,22 @@ namespace networker
                 }
                 else
                 {
-                    ConnectionStatusText.Text = "Connected";
+                    ConnectionStatusText.Text = $"Connected ({AppSettings.SelectedProvider})";
                     ConnectionStatusText.Foreground = new SolidColorBrush(Colors.Green);
                     ModelComboBox.IsEnabled = true;
 
                     _isInitializing = true;
-                    ModelComboBox.ItemsSource = models;
+                    ModelComboBox.ItemsSource = modelIds;
 
                     string previousSelection = AppSettings.SelectedModel;
                     string? modelToSelect = null;
 
-                    if (!string.IsNullOrEmpty(previousSelection) && models.Contains(previousSelection))
+                    if (!string.IsNullOrEmpty(previousSelection) && modelIds.Contains(previousSelection))
                         modelToSelect = previousSelection;
-                    else if (models.Contains("qwen2.5-coder:7b"))
+                    else if (modelIds.Contains("qwen2.5-coder:7b"))
                         modelToSelect = "qwen2.5-coder:7b";
                     else
-                        modelToSelect = models.First();
+                        modelToSelect = modelIds.First();
 
                     ModelComboBox.SelectedItem = modelToSelect;
                     AppSettings.SelectedModel = modelToSelect ?? "";

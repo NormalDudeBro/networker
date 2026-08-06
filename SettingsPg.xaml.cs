@@ -7,17 +7,17 @@ using Microsoft.UI.Xaml.Media;
 
 namespace networker
 {
-    public sealed partial class SettingsPage : Page
+    public sealed partial class SettingsPg : Page
     {
         private bool _isInitializing = false;
 
-        public SettingsPage()
+        public SettingsPg()
         {
             this.InitializeComponent();
-            this.Loaded += SettingsPage_Loaded;
+            this.Loaded += SettingsPg_Loaded;
         }
 
-        private async void SettingsPage_Loaded(object sender, RoutedEventArgs e)
+        private async void SettingsPg_Loaded(object sender, RoutedEventArgs e)
         {
             _isInitializing = true;
             EndpointTextBox.Text = AppSettings.OllamaEndpoint;

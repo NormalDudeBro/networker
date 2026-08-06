@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
@@ -13,16 +13,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <None Remove="MainPage.xaml" />
-    <None Remove="SettingsPage.xaml" />
+    <None Remove="SettingsPg.xaml" />
   </ItemGroup>
   <ItemGroup>
     <Page Remove="MainWindow.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="MainPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="MainWindow.xaml">
@@ -57,7 +53,7 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.3.1" />
   </ItemGroup>
   <ItemGroup>
-    <Page Update="SettingsPage.xaml">
+    <Page Update="SettingsPg.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>

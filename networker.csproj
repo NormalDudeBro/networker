@@ -11,6 +11,7 @@
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,20 +21,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="NetOps.Core\NetOps.Core.csproj" />
+    <ProjectReference Include="Networker.Core\Networker.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="NetOps.Core\**" />
-    <Compile Remove="NetOps.Core.Tests\**" />
-    <Content Remove="NetOps.Core\**" />
-    <Content Remove="NetOps.Core.Tests\**" />
-    <None Remove="NetOps.Core\**" />
-    <None Remove="NetOps.Core.Tests\**" />
-    <Page Remove="NetOps.Core\**" />
-    <Page Remove="NetOps.Core.Tests\**" />
-    <Resource Remove="NetOps.Core\**" />
-    <Resource Remove="NetOps.Core.Tests\**" />
+    <Compile Remove="Networker.Core\**" />
+    <Compile Remove="Networker.Core.Tests\**" />
+    <Content Remove="Networker.Core\**" />
+    <Content Remove="Networker.Core.Tests\**" />
+    <None Remove="Networker.Core\**" />
+    <None Remove="Networker.Core.Tests\**" />
+    <Page Remove="Networker.Core\**" />
+    <Page Remove="Networker.Core.Tests\**" />
+    <Resource Remove="Networker.Core\**" />
+    <Resource Remove="Networker.Core.Tests\**" />
   </ItemGroup>
 
   <!-- Single-project MSIX Packaging Capability -->

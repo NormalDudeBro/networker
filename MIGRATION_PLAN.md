@@ -1,0 +1,736 @@
+# NetworkConfigPro → Networker Migration Plan
+
+> **Living document.** This is the authoritative roadmap and development journal for the migration.
+> It is updated continuously and must always reflect the current repository state. A future session
+> should be able to resume work from this document alone.
+>
+> File naming note: the repo contains this file as `MIGRATION_PLAN.md` (Windows is case-insensitive;
+> the same file is sometimes referred to as `migration_plan.md`). There is only ONE plan file.
+
+---
+
+## 1. Project Overview
+
+### Overall Objective
+Migrate the entire Python **NetworkConfigPro** application — a multi-vendor network configuration
+generator/parser/validator with a PySide6 GUI, Fernet vault, and Jinja2 template engine — into the
+existing C# **Networker** WinUI 3 application, so it feels like a native feature of Networker.
+
+### Scope of the Migration
+- **Config generation** for 6 vendors (Cisco IOS, Cisco NX-OS, Arista EOS, Juniper Junos, SONiC,
+  Fortinet FortiGate) reproducing the Python output **byte-for-byte**.
+- **Config parsing** (regex-based) for the vendors Python supports, with a factory for auto-detection.
+- **Config validation** (severity + category based) merged with Networker's existing `ConfigAuditor`.
+- **Secure vault** (credentials / variables / custom templates) — implemented natively on Windows,
+  no Python vault format compatibility required.
+- **Predefined template library** (Basic Router, L3 Switch, Edge Router, etc.).
+- **Full UI** matching the Python tabs: Generate, Import/Analyze, Diff, Vault, Templates — integrated
+  into Networker's NavigationView + theme + DI.
+- **Hard constraint:** pure C#, **no new NuGet dependencies** unless strictly required; the app must
+  remain buildable after every slice.
+
+### High-Level Architectural Goals
+- **Slice A (Core, COMPLETE):** models, service contracts, 6 template renderers, filters, dispatcher,
+  dictionary→model conversion, golden-file test harness proving byte-for-byte parity.
+- **Slice B (UI, PLANNED):** DI registration, navigation, feature pages/tabs, view models.
+- **Slice C (Services, PLANNED):** parser, validator, vault, template library + their tests.
+- **Quality bar:** golden-file parity for generation; unit tests for every ported service; clean
+  Release build; no regressions in existing Networker features.
+
+### Definition of Project Completion
+1. All 6 vendors generate byte-identical output vs. the Python reference (golden tests green).
+2. Parser, validator, vault, and template library ported with unit tests.
+3. All 5 Python UI tabs present in Networker, themed, and wired to the Core services.
+4. `dotnet build networker.sln -c Release` clean; full test suite green.
+5. README documents the new Network Config feature.
+6. The two generator systems (pre-existing `ConfigGenerator`/`DeviceSpec` and new
+   `NetworkConfigGenerator`/`NetworkDeviceConfig`) unified or explicitly deprecated.
+
+---
+
+## 2. Current Status
+
+### Completed Phases
+- **Slice A — Core generation layer (DONE).** Models, interfaces, filters, six C# template renderers,
+  dispatcher, dictionary conversion, golden tests.
+
+### In-Progress Phases
+- None. (Slice A ended clean; Slice B has not started.)
+
+### Remaining Phases
+- Slice B — UI integration (DI registration, navigation, Generate/Import/Diff/Vault/Templates tabs).
+- Slice C — Services: parser, validator, vault, template library (+ tests).
+- Polish & Release — theme verification, settings integration, shortcuts, accessibility, README,
+  Release build, performance check, generator-system unification.
+
+### Overall Estimated Completion: **~40%**
+Generation (a large fraction of the value) is fully done and tested; the parser/validator/vault and
+all UI remain.
+
+### Major Accomplishments This Session
+- **All 13 golden tests pass** (6 vendors × `Generate` + `GenerateFromDict`, byte-exact, plus
+  `GetSupportedVendors_ReturnsAllSix`).
+- **Full suite: 125/125 tests pass.** Build: **0 errors**, only pre-existing warnings.
+- Fixed the last Sonic blocker: reproduced every whitespace quirk of `sonic.j2` (same-line closing
+  braces, remark-aware `loop.last` comma placement, OSPF_ROUTER literal newline, PRIORITY field comma).
+- Verified byte-exact parity for all 6 vendors against live Python renders (done during the port;
+  Sonic re-verified this session).
+
+### Outstanding Blockers
+- **None.** No blocker currently prevents the next slice.
+
+---
+
+## 3. Repository Analysis
+
+### 3.1 NetworkConfigPro (Python — source of the migration)
+
+Location: `C:\Users\Kenny\NetworkConfigPro` (Python 3.14). Entry point: `main.py` → `src.gui.app:main`.
+
+#### Architecture
+- `main.py` — entry point; launches the PySide6 app.
+- `src/core/models.py` — all data models (`DeviceConfig` + feature dataclasses, enums).
+- `src/core/generators/config_generator.py` (432 lines) — `ConfigGenerator` class; Jinja2
+  `Environment(trim_blocks=True, lstrip_blocks=True)`, `keep_trailing_newline` unset (defaults false);
+  registers 10 custom filters.
+- `src/core/parsers/config_parser.py` (1508 lines) — `ParseResult`, `BaseConfigParser(ABC)`,
+  `CiscoIOSParser`, `JuniperJunosParser`, `SONiCParser`, `ConfigParserFactory`.
+- `src/core/validators/config_validator.py` (606 lines) — `Severity`, `Category`, `ValidationIssue`,
+  `ConfigValidator`.
+- `src/security/vault.py` (430 lines) — `SecureVault`; Fernet encryption, PBKDF2-SHA256 480k
+  iterations; credentials / variables / templates; `vault.dat` with 0600 perms.
+- `src/gui/app.py` (3179 lines) — single `QMainWindow` with `QTabWidget`: Generate, Import/Analyze,
+  Diff, Vault, Templates; also a `TEMPLATES` dict of predefined template configs.
+- `src/gui/theme.py` — `qdarktheme` + custom stylesheet.
+- `src/gui/help_content.py` — help text for the UI.
+- `src/core/templates/vendors/*.j2` — 6 Jinja2 templates: `cisco_ios.j2`, `cisco_nxos.j2`,
+  `arista_eos.j2`, `juniper_junos.j2`, `sonic.j2`, `fortinet_fortigate.j2`.
+- `src/utils/` — empty utility package.
+
+#### Data Flow
+User enters device data in the GUI → `DeviceConfig` dataclass → `ConfigGenerator.generate(cfg)` →
+Jinja2 renders the vendor template (custom filters transform names/values) → config string →
+displayed/exported. Parser reverses config text → `DeviceConfig`. Validator inspects both.
+Vault stores secrets/templates referenced by the generator.
+
+#### Custom Filters (registered in `config_generator.py`)
+`cidr_prefix`, `junos_interface_name`, `sonic_interface_name`, `sonic_vlan_id`, `wildcard_to_cidr`,
+`sonic_port`, `fortinet_interface_name`, `fortinet_parent_interface`, `fortinet_ospf_interface`,
+`wildcard_to_netmask`.
+
+#### Dependencies
+`jinja2`, `PySide6`, `qdarktheme`, `cryptography` (Fernet/PBKDF2). Standard lib: `re`,
+`abc`, `ipaddress`, `dataclasses`, `enum`.
+
+#### Features Discovered (feature inventory source — see §5)
+Generation (6 vendors), parsing (3 vendor parsers + factory), validation, secure vault, predefined
+templates, template gallery, config diff, import/analyze with validation display, themes, help content.
+
+### 3.2 Networker (C# WinUI 3 — target)
+
+Location: `C:\Users\Kenny\source\repos\networker`. Solution `networker.sln`.
+
+#### Existing Architecture
+```
+networker/                       # WinUI 3 app (net8.0-windows10.0.19041)
+  App.xaml / App.xaml.cs         # DI container (currently only LlmRuntime.Router), theme at app level
+  MainWindow.xaml / .cs          # NavigationView shell + ContentFrame + theme toggle
+  MainPage.xaml / .cs            # Chat workspace (LLM integration)
+  ToolsPage.xaml / .cs           # 8-tab deterministic toolkit (IP, Config Gen, Audit, Diff, Logs,
+                                 #   Playbooks, Topology, Translator)
+  SettingsPg.xaml / .cs          # Provider/model/prompt/theme settings
+  Controls/                      # CodeBlockView, CommandPalette, BoolToVisibilityConverter
+  Models/                        # ChatMessage, ChatRole
+  Services/                      # ChatService, LlmRuntime, Toaster, ConfigSyntaxHighlighter
+  Styles/                        # Colors.xaml, Fonts.xaml, Styles.xaml (design tokens, theme switching)
+  AppSettings.cs                 # LocalSettings-backed settings
+  Networker.Core/                # Class library (net8.0)
+    Llm/                         # Provider layer (Ollama/Grok/Gemini, router, retry, SSE, scrubber)
+    Prompting/                   # PromptBuilder
+    NetTools/
+      Ip/                        # IpToolkit, IpSubnetInfo
+      Config/                    # ConfigAuditor, TextDiff, ConfigGenerator, ConfigTranslator,
+                                 #   DeviceSpec, + NEW *ConfigTemplate renderers, ConfigTemplateFilters,
+                                 #   ConfigWriter
+      Logs/                      # LogAnalyzer
+      Playbooks/                 # PlaybookGenerator
+      Topology/                  # TopologyBuilder
+    Models/NetworkConfig/        # NEW: NetworkDeviceConfig + all feature models/enums
+    Services/NetworkConfig/      # NEW: IConfigGenerator + contract interfaces
+```
+
+#### Reused Components
+| Component | Location | Reuse for NetworkConfigPro |
+|---|---|---|
+| Theme system | `Styles/Colors.xaml`, `Styles/Styles.xaml` | Use directly |
+| Navigation | `MainWindow.xaml` (NavigationView + ContentFrame) | Add new page/tab |
+| DI container | `App.xaml.cs` (`ServiceCollection`) | Register new services |
+| `CodeBlockView` | `Controls/CodeBlockView` | Config output display |
+| `TextDiff` | `Networker.Core/NetTools/Config/TextDiff.cs` | Diff tab |
+| `IpToolkit` | `Networker.Core/NetTools/Ip/IpToolkit.cs` | IP math |
+| Theme toggle | `MainWindow.ToggleTheme()` | Use existing |
+| Settings | `AppSettings.cs` | Vault path, default vendor |
+| `Toaster` | `networker/Services/Toaster` | Error/notify patterns |
+| `ConfigAuditor` | `Networker.Core/NetTools/Config/ConfigAuditor.cs` | Merge with validator port |
+
+#### Pre-existing Config Generator (IMPORTANT — distinct system)
+`Networker.Core/NetTools/Config/ConfigGenerator.cs` is a **separate, pre-existing** generator:
+`static ConfigGenerator.Generate(ConfigPlatform platform, DeviceSpec spec)` supporting 4 platforms
+(Cisco IOS-XE, Juniper Junos, Arista EOS, VyOS) via string interpolation. It is driven by `DeviceSpec`
+(`DeviceSpec.cs`: `VlanSpec`, `InterfaceSpec`, `OspfAreaSpec`, `BgpNeighborSpec`, `AclEntrySpec`,
+`NatSpec`, `DeviceSpec`). It is **unrelated** to the new `IConfigGenerator`/`NetworkConfigGenerator`
+and the new `NetworkDeviceConfig` models, and is wired into `ToolsPage` today. Do not confuse them.
+
+#### Existing Services / Navigation / ViewModels / Theme / DI / Logging / Settings
+- **DI:** `App.xaml.cs` builds a `ServiceCollection`; currently registers only `LlmRuntime.Router`
+  as a singleton. Pages resolve from `App.Services`.
+- **Navigation:** `MainWindow` NavigationView + `ContentFrame`; currently hosts MainPage (chat),
+  ToolsPage (8-tab toolkit), SettingsPg.
+- **ViewModels:** no MVVM framework; pages use code-behind (no `CommunityToolkit.Mvvm` dependency
+  present). Match existing code-behind patterns.
+- **Theme:** `Styles/Colors.xaml` design tokens; Light/Dark/System toggle in MainWindow; theme applied
+  in `App` ctor before `InitializeComponent`.
+- **Logging:** none central; pre-existing CS1998 warnings in `MainPage.xaml.cs` reference async
+  handlers.
+- **Settings:** `AppSettings.cs` (local settings-backed static class).
+
+---
+
+## 4. Migration Architecture
+
+### Target Folder Structure
+```
+Networker.Core/
+  Models/NetworkConfig/          # DONE — ported models
+  NetTools/Config/               # DONE (renderers) — add parser/validator here
+    *ConfigTemplate.cs           # DONE — 6 renderers + ConfigTemplateFilters + ConfigWriter
+  Services/NetworkConfig/        # DONE — contracts + NetworkConfigGenerator dispatcher
+networker/                       # WinUI app — new UI to be added
+  NetworkConfig/
+    Views/                       # NetworkConfigPage + Tabs (Generate, ImportAnalyze, Diff, Vault, Templates)
+    ViewModels/                  # (optional; match existing code-behind pattern)
+    Dialogs/                     # Interface, VLAN, ACL, Routing dialogs
+  MainWindow.xaml                # add "Network Config" NavigationViewItem
+App.xaml.cs                      # register IConfigGenerator (+ future IConfigParser/IVaultService)
+```
+
+### Models (DONE — all in `Networker.Core/Models/NetworkConfig/`)
+`Vendor`, `InterfaceType`, `RoutingProtocol`, `SwitchportMode`, `StpMode`, `AclAction`,
+`AclProtocol` (enums); `NetworkDeviceConfig`, `Interface`, `Vlan`, `Acl`, `AclEntry`,
+`StaticRoute`, `OspfNetwork`, `OspfConfig`, `BgpNeighbor`, `BgpConfig`, `EigrpNetwork`,
+`EigrpConfig`, `PrefixListEntry`, `PrefixList`, `RouteMapEntry`, `RouteMap`, `StpConfig` (classes).
+Mutable classes (not records) with `{ get; set; }` for object-initializer + dict-parsing ergonomics.
+
+### Services
+- `Services/NetworkConfig/IConfigGenerator.cs` — contract: `Generate(NetworkDeviceConfig)`,
+  `GenerateFromDict(Vendor, IReadOnlyDictionary<string, object>)`, `GetSupportedVendors()`.
+- `Services/NetworkConfig/NetworkConfigGenerator.cs` — sealed dispatcher; switch on `Vendor` → the six
+  `*ConfigTemplate.Render(...)`; `GenerateFromDict` builds a `NetworkDeviceConfig` via `DictionaryToConfig`
+  (snake_case keys: hostname/interfaces/vlans/acls/static_routes/ospf/eigrp/bgp/stp/prefix_lists/
+  route_maps/enable_secret/domain_name/dns_servers/ntp_servers/banner_motd; parses interface names for
+  `InterfaceType`; accepts `List<object>`-of-`Dictionary<string,object>` and typed values).
+- Other contract files exist (empty stubs): `IConfigParser`, `IConfigValidator`, `ITemplateLibrary`,
+  `IVaultService` — **not yet implemented**.
+
+### Interfaces
+`IConfigGenerator` (implemented). `IConfigParser`, `IConfigValidator`, `ITemplateLibrary`,
+`IVaultService` (defined, unimplemented). All in `Services/NetworkConfig/`.
+
+### ViewModels / Views
+None for this feature yet. Plan: add `NetworkConfigPage` with a `TabView` matching the Python tabs;
+use code-behind like the rest of Networker (no MVVM framework in the repo).
+
+### Utilities
+`NetTools/Config/ConfigWriter.cs` — `W(StringBuilder, string)` = text + `\n`. Central to matching
+Jinja2 output.
+`NetTools/Config/ConfigTemplateFilters.cs` — all 10 ported filters as `static` methods (see §3.1 for
+the Python list; C#: `SubnetToCidr`, `WildcardToCidr`, `WildcardToNetmask`, `JunosInterfaceName`,
+`SonicInterfaceName`, `SonicVlanId`, `SonicPort`, `FortinetInterfaceName`, `FortinetParentInterface`,
+`FortinetOspfInterface`, `SonicChannelGroup`, `AclActionValue`, `AclProtocolValue`,
+`SwitchportModeValue`, `StpModeValue`, `InterfaceTypeValue`, `CountOnes`).
+
+### Infrastructure
+- Golden test harness: `Networker.Core.Tests/NetTools/GoldenConfigTests.cs` reads
+  `NetTools/Golden/{vendor}.txt` and compares `Generate` and `GenerateFromDict` output byte-for-byte.
+  Golden files are copied to output via `Networker.Core.Tests.csproj` (`None` +
+  `CopyToOutputDirectory=PreserveNewest`).
+
+### Dependency Injection Strategy
+Register `IConfigGenerator` (→ `NetworkConfigGenerator`) as singleton in `App.xaml.cs`
+(**NOT DONE YET**). Future services (`IConfigParser`, `IConfigValidator`, `IVaultService`,
+`ITemplateLibrary`) register the same way. Pages resolve via `App.Services`.
+
+### Data Flow
+UI (future) collects device data → `NetworkDeviceConfig` (or dict) → `IConfigGenerator.Generate` /
+`GenerateFromDict` → config string → `CodeBlockView`. Parser/validator/vault feed/consume the same
+model. Golden tests short-circuit the UI: fixed sample → renderer → byte comparison.
+
+### Separation of Concerns
+- **Renderers** (`NetTools/Config/*ConfigTemplate.cs`) — pure, deterministic string building; one per
+  vendor; no IO, no state. Static `internal static class` with `Render(NetworkDeviceConfig)`.
+- **Filters** (`ConfigTemplateFilters`) — pure value transforms, no state.
+- **Dispatcher** (`NetworkConfigGenerator`) — vendor dispatch + dict→model mapping (service layer).
+- **Contracts** (`Services/NetworkConfig`) — interfaces the UI depends on.
+- **Tests** — golden files + sample config kept in the test project; sample mirrors
+  `gen_golden.py`'s `build_config()`.
+
+---
+
+## 5. Feature Inventory
+
+Legend: ✅ done · 🚧 in progress · ⏳ planned · ❌ blocked.
+
+| Feature | Python location | C# location | Status | Dependencies | Notes | Remaining work |
+|---|---|---|---|---|---|---|
+| Data models (DeviceConfig + feature models/enums) | `src/core/models.py` | `Networker.Core/Models/NetworkConfig/*.cs` | ✅ | — | 6 enums, 18 classes; classes not records | None |
+| Config generator — Cisco IOS | `src/core/templates/vendors/cisco_ios.j2` | `Networker.Core/NetTools/Config/CiscoIosConfigTemplate.cs` | ✅ | Models, filters | Ends `end`, no trailing `\n`; golden 3403 chars | None |
+| Config generator — Cisco NX-OS | `cisco_nxos.j2` | `CiscoNxosConfigTemplate.cs` | ✅ | Models, filters | Ends `end`; golden 2233 | None |
+| Config generator — Arista EOS | `arista_eos.j2` | `AristaEosConfigTemplate.cs` | ✅ | Models, filters | ACL entries indented 3 spaces (template line 87); golden 2268 | None |
+| Config generator — Juniper Junos | `juniper_junos.j2` | `JuniperJunosConfigTemplate.cs` | ✅ | Models, filters | Ends `    }\n}\n` (final `}` on own line) | None |
+| Config generator — SONiC | `sonic.j2` | `SonicConfigTemplate.cs` | ✅ | Models, filters | Most whitespace-quirky (see §11 lessons); 10 leading `\n`; golden 5034 | None |
+| Config generator — Fortinet FortiGate | `fortinet_fortigate.j2` | `FortinetFortiGateConfigTemplate.cs` | ✅ | Models, filters | Golden 7043; ends `end\n\n`; iface name conversions (see §11) | None |
+| Custom template filters (10) | `config_generator.py` filters | `NetTools/Config/ConfigTemplateFilters.cs` | ✅ | — | 17 static methods incl. helpers | None |
+| Dispatcher + `Generate`/`GenerateFromDict` | `ConfigGenerator.generate` | `Services/NetworkConfig/NetworkConfigGenerator.cs` | ✅ | Renderers | `DictionaryToConfig` maps snake_case keys | None |
+| DI registration of generator | — | `App.xaml.cs` | ⏳ | — | Currently only `LlmRuntime.Router` registered | Add `AddSingleton<IConfigGenerator, NetworkConfigGenerator>()` |
+| Navigation / page shell | GUI `QTabWidget` | `networker/NetworkConfig/` + `MainWindow.xaml` | ⏳ | DI | Match ToolsPage pattern | Create page + NavigationViewItem |
+| Config parser | `src/core/parsers/config_parser.py` (1508 lines) | `NetTools/Config/` (new) | ⏳ | Models | Python has CiscoIOS, JuniperJunos, SONiC + factory | Port `BaseConfigParser`, 3 parsers, factory; unit tests |
+| Config validator | `src/core/validators/config_validator.py` (606 lines) | `NetTools/Config/` (new) | ⏳ | Models | `Severity`, `Category`, `ValidationIssue` | Port rules; merge with `ConfigAuditor`; tests |
+| Secure vault | `src/security/vault.py` (430 lines) | `Services/NetworkConfig/IVaultService` + impl | ⏳ | — | Use Windows DPAPI + AES; no Fernet compat | Implement + tests |
+| Predefined template library | `src/gui/app.py` `TEMPLATES` dict | `Services/NetworkConfig/ITemplateLibrary` + impl | ⏳ | Models | Store as embedded JSON | Port templates + service + tests |
+| Generate tab UI | `src/gui/app.py` | `networker/NetworkConfig/Views/` (new) | ⏳ | DI, renderers | Vendor combo, device form, interface/VLAN/ACL/routing/STP grids + dialogs | Build |
+| Import/Analyze tab UI | `src/gui/app.py` | new | ⏳ | Parser, validator | Paste → parse → structured results + validation issues | Build |
+| Diff tab UI | `src/gui/app.py` | new | ⏳ | `TextDiff` (exists) | Reuse `TextDiff.ToUnified()` | Build |
+| Vault tab UI | `src/gui/app.py` | new | ⏳ | Vault | Create/unlock, credentials, variables, templates | Build |
+| Templates tab UI | `src/gui/app.py` | new | ⏳ | Template library | Gallery + custom editor | Build |
+| Help content | `src/gui/help_content.py` | new (resources or strings) | ⏳ | — | Low priority | Port |
+| Theme | `src/gui/theme.py` | existing `Styles/*.xaml` | ✅ | — | No work needed; Python theme not ported | Verify Light/Dark/System after UI |
+| Golden test harness | `gen_golden.py` (reference) | `Networker.Core.Tests/NetTools/GoldenConfigTests.cs` | ✅ | Golden `*.txt` files | 13 tests (12 golden + vendors list) | Keep in sync with template changes |
+| Pre-existing generator unification | — | `NetTools/Config/ConfigGenerator.cs` + `DeviceSpec.cs` | ⏳ | — | Separate system (4 platforms); don't break ToolsPage | Decide: deprecate or bridge |
+
+---
+
+## 6. Session Summary
+
+### This Session (Slice A completion)
+Began with 2 failing Sonic golden tests (PORT `},` comma placement and other whitespace), fixed them,
+then re-verified the whole suite.
+
+### Files Created (this session's earlier slices, all in repo)
+- `Networker.Core/NetTools/Config/ConfigTemplateFilters.cs` (327 lines)
+- `Networker.Core/NetTools/Config/ConfigWriter.cs` (11 lines)
+- `Networker.Core/NetTools/Config/CiscoIosConfigTemplate.cs` (438 lines)
+- `Networker.Core/NetTools/Config/CiscoNxosConfigTemplate.cs` (248 lines)
+- `Networker.Core/NetTools/Config/AristaEosConfigTemplate.cs` (235 lines)
+- `Networker.Core/NetTools/Config/JuniperJunosConfigTemplate.cs` (314 lines)
+- `Networker.Core/NetTools/Config/SonicConfigTemplate.cs` (468 lines)
+- `Networker.Core/NetTools/Config/FortinetFortiGateConfigTemplate.cs` (420 lines)
+- `Networker.Core/Services/NetworkConfig/NetworkConfigGenerator.cs` (449 lines)
+- `Networker.Core/Models/NetworkConfig/*.cs` (24 files)
+- `Networker.Core/Services/NetworkConfig/{IConfigGenerator,IConfigParser,IConfigValidator,ITemplateLibrary,IVaultService}.cs`
+- `Networker.Core.Tests/NetTools/GoldenConfigTests.cs` (537 lines)
+- `Networker.Core.Tests/NetTools/Golden/{arista_eos,cisco_ios,cisco_nxos,fortinet_fortigate,juniper_junos,sonic}.txt`
+- `Networker.Core.Tests/Networker.Core.Tests.csproj` (updated to embed golden files)
+
+### Files Modified (this session)
+- `Networker.Core/NetTools/Config/SonicConfigTemplate.cs` — fixed whitespace to match `sonic.j2`
+  (details below).
+- (All other golden-verified template work was completed in earlier sessions.)
+
+### Files Removed
+- None.
+
+### Major Refactors / Fixes This Session (SonicConfigTemplate.cs)
+1. **PORT**: `"speed"` value no longer newline-terminated — closing `}` lands on the same line:
+   `"speed": "1000"        },`.
+2. **PORTCHANNEL / STATIC_ROUTE / OSPF_INTERFACE**: removed spurious `sb.Append('\n')` so the closing
+   `}` shares the last value line: `"admin_status": "up"        }`, `"nexthop": "10.0.0.2"        },`,
+   `"area": "0.0.0.0"        },`.
+3. **OSPF_ROUTER**: closing `}` is on its OWN template line (literal newline preserved) → emits
+   `"default_information_originate": "true"        }\n    },`.
+4. **ACL_TABLE**: `]` + `        }` on one line (`]        },`); added no-port-list fallback branch.
+5. **ACL_RULE**: iterate **all** entries unfiltered so trailing remark entries still control
+   `loop.last` comma placement → produces the golden's `,        "STD-ACL|RULE_5": {` (comma at line
+   start). Field `PRIORITY` had a hardcoded comma (double-comma) — removed; `string.Join(",\n", ...)`
+   now supplies it. Closing `}` appended directly after the last field.
+6. **Tail**: `DNS_NAMESERVER` closes with `    }\n}` (was `    }}`).
+
+### Architectural Decisions (see §12 for full rationale)
+- Pure C# StringBuilder renderers instead of the originally planned Scriban.
+- New generator kept separate from the pre-existing `ConfigGenerator`/`DeviceSpec` system.
+- Golden-file byte-parity testing against captured live Python output.
+- Filters as static methods; whitespace rules encoded explicitly per line.
+
+### UI Work Completed
+- None (Slice A is Core-only).
+
+### Testing Performed
+- `dotnet test Networker.Core.Tests -c Debug` → **125/125 passed** (includes 13 golden tests).
+- `dotnet build networker.sln -c Debug` → **0 errors**, 14 pre-existing CS1998 warnings
+  (`MainPage.xaml.cs` async-lacks-await).
+
+---
+
+## 7. Remaining Work (Prioritized Backlog)
+
+### High Priority
+| Item | Dependencies | Complexity | Effort |
+|---|---|---|---|
+| Register `IConfigGenerator` in DI (`App.xaml.cs`) | none | Low | 0.5h |
+| Add "Network Config" navigation + page shell with TabView | DI | Medium | 0.5–1d |
+| Port `ConfigValidator` (606 lines) + merge with `ConfigAuditor` | Models | Medium | 2–3d |
+| Port `ConfigParser` (1508 lines: CiscoIOS, JuniperJunos, SONiC) + factory | Models | High | 3–5d |
+| Unit tests for validator + parser | parser/validator | Medium | 1–2d |
+| Generate tab UI (vendor combo, device form, grids, dialogs) | dispatcher | High | 3–4d |
+
+### Medium Priority
+| Item | Dependencies | Complexity | Effort |
+|---|---|---|---|
+| Port vault (`vault.py`) using Windows DPAPI + AES-256 | none | Medium | 2–3d |
+| Port predefined template library (`TEMPLATES` dict) | Models | Low | 1d |
+| Import/Analyze tab UI | parser, validator | Medium | 2d |
+| Diff tab UI (reuse `TextDiff`) | none | Low | 0.5d |
+| Vault tab UI | vault | Medium | 1–2d |
+| Templates tab UI (gallery + editor) | template library | Medium | 1–2d |
+| Harden `DictionaryToConfig` (type coercion edge cases, JSON round-trip test) | — | Low | 0.5–1d |
+| Unify pre-existing `ConfigGenerator`/`DeviceSpec` with new system (deprecate/bridge) | UI cut-over | Medium | 1–2d |
+
+### Low Priority
+| Item | Dependencies | Complexity | Effort |
+|---|---|---|---|
+| Port help content (`help_content.py`) | — | Low | 0.5d |
+| Keyboard accelerators (Ctrl+G/S/O/E/L/I) | Generate tab | Low | 0.5d |
+| Settings integration (default vendor, vault path, template path) | settings, vault | Low | 0.5–1d |
+| Accessibility (automation properties, focus order) | UI tabs | Low | 1d |
+| Performance benchmark (generation < 500ms typical) | — | Low | 0.5d |
+| UI automation tests (WinAppDriver/Appium) | UI tabs | Medium | 2–3d |
+| README update for the new feature | feature complete | Low | 0.5h |
+| Keep `MIGRATION_PLAN.md` current as phases land | — | Low | ongoing |
+
+---
+
+## 8. Next Session Plan (execution order)
+
+Start with the checklist below. Each task lists objective, files, expected outcome, and validation.
+
+### Task 1 — Register the generator in DI
+- **Objective:** expose `IConfigGenerator` via `App.Services`.
+- **Files:** `App.xaml.cs` (`BuildServiceProvider`).
+- **Expected outcome:** `App.Services.GetService<IConfigGenerator>()` returns a `NetworkConfigGenerator`.
+- **Validation:** add a temporary resolve in `OnLaunched` or a unit assertion; build Debug clean.
+
+### Task 2 — Add Network Config page shell + navigation
+- **Objective:** a new page reachable from MainWindow, hosting the 5 feature tabs.
+- **Files:** `networker/NetworkConfig/NetworkConfigPage.xaml/.cs` (new, mirror `ToolsPage` layout),
+  `MainWindow.xaml` (add NavigationViewItem + frame routing).
+- **Expected outcome:** app launches, tab visible, placeholder page renders with themed controls.
+- **Validation:** run app; verify navigation + theme toggle on the new page.
+
+### Task 3 — Port Config Validator
+- **Objective:** `ConfigValidator` + `Severity`/`Category`/`ValidationIssue` matching
+  `config_validator.py`; merge with existing `ConfigAuditor` (extend, don't replace).
+- **Files:** new `NetTools/Config/ConfigValidator.cs` (+ `ValidationIssue.cs`), extend `ConfigAuditor`.
+- **Expected outcome:** all Python rules present; existing auditor tests still pass.
+- **Validation:** unit tests for each category; full suite green.
+
+### Task 4 — Port Config Parser
+- **Objective:** `ParseResult`, `BaseConfigParser`, `CiscoIosParser`, `JuniperJunosParser`,
+  `SonicParser`, `ConfigParserFactory` per `config_parser.py`.
+- **Files:** `NetTools/Config/ConfigParser.cs` family (new).
+- **Expected outcome:** parsing pasted configs back into `NetworkDeviceConfig`; graceful partial
+  parses return warnings.
+- **Validation:** round-trip tests (generate → parse → compare fields); unit tests per vendor.
+
+### Task 5 — Port Vault
+- **Objective:** `IVaultService` implementation with Windows DPAPI + AES-256-GCM.
+- **Files:** `Services/NetworkConfig/VaultService.cs` (new).
+- **Expected outcome:** create/unlock, store credentials/variables/templates; file in
+  `%LOCALAPPDATA%\Networker\vault.dat`.
+- **Validation:** unit tests (create, save, load, corrupt-file handling).
+
+### Task 6 — Port Template Library
+- **Objective:** `ITemplateLibrary` with predefined templates as embedded JSON.
+- **Files:** `Services/NetworkConfig/TemplateLibrary.cs`, `Resources/Templates.json` (new).
+- **Expected outcome:** `GetTemplates()`/`GetTemplate(name)` from `app.py` `TEMPLATES` dict.
+- **Validation:** unit tests listing expected templates.
+
+### Task 7 — Generate tab UI
+- **Objective:** vendor ComboBox (6), device basics, interface/VLAN/ACL/static-route/OSPF/BGP/EIGRP/STP
+  editing, Generate → `CodeBlockView` output with copy.
+- **Files:** `NetworkConfig/Views/Tabs/GenerateTab.xaml/.cs`, dialogs.
+- **Expected outcome:** produce the sample config matching golden output from the UI.
+- **Validation:** manual comparison against golden; run app.
+
+### Task 8 — Import/Analyze, Diff, Vault, Templates tabs
+- **Objective:** remaining tabs wired to services; Diff reuses `TextDiff`.
+- **Files:** `NetworkConfig/Views/Tabs/*`.
+- **Expected outcome:** all 5 Python tabs functional.
+- **Validation:** manual smoke + unit tests where logic lives in Core.
+
+### Task 9 — Polish & Release
+- **Objective:** settings integration, shortcuts, accessibility, README, Release build.
+- **Files:** `SettingsPg`, `MainWindow`, README.
+- **Expected outcome:** `dotnet build networker.sln -c Release` clean; full suite green.
+- **Validation:** Release build + full test run; theme check Light/Dark/System.
+
+---
+
+## 9. Build & Validation
+
+### Current Build Status
+- `dotnet build networker.sln -c Debug`: **0 errors**. (Release build not yet required this slice.)
+- `dotnet test Networker.Core.Tests -c Debug`: **125/125 passed** (includes 13 golden tests).
+
+### Remaining Warnings (all pre-existing)
+- 14 × `CS1998` "async method lacks await" in `MainPage.xaml.cs` (lines 217, 255, 309, 328, 348, 358,
+  364 — reported per-target, so it repeats). Not introduced by this work.
+
+### Known Issues
+- None known in the Core layer.
+- `FortinetOspfInterface` returns a hard-coded `"port1"` — matches golden but is an approximation for
+  the general case.
+
+### Runtime Issues
+- Not yet exercised: the generator is not registered in DI and no UI calls it. Golden tests are the
+  only execution path so far.
+
+### Pending Testing
+- Parser, validator, vault, template library unit tests (not ported yet).
+- UI smoke tests once tabs exist.
+- Performance benchmark once UI is wired.
+
+### Regression Risks
+- Template/filter changes can silently break byte-parity; any edit to `*ConfigTemplate.cs` or
+  `ConfigTemplateFilters.cs` should be followed by a full golden test run.
+- Touching `ConfigAuditor`/`ConfigGenerator` risks the pre-existing ToolsPage features — keep the
+  two generator systems separate until unification is deliberate.
+- `DictionaryToConfig` is the bridge for JSON-ish input; changes there affect `GenerateFromDict`.
+
+---
+
+## 10. Technical Debt
+
+### Temporary Workarounds
+- Golden files are static copies of live Python output; if `*.j2` templates change, regen via
+  `C:\Users\Kenny\AppData\Local\Temp\opencode\netconfigpro-golden\gen_golden.py` and re-copy into
+  `Networker.Core.Tests/NetTools/Golden/`.
+- `ConfigTemplateFilters.FortinetOspfInterface` is hard-coded to `"port1"`.
+- Whitespace behavior is encoded line-by-line in the renderers (see §11); there is no shared
+  "jinja2 semantics" abstraction.
+
+### Deferred Improvements
+- Unify pre-existing `ConfigGenerator`/`DeviceSpec` with the new `NetworkConfigGenerator`/
+  `NetworkDeviceConfig` (deprecate or bridge).
+- Move `DictionaryToConfig` to a separate, well-tested converter class.
+- Consider a fixture/helper for whitespace tests instead of whole-file goldens.
+
+### Refactoring Opportunities
+- The 6 renderers share "section/loop/comma" idioms — a small shared helper could reduce Sonic/Fortinet
+  complexity, but changes must preserve byte-parity.
+- `ConfigTemplateFilters` mixes filter-specific and shared helpers; fine as-is for now.
+
+### Performance Improvements
+- Renderers are single-pass `StringBuilder` already; potential micro-opt: cache `StringBuilder`
+  capacity. Generation is trivially fast; benchmark only when UI exists.
+
+### Security Improvements
+- Vault port must use DPAPI/AES-GCM with strict ACLs; never log secrets (mirror
+  `CredentialScrubber` patterns in `Llm/`).
+- Review `DictionaryToConfig` for any path that could echo secrets back into UI/logs.
+
+---
+
+## 11. Risks
+
+### Current Blockers
+- None.
+
+### Potential Architectural Risks
+- Byte-parity depends on subtle Jinja2 whitespace semantics. A future Python change requires
+  re-verification; document each quirk (see §13 Handoff Notes).
+- The parser (1508 lines of regex) is the highest-risk port — scope creep risk; plan for graceful
+  partial parses first.
+
+### Integration Risks
+- Two generator systems could confuse users; mitigate by deprecating the old one visibly once the
+  new UI ships.
+- WinUI specifics (DataGrid, pickers, ContentDialog) may differ from Qt patterns; expect
+  adjustments in the UI slice.
+
+### Compatibility Concerns
+- Python vault format is intentionally NOT migrated (new Windows-native vault).
+- `net8.0-windows10.0.19041` TFM constrains available APIs; verify DPAPI package availability before
+  committing to a NuGet dependency (prefer `System.Security.Cryptography.ProtectedData` only if needed
+  — check if it's already available in the SDK).
+
+---
+
+## 12. Design Decisions
+
+### D1 — Pure C# renderers instead of Scriban (DEVIATION from original plan)
+- **Decision:** Port each Jinja2 template to a hand-written C# `StringBuilder` renderer
+  (`*ConfigTemplate.cs`), not Scriban `.sbn` templates.
+- **Why:** byte-for-byte control over whitespace (Jinja2 `trim_blocks`/`lstrip_blocks` semantics are
+  quirky and easier to reproduce with explicit `W()`/append calls); **no new NuGet dependency**
+  (project hard constraint); output is deterministic and type-safe.
+- **Alternatives considered:** Scriban (original plan — abandoned: whitespace/trim semantics differ,
+  adds a dependency), RazorLight (heavier, compile step), T4 (design-time only), reusing the
+  pre-existing `ConfigGenerator`'s interpolation style (rejected: different model).
+- **Trade-off:** renderers are verbose; whitespace quirks are encoded per line.
+
+### D2 — Separate new generator from pre-existing `ConfigGenerator`
+- **Decision:** New `IConfigGenerator`/`NetworkConfigGenerator` + `NetworkDeviceConfig` models coexist
+  with the old `ConfigGenerator(ConfigPlatform, DeviceSpec)`.
+- **Why:** the old system uses a different model and backs `ToolsPage`; replacing it risks regressions.
+  The new system targets byte-parity with Python.
+- **Alternatives:** extending the old generator (rejected: model mismatch, would break the existing
+  API and its tests). **Deferred:** unification.
+
+### D3 — Golden-file byte-parity testing
+- **Decision:** Capture real Python output once (`gen_golden.py`), store as `NetTools/Golden/*.txt`,
+  and assert `Assert.Equal(expected, actual)` for both `Generate` and `GenerateFromDict`.
+- **Why:** the project's #1 requirement is output parity; golden files are the cheapest, most robust
+  regression net.
+- **Alternatives:** property-based or unit tests per rule (would not guarantee overall parity).
+
+### D4 — Filters as static methods
+- **Decision:** All Jinja2 filters ported as `static` methods on `ConfigTemplateFilters`.
+- **Why:** pure functions, trivially testable, no DI needed, callable directly from renderers.
+- **Alternative:** an interface/injected filter registry (over-engineering for static transforms).
+
+### D5 — Mutable classes for models
+- **Decision:** Feature models are plain classes with `{ get; set; }` (not records).
+- **Why:** simplifies `DictionaryToConfig`/JSON mapping and object-initializer use in future UI forms.
+- **Alternative:** `record` types (immutable) — nicer hashing but more ceremony for mutable UI flows.
+
+### D6 — Whitespace rules derived empirically
+- **Decision:** Jinja2 whitespace behavior was established by experimentation with the live Python
+  renderer, then encoded in the C# renderers.
+- **Why:** docs for `trim_blocks`/`lstrip_blocks` don't cover edge cases (inline `{% endif %}`,
+  blank lines in loops); ground truth is the rendered output.
+- **See §13** for the exact rules to preserve.
+
+### D7 — `GenerateFromDict(IReadOnlyDictionary<string, object>)`
+- **Decision:** The contract exposes a dictionary-based entry point mirroring Python dicts/JSON.
+- **Why:** enables a future JSON import path and keeps the Core layer UI-agnostic.
+
+### D8 — Templates in code, not embedded resources
+- **Decision:** Renderers are compiled C# files, not `.sbn`/resource files.
+- **Why:** compile-time checking, no resource pipeline, no reflection. **Trade-off:** template edits
+  require code edits + rebuild + golden re-verification.
+
+---
+
+## 13. Progress Checklist
+
+### Phase A — Core Models & Generation (Slice A)
+- [x] ✅ Enums: `Vendor`, `InterfaceType`, `RoutingProtocol`, `SwitchportMode`, `StpMode`,
+      `AclAction`, `AclProtocol`
+- [x] ✅ Models: `NetworkDeviceConfig` + all feature classes
+- [x] ✅ Service contracts: `IConfigGenerator`, `IConfigParser`, `IConfigValidator`,
+      `ITemplateLibrary`, `IVaultService`
+- [x] ✅ `ConfigWriter.W()` helper
+- [x] ✅ `ConfigTemplateFilters` (all 10 Python filters + helpers)
+- [x] ✅ Cisco IOS renderer (golden exact)
+- [x] ✅ Cisco NX-OS renderer (golden exact)
+- [x] ✅ Arista EOS renderer (golden exact)
+- [x] ✅ Juniper Junos renderer (golden exact)
+- [x] ✅ SONiC renderer (golden exact — whitespace quirks fixed this session)
+- [x] ✅ Fortinet FortiGate renderer (golden exact)
+- [x] ✅ `NetworkConfigGenerator` dispatcher + `DictionaryToConfig`
+- [x] ✅ Golden test harness (6 vendors × 2 paths + vendors list = 13 tests)
+- [x] ✅ Full suite 125/125; Debug build 0 errors
+
+### Phase B — Services (Slice C, planned)
+- [ ] ⏳ `ConfigValidator` port + `Severity`/`Category`/`ValidationIssue`
+- [ ] ⏳ Merge `ConfigAuditor` with validator
+- [ ] ⏳ `ConfigParser` port (`BaseConfigParser`, CiscoIOS, JuniperJunos, SONiC, factory)
+- [ ] ⏳ `VaultService` (DPAPI + AES-256-GCM)
+- [ ] ⏳ `TemplateLibrary` (predefined templates as embedded JSON)
+- [ ] ⏳ Unit tests for each new service
+
+### Phase C — UI (Slice B, planned)
+- [ ] ⏳ DI registration of `IConfigGenerator`
+- [ ] ⏳ "Network Config" NavigationViewItem + page shell (TabView)
+- [ ] ⏳ Generate tab (vendor, device basics, interfaces, VLANs, routing, ACLs, STP, output)
+- [ ] ⏳ Import/Analyze tab
+- [ ] ⏳ Diff tab (reuse `TextDiff`)
+- [ ] ⏳ Vault tab
+- [ ] ⏳ Templates tab
+- [ ] ⏳ Dialogs (Interface, VLAN, ACL, Routing)
+- [ ] ⏳ Theme verification (Light/Dark/System)
+- [ ] ⏳ Settings integration (default vendor, vault path, template path)
+- [ ] ⏳ Keyboard accelerators
+- [ ] ⏳ Accessibility pass
+
+### Phase D — Polish & Release
+- [ ] ⏳ README update
+- [ ] ⏳ Release build clean
+- [ ] ⏳ Performance benchmark
+- [ ] ⏳ UI automation tests (optional)
+- [ ] ⏳ Unify/deprecate old `ConfigGenerator`/`DeviceSpec`
+- [ ] ⏳ Final full test run + plan update
+
+---
+
+## 14. Handoff Notes
+
+### Where Work Stopped
+Slice A (Core generation) is **complete and green**: 125/125 tests, 0 build errors. The last action
+was fixing the Sonic whitespace quirks so all 6 vendors match the Python reference byte-for-byte.
+No work has started on DI registration, UI, parser, validator, vault, or template library.
+
+### What to Tackle First Next Session
+Follow §8 in order: **Task 1 (DI registration) → Task 2 (navigation + page shell)** first — they
+are small, low-risk, and make the feature visible in the app. Then services (validator, parser,
+vault, templates), then the UI tabs.
+
+### Important Assumptions
+- `C:\Users\Kenny\NetworkConfigPro` is the Python reference; `src/core/templates/vendors/*.j2` are the
+  templates to port (all 6 ported). `C:\Users\Kenny\AppData\Local\Temp\opencode\netconfigpro-golden\gen_golden.py`
+  is the golden generator with `build_config()`; it also documents the exact sample input the C#
+  tests mirror.
+- Jinja2 env: `Environment(trim_blocks=True, lstrip_blocks=True)`, `keep_trailing_newline` unset
+  (defaults false). Template/golden source files are CRLF; Python renders LF; C# must render LF.
+- Test input data must mirror `gen_golden.py`'s `build_config()` exactly (it does — see
+  `GoldenConfigTests.BuildSampleConfig`/`BuildSampleDict`).
+
+### Whitespace Rules (do not forget)
+- A block tag ending a line — standalone or inline `{% endif %}` — consumes the following `\n`.
+- Variable tags never consume newlines.
+- A literal blank line inside a loop emits one `\n` per iteration.
+- Comment-only lines are absorbed into the preceding block tag.
+- Consequence: a `}` following an inline `{% endif %}` that ends a line lands on the SAME line as the
+  last value (Sonic's `"mtu": "9100"        },`), unless the `}` is on its own template line
+  (OSPF_ROUTER) — then the newline is preserved.
+
+### Sonic Golden Facts (hard-won, keep byte-parity)
+- 10 leading `\n`; ends `    }\n}`.
+- PORT closing `}` on same line as last value (with/without `speed`); last port no comma.
+- PORTCHANNEL/STATIC_ROUTE/OSPF_INTERFACE same-line closing brace.
+- OSPF_ROUTER closing `}` on its own line → `        }\n`.
+- ACL_TABLE `]` + `        }` on one line.
+- ACL_RULE: entries iterated unfiltered (remarks still count for `loop.last`) → trailing remark after
+  RULE_15 produces `        },` and the cross-ACL comma renders as `,        "STD-ACL|RULE_5": {`.
+- Field list joined with `",\n"`; `PRIORITY` must NOT carry its own comma.
+
+### Other Vendor Golden Facts
+- cisco_ios / cisco_nxos / arista_eos end with `end` and **no trailing newline**.
+- juniper_junos ends `    }\n}\n`.
+- fortinet_fortigate ends `end\n\n`; golden ordering global → dns → ntp → replacemsg →
+  per-interface `config system interface` → static routes → OSPF → BGP → prefix-lists → route-maps →
+  ACLs; name conversions `GigabitEthernet0/0`→`port1`, 0/1→`port2`, 0/3→`port4`, `Loopback0`→
+  `loopback0`; interface body ends `set allowaccess ping`; access ports `set native-vlan {vlan_id}`;
+  disabled ports `set status down` (down wins over up).
+- arista_eos ACL entries are indented **3** spaces (from `arista.j2` line 87).
+- Golden lengths: cisco_ios 3403, cisco_nxos 2233, arista_eos 2268, juniper_junos 4113, sonic 5034,
+  fortinet_fortigate 7043.
+
+### Lessons Learned
+- **Verify whitespace against live output, never infer it.** Multiple "obvious" fixes broke parity;
+  the golden test is the arbiter.
+- **When a golden test fails, diff the expected/actual strings at the reported position** before
+  editing; each failure this session traced to exactly one template line.
+- **Keep template source open while editing renderers** (`sonic.j2` lines map 1:1 to C# append calls).
+- **The `,` belongs to the join or the template line, not the field string** (PRIORITY double-comma bug).
+- **A trailing remark entry is not "skipped for output" — it still controls `loop.last`.**
+- Every change to a renderer or filter must be followed by the full golden test run.

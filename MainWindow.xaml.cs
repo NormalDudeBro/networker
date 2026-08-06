@@ -16,31 +16,38 @@ namespace networker
             this.InitializeComponent();
             Instance = this;
 
+            // Initialize theme from settings using Root Grid's RequestedTheme (propagates to all children)
+            ApplyThemeToRoot();
+
             Toaster.Initialize(ToastHost, DispatcherQueue);
-            ApplyTheme();
             BuildPaletteCommands();
 
             ContentFrame.Navigate(typeof(MainPage));
         }
 
-        public void ApplyTheme()
-        {
-            if (Application.Current is App app)
-            {
-                app.ApplyTheme();
-            }
-        }
-
         public void ToggleTheme()
         {
+            // Simple Light ↔ Dark cycle (System is handled at startup only)
             AppSettings.ThemeMode = AppSettings.ThemeMode switch
             {
                 "Light" => "Dark",
-                "Dark" => "System",
                 _ => "Light"
             };
-            ApplyTheme();
+            ApplyThemeToRoot();
         }
+
+        private void ApplyThemeToRoot()
+        {
+            // Root Grid's RequestedTheme propagates to all children (NavView + ContentFrame)
+            Root.RequestedTheme = AppSettings.ThemeMode switch
+            {
+                "Light" => ElementTheme.Light,
+                "Dark" => ElementTheme.Dark,
+                _ => ElementTheme.Default,
+            };
+        }
+
+        public void ApplyThemeToFramePublic() => ApplyThemeToRoot();
 
         public void OpenPalette() => Palette.Open();
 

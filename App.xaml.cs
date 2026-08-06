@@ -18,37 +18,28 @@ namespace networker
         /// Initializes the singleton application object. This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
         /// </summary>
-        public App()
+public App()
+    {
+        // Apply theme BEFORE InitializeComponent() - WinUI requires this
+        switch (AppSettings.ThemeMode)
         {
-            this.InitializeComponent();
-            Services = BuildServiceProvider();
+            case "Light":
+                RequestedTheme = ApplicationTheme.Light;
+                break;
+            case "Dark":
+                RequestedTheme = ApplicationTheme.Dark;
+                break;
         }
 
-        /// <summary>
-        /// Root dependency-injection container. Providers and services are resolved
-        /// through <see cref="App.Services"/> from pages and controls.
-        /// </summary>
-        public IServiceProvider Services { get; }
+        this.InitializeComponent();
+        Services = BuildServiceProvider();
+    }
 
-        /// <summary>
-        /// Applies the theme application-wide so that shared brushes and dialogs
-        /// follow the requested mode. "System" leaves the OS default in place.
-        /// Note: WinUI cannot programmatically revert Application.RequestedTheme
-        /// to the system default once set; "System" therefore only applies at
-        /// launch or when a fixed theme has not yet been chosen.
-        /// </summary>
-        public void ApplyTheme()
-        {
-            switch (AppSettings.ThemeMode)
-            {
-                case "Light":
-                    RequestedTheme = ApplicationTheme.Light;
-                    break;
-                case "Dark":
-                    RequestedTheme = ApplicationTheme.Dark;
-                    break;
-            }
-        }
+    /// <summary>
+    /// Root dependency-injection container. Providers and services are resolved
+    /// through <see cref="App.Services"/> from pages and controls.
+    /// </summary>
+    public IServiceProvider Services { get; }
 
         private static ServiceProvider BuildServiceProvider()
         {

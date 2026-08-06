@@ -1,0 +1,195 @@
+
+
+
+
+
+
+
+
+
+
+{
+    "DEVICE_METADATA": {
+        "localhost": {
+            "hostname": "core-router-01",
+            "bgp_asn": "65000",
+            "type": "ToRRouter",
+            "synchronous_mode": "enable"
+        }
+    },
+    "PORT": {
+        "Ethernet0": {
+            "admin_status": "up",
+            "description": "Uplink to core",
+            "mtu": "9100",
+            "speed": "1000"        },
+        "Ethernet1": {
+            "admin_status": "up",
+            "description": "Access port",
+            "mtu": "9100"        },
+        "Ethernet2": {
+            "admin_status": "up",
+            "mtu": "9100"        },
+        "Ethernet3": {
+            "admin_status": "down",
+            "description": "Disabled port",
+            "mtu": "9100"        },
+        "Ethernet48": {
+            "admin_status": "up",
+            "mtu": "9100"        },
+        "Ethernet49": {
+            "admin_status": "up",
+            "mtu": "9100"        },
+        "Ethernet1": {
+            "admin_status": "up",
+            "description": "Dynamic mode",
+            "mtu": "9100"        },
+        "Ethernet96": {
+            "admin_status": "up",
+            "mtu": "9000"        }
+    },
+    "INTERFACE": {
+        "Ethernet0|10.0.0.1/30": {},
+        "PortChannel0001|10.99.0.1/30": {},
+        "Ethernet96|192.168.200.1/24": {}
+    },
+    "LOOPBACK_INTERFACE": {
+        "Loopback0|1.1.1.1/32": {}
+    },
+    "PORTCHANNEL": {
+        "PortChannel0001": {
+            "admin_status": "up"        }
+    },
+    "PORTCHANNEL_INTERFACE": {
+        "PortChannel0001|10.99.0.1/30": {}
+    },
+    "PORTCHANNEL_MEMBER": {
+        "PortChannel0001|Ethernet48": {},
+        "PortChannel0001|Ethernet49": {}
+    },
+    "VLAN": {
+        "Vlan10": {
+            "vlanid": "10"
+        },
+        "Vlan20": {
+            "vlanid": "20"
+        },
+        "Vlan100": {
+            "vlanid": "100"
+        }
+    },
+    "VLAN_MEMBER": {
+        "Vlan10|Ethernet1": {
+            "tagging_mode": "untagged"
+        },
+        "Vlan10|Ethernet3": {
+            "tagging_mode": "untagged"
+        },
+        "Vlan10|Ethernet48": {
+            "tagging_mode": "tagged"
+        },
+        "Vlan20|Ethernet48": {
+            "tagging_mode": "tagged"
+        }
+    },
+    "VLAN_INTERFACE": {
+        "Vlan100|192.168.100.1/24": {}
+    },
+    "STATIC_ROUTE": {
+        "0.0.0.0/0": {
+            "nexthop": "10.0.0.2"        },
+        "172.16.0.0/16": {
+            "nexthop": "10.0.0.2",
+            "distance": "10"        }
+    },
+    "OSPF_ROUTER": {
+        "default": {
+            "router_id": "1.1.1.1",
+            "reference_bandwidth": "1000",
+            "default_information_originate": "true"        }
+    },
+    "OSPF_ROUTER_AREA": {
+        "default|0.0.0.0": {},
+        "default|0.0.0.10": {}
+    },
+    "OSPF_INTERFACE": {
+        "10.0.0.0": {
+            "area": "0.0.0.0"        },
+        "192.168.100.0": {
+            "area": "0.0.0.10"        }
+    },
+    "BGP_NEIGHBOR": {
+        "10.0.0.2": {
+            "rmt_asn": "65001",
+            "name": "core-peer",
+            "holdtime": "180",
+            "keepalive": "60"
+        },
+        "10.0.1.2": {
+            "rmt_asn": "65000",
+            "name": "ibgp-peer",
+            "holdtime": "180",
+            "keepalive": "60"
+        }
+    },
+    "ACL_TABLE": {
+        "EXT-ACL": {
+            "type": "L3",
+            "policy_desc": "EXT-ACL",
+            "stage": "ingress",
+            "ports": [
+                "Ethernet0",
+                "Ethernet1",
+                "Ethernet2",
+                "Ethernet3",
+                "Ethernet48",
+                "Ethernet49",
+                "Ethernet1",
+                "Ethernet96"
+            ]        },
+        "STD-ACL": {
+            "type": "L3",
+            "policy_desc": "STD-ACL",
+            "stage": "ingress",
+            "ports": [
+                "Ethernet0",
+                "Ethernet1",
+                "Ethernet2",
+                "Ethernet3",
+                "Ethernet48",
+                "Ethernet49",
+                "Ethernet1",
+                "Ethernet96"
+            ]        }
+    },
+    "ACL_RULE": {
+        "EXT-ACL|RULE_10": {
+            "PRIORITY": "9990",
+            "PACKET_ACTION": "FORWARD",
+            "IP_PROTOCOL": "6",
+            "SRC_IP": "10.0.0.0/24",
+            "L4_DST_PORT": "443"        },
+        "EXT-ACL|RULE_20": {
+            "PRIORITY": "9980",
+            "PACKET_ACTION": "DROP",
+            "DST_IP": "192.168.100.0/24"        },
+        "EXT-ACL|RULE_30": {
+            "PRIORITY": "9970",
+            "PACKET_ACTION": "FORWARD"        }
+,        "STD-ACL|RULE_5": {
+            "PRIORITY": "9995",
+            "PACKET_ACTION": "FORWARD",
+            "SRC_IP": "10.1.0.0/16"        },
+        "STD-ACL|RULE_15": {
+            "PRIORITY": "9985",
+            "PACKET_ACTION": "DROP"        },
+    },
+    "NTP_SERVER": {
+        "10.0.0.10": {},
+        "10.0.0.11": {}
+    },
+    "DNS_NAMESERVER": {
+        "8.8.8.8": {},
+        "8.8.4.4": {}
+    }
+}

@@ -1,4 +1,4 @@
-# NetOps Copilot
+# Networker Copilot
 
 A modern WinUI 3 desktop app for network engineers — deterministic tools + AI-powered chat.
 
@@ -33,7 +33,7 @@ networker/                 # WinUI 3 app (net8.0-windows10.0.19041)
 ├── SettingsPg.xaml        # Provider/model/prompt/theme
 └── App.xaml               # DI container, theme at Application level
 
-NetOps.Core/               # Deterministic net logic (net8.0, no UI deps)
+Networker.Core/               # Deterministic net logic (net8.0, no UI deps)
 ├── Llm/                   # Provider layer (config, router, retry, SSE)
 ├── Prompting/             # PromptBuilder
 ├── NetTools/
@@ -74,13 +74,13 @@ Or configure in-app via **Settings → Provider**.
 ## Tests
 
 ```powershell
-dotnet test NetOps.Core.Tests\NetOps.Core.Tests.csproj
+dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj
 # 112 tests passing
 ```
 
 ## Key Design Decisions
 
-- **Deterministic first** — All net logic in `NetOps.Core`, unit-testable, no LLM
+- **Deterministic first** — All net logic in `Networker.Core`, unit-testable, no LLM
 - **LLM for explanation only** — Summary, troubleshooting, translation, doc generation
 - **Zero-warning build** — CI enforces clean output
 - **Design system** — Tokens for colors/fonts/radius, single-theme Application resource

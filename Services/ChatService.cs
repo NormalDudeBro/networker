@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using NetOps.Core.Llm;
-using NetOps.Core.Prompting;
+using Networker.Core.Llm;
+using Networker.Core.Prompting;
 
 namespace networker.Services
 {
@@ -57,3 +57,4 @@ namespace networker.Services
         }
     }
 }
+

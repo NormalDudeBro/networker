@@ -5,9 +5,9 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:networker"
     xmlns:controls="using:networker.Controls"
-    Title="NetOps Copilot">
+    Title="Networker Copilot">
 
-    <Grid x:Name="Root">
+    <Grid x:Name="Root" x:FieldModifier="public">
 
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="K" Modifiers="Control" Invoked="PaletteAccelerator_Invoked"/>
@@ -32,7 +32,7 @@
 
             <NavigationView.PaneFooter>
                 <StackPanel Padding="12,0,12,12" Spacing="4">
-                    <TextBlock Text="NetOps Copilot" FontSize="12" FontWeight="SemiBold" Opacity="0.7"/>
+                    <TextBlock Text="Networker Copilot" FontSize="12" FontWeight="SemiBold" Opacity="0.7"/>
                     <TextBlock Text="Local-first network assistant" Style="{StaticResource CaptionTextStyle}"/>
                 </StackPanel>
             </NavigationView.PaneFooter>
@@ -52,3 +52,4 @@
         </Grid>
     </Grid>
 </Window>
+

@@ -29,7 +29,6 @@ namespace networker
             ProviderComboBox.SelectedItem = AppSettings.SelectedProvider;
 
             ThemeComboBox.Items.Clear();
-            ThemeComboBox.Items.Add("System");
             ThemeComboBox.Items.Add("Light");
             ThemeComboBox.Items.Add("Dark");
             ThemeComboBox.SelectedItem = AppSettings.ThemeMode;
@@ -88,7 +87,8 @@ namespace networker
         {
             if (_isInitializing || ThemeComboBox.SelectedItem is not string theme) return;
             AppSettings.ThemeMode = theme;
-            MainWindow.Instance?.ApplyTheme();
+
+            MainWindow.Instance?.ApplyThemeToFramePublic();
         }
 
         private void SystemPromptTextBox_LostFocus(object sender, RoutedEventArgs e)

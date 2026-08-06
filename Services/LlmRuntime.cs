@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using NetOps.Core.Llm;
+using Networker.Core.Llm;
 using Windows.Storage;
 
 namespace networker.Services
@@ -89,3 +89,4 @@ namespace networker.Services
         }
     }
 }
+

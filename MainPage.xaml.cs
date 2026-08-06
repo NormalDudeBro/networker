@@ -1,4 +1,4 @@
-ï»¿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -13,11 +13,11 @@ using Microsoft.UI.Xaml.Navigation;
 using networker.Controls;
 using networker.Models;
 using networker.Services;
-using NetOps.Core.NetTools.Config;
-using NetOps.Core.NetTools.Ip;
-using NetOps.Core.NetTools.Logs;
-using NetOps.Core.NetTools.Playbooks;
-using NetOps.Core.NetTools.Topology;
+using Networker.Core.NetTools.Config;
+using Networker.Core.NetTools.Ip;
+using Networker.Core.NetTools.Logs;
+using Networker.Core.NetTools.Playbooks;
+using Networker.Core.NetTools.Topology;
 
 namespace networker
 {
@@ -224,7 +224,7 @@ namespace networker
 
             try
             {
-                var s = NetOps.Core.NetTools.Ip.IpToolkit.Calculate(text);
+                var s = Networker.Core.NetTools.Ip.IpToolkit.Calculate(text);
                 var sb = new StringBuilder();
                 sb.AppendLine($"Input          {s.Input}");
                 sb.AppendLine($"Network        {s.NetworkAddress}/{s.PrefixLength}");
@@ -255,7 +255,7 @@ namespace networker
         private static async Task<ChatMessage?> RunConfigGenerator(ConfigPlatform platform, string prompt, string feature)
         {
             // Use a sensible default spec; in future we can parse the prompt for details
-            var spec = new NetOps.Core.NetTools.Config.DeviceSpec
+            var spec = new Networker.Core.NetTools.Config.DeviceSpec
             {
                 Hostname = "edge-01",
                 DomainName = "corp.example",
@@ -271,30 +271,30 @@ namespace networker
                 BgpRedistributeConnected = true,
                 Vlans = new[]
                 {
-                    new NetOps.Core.NetTools.Config.VlanSpec { Id = "10", Name = "users", InterfaceVlanIp = "192.168.10.1/24" },
-                    new NetOps.Core.NetTools.Config.VlanSpec { Id = "20", Name = "servers", InterfaceVlanIp = "192.168.20.1/24" },
+                    new Networker.Core.NetTools.Config.VlanSpec { Id = "10", Name = "users", InterfaceVlanIp = "192.168.10.1/24" },
+                    new Networker.Core.NetTools.Config.VlanSpec { Id = "20", Name = "servers", InterfaceVlanIp = "192.168.20.1/24" },
                 },
                 Interfaces = new[]
                 {
-                    new NetOps.Core.NetTools.Config.InterfaceSpec { Name = "GigabitEthernet0/0", Description = "Uplink", Mode = "routed", Ip = "203.0.113.1/30", Mtu = "1500" },
-                    new NetOps.Core.NetTools.Config.InterfaceSpec { Name = "GigabitEthernet0/1", Mode = "access", Vlan = "10" },
-                    new NetOps.Core.NetTools.Config.InterfaceSpec { Name = "GigabitEthernet0/2", Mode = "trunk", AllowedVlans = "10,20" },
+                    new Networker.Core.NetTools.Config.InterfaceSpec { Name = "GigabitEthernet0/0", Description = "Uplink", Mode = "routed", Ip = "203.0.113.1/30", Mtu = "1500" },
+                    new Networker.Core.NetTools.Config.InterfaceSpec { Name = "GigabitEthernet0/1", Mode = "access", Vlan = "10" },
+                    new Networker.Core.NetTools.Config.InterfaceSpec { Name = "GigabitEthernet0/2", Mode = "trunk", AllowedVlans = "10,20" },
                 },
                 OspfAreas = new[]
                 {
-                    new NetOps.Core.NetTools.Config.OspfAreaSpec("192.168.10.0/24", "0"),
-                    new NetOps.Core.NetTools.Config.OspfAreaSpec("192.168.20.0/24", "0"),
+                    new Networker.Core.NetTools.Config.OspfAreaSpec("192.168.10.0/24", "0"),
+                    new Networker.Core.NetTools.Config.OspfAreaSpec("192.168.20.0/24", "0"),
                 },
                 BgpNeighbors = new[]
                 {
-                    new NetOps.Core.NetTools.Config.BgpNeighborSpec("203.0.113.2", "64512", "Transit"),
+                    new Networker.Core.NetTools.Config.BgpNeighborSpec("203.0.113.2", "64512", "Transit"),
                 },
                 Acls = new[]
                 {
-                    new NetOps.Core.NetTools.Config.AclEntrySpec { Name = "MGMT-IN", Action = "permit", Protocol = "tcp", Source = "10.0.0.0/8", Destination = "any", DestinationPort = "22" },
-                    new NetOps.Core.NetTools.Config.AclEntrySpec { Name = "MGMT-IN", Action = "deny", Protocol = "tcp", Source = "any", Destination = "any", DestinationPort = "23", Log = true },
+                    new Networker.Core.NetTools.Config.AclEntrySpec { Name = "MGMT-IN", Action = "permit", Protocol = "tcp", Source = "10.0.0.0/8", Destination = "any", DestinationPort = "22" },
+                    new Networker.Core.NetTools.Config.AclEntrySpec { Name = "MGMT-IN", Action = "deny", Protocol = "tcp", Source = "any", Destination = "any", DestinationPort = "23", Log = true },
                 },
-                Nat = new NetOps.Core.NetTools.Config.NatSpec
+                Nat = new Networker.Core.NetTools.Config.NatSpec
                 {
                     Inside = new[] { "GigabitEthernet0/1" },
                     Outside = "GigabitEthernet0/0",
@@ -302,13 +302,13 @@ namespace networker
                 },
             };
 
-            var config = NetOps.Core.NetTools.Config.ConfigGenerator.Generate(platform, spec);
+            var config = Networker.Core.NetTools.Config.ConfigGenerator.Generate(platform, spec);
             return new ChatMessage { Role = ChatRole.Assistant, IsCode = true, CodeTitle = $"{platform} {feature} Config", Text = config };
         }
 
         private static async Task<ChatMessage?> RunConfigAudit(string config)
         {
-            var findings = NetOps.Core.NetTools.Config.ConfigAuditor.Audit(config);
+            var findings = Networker.Core.NetTools.Config.ConfigAuditor.Audit(config);
             if (findings.Count == 0)
             {
                 return new ChatMessage { Role = ChatRole.Assistant, IsCode = true, CodeTitle = "Config Audit", Text = "No issues found." };
@@ -328,7 +328,7 @@ namespace networker
         private static async Task<ChatMessage?> RunLogAnalyzer(string logs)
         {
             var lines = (logs ?? "").Split('\n');
-            var analysis = NetOps.Core.NetTools.Logs.LogAnalyzer.Analyze(lines);
+            var analysis = Networker.Core.NetTools.Logs.LogAnalyzer.Analyze(lines);
             if (analysis.Findings.Count == 0)
             {
                 return new ChatMessage { Role = ChatRole.Assistant, IsCode = true, CodeTitle = "Log Analysis", Text = "No anomalies detected." };
@@ -350,14 +350,14 @@ namespace networker
             var configs = ParseDeviceConfigs(text);
             if (configs.Count == 0) return null;
 
-            var topology = NetOps.Core.NetTools.Topology.TopologyBuilder.Build(configs);
-            var mermaid = NetOps.Core.NetTools.Topology.TopologyBuilder.RenderMermaid(topology);
+            var topology = Networker.Core.NetTools.Topology.TopologyBuilder.Build(configs);
+            var mermaid = Networker.Core.NetTools.Topology.TopologyBuilder.RenderMermaid(topology);
             return new ChatMessage { Role = ChatRole.Assistant, IsCode = true, CodeTitle = "Topology (Mermaid)", Text = mermaid };
         }
 
         private static async Task<ChatMessage?> RunTranslator(string input)
         {
-            var output = NetOps.Core.NetTools.Config.ConfigTranslator.IosToJunos(input);
+            var output = Networker.Core.NetTools.Config.ConfigTranslator.IosToJunos(input);
             return new ChatMessage { Role = ChatRole.Assistant, IsCode = true, CodeTitle = "Juniper Junos (translated)", Text = output };
         }
 
@@ -373,14 +373,14 @@ namespace networker
                 _ => "new-switch",
             };
 
-            var playbook = NetOps.Core.NetTools.Playbooks.PlaybookGenerator.Generate(key);
-            var md = NetOps.Core.NetTools.Playbooks.PlaybookGenerator.RenderMarkdown(playbook);
+            var playbook = Networker.Core.NetTools.Playbooks.PlaybookGenerator.Generate(key);
+            var md = Networker.Core.NetTools.Playbooks.PlaybookGenerator.RenderMarkdown(playbook);
             return new ChatMessage { Role = ChatRole.Assistant, IsCode = true, CodeTitle = $"{scenario} Playbook", Text = md };
         }
 
-        private static List<NetOps.Core.NetTools.Topology.DeviceConfig> ParseDeviceConfigs(string text)
+        private static List<Networker.Core.NetTools.Topology.DeviceConfig> ParseDeviceConfigs(string text)
         {
-            var result = new List<NetOps.Core.NetTools.Topology.DeviceConfig>();
+            var result = new List<Networker.Core.NetTools.Topology.DeviceConfig>();
             var blocks = text.Split(new[] { "\r\n==== ", "==== ", "===" }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var block in blocks)
             {
@@ -388,7 +388,7 @@ namespace networker
                 var body = block.Contains('\n') ? block.Split('\n', 2)[1] : string.Empty;
                 if (body.Length > 0)
                 {
-                    result.Add(new NetOps.Core.NetTools.Topology.DeviceConfig(name.Trim(), body));
+                    result.Add(new Networker.Core.NetTools.Topology.DeviceConfig(name.Trim(), body));
                 }
             }
             return result;
@@ -477,7 +477,7 @@ namespace networker
 
         public async Task RefreshConnectionAsync()
         {
-            PanelHealthText.Text = "Checkingâ€¦";
+            PanelHealthText.Text = "Checking…";
             PanelHealthDot.Fill = new SolidColorBrush(Colors.Gray);
             HealthText.Text = "Checking";
             HealthDot.Fill = new SolidColorBrush(Colors.Gray);
@@ -522,7 +522,7 @@ namespace networker
 
             if (!hasModels)
             {
-                PanelHealthText.Text = "Connected â€” no models";
+                PanelHealthText.Text = "Connected — no models";
             }
         }
 
@@ -638,3 +638,4 @@ namespace networker
         }
     }
 }
+

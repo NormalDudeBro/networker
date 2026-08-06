@@ -53,12 +53,14 @@ existing C# **Networker** WinUI 3 application, so it feels like a native feature
 ### Completed Phases
 - **Slice A — Core generation layer (DONE).** Models, interfaces, filters, six C# template renderers,
   dispatcher, dictionary conversion, golden tests.
-- **Slice B Tasks 1–2 — DI + page shell (DONE).** `IConfigGenerator` registered in `App.xaml.cs`
-  (resolved by the new page via `Application.Current`); "Network Config" nav item + palette command;
-  `NetworkConfig/Views/NetworkConfigPage.xaml/.cs` shell with the 5 feature tabs. The Generate tab
-  already exercises the full DI → generator → render → `CodeBlockView` path with a sample config.
+- **Slice B Tasks 1–3 (DONE).** Task 1: `IConfigGenerator` registered in `App.xaml.cs`
+  (resolved by the new page via `Application.Current`); Task 2: "Network Config" nav item + palette
+  command; `NetworkConfig/Views/NetworkConfigPage.xaml/.cs` shell with the 5 feature tabs. The
+  Generate tab exercises the full DI → generator → render → `CodeBlockView` path with a sample
+  config. Task 3: `ConfigValidator` ported with 38 unit tests.
 
 ### In-Progress Phases
+- Slice C — services: parser, vault, template library remain (validator done).
 - Slice B — UI integration (remaining: full Generate tab form, Import/Analyze, Diff, Vault, Templates tabs).
 
 ### Remaining Phases
@@ -67,14 +69,18 @@ existing C# **Networker** WinUI 3 application, so it feels like a native feature
 - Polish & Release — theme verification, settings integration, shortcuts, accessibility, README,
   Release build, performance check, generator-system unification.
 
-### Overall Estimated Completion: **~45%**
+### Overall Estimated Completion: **~52%**
 Generation (a large fraction of the value) is fully done and tested; DI + page shell landed;
-the parser/validator/vault and the full UI tabs remain.
+the validator is ported; the parser/vault/template-library and the full UI tabs remain.
 
 ### Major Accomplishments This Session
 - **All 13 golden tests pass** (6 vendors × `Generate` + `GenerateFromDict`, byte-exact, plus
   `GetSupportedVendors_ReturnsAllSix`).
-- **Full suite: 125/125 tests pass.** Build: **0 errors**, only pre-existing warnings.
+- **Full suite: 163/163 tests pass** (125 existing + 38 new `ConfigValidator` tests). Build:
+  **0 errors**, only pre-existing warnings.
+- **Task 3: `ConfigValidator` ported** from `config_validator.py` (606 lines) — all 9 check groups,
+  `WEAK_PASSWORDS`, `RESERVED_VLANS`, IPv4-only IP/network/subnet-mask helpers, `GetSummary`.
+  Stateless implementation of the pre-existing `IConfigValidator` contract.
 - Fixed the last Sonic blocker: reproduced every whitespace quirk of `sonic.j2` (same-line closing
   braces, remark-aware `loop.last` comma placement, OSPF_ROUTER literal newline, PRIORITY field comma).
 - Verified byte-exact parity for all 6 vendors against live Python renders (done during the port;
@@ -260,9 +266,10 @@ the Python list; C#: `SubnetToCidr`, `WildcardToCidr`, `WildcardToNetmask`, `Jun
   `CopyToOutputDirectory=PreserveNewest`).
 
 ### Dependency Injection Strategy
-Register `IConfigGenerator` (→ `NetworkConfigGenerator`) as singleton in `App.xaml.cs`
-(**NOT DONE YET**). Future services (`IConfigParser`, `IConfigValidator`, `IVaultService`,
-`ITemplateLibrary`) register the same way. Pages resolve via `App.Services`.
+`IConfigGenerator` (→ `NetworkConfigGenerator`) is registered as a singleton in `App.xaml.cs`
+(**DONE**, Task 1). Future services (`IConfigParser`, `IVaultService`, `ITemplateLibrary`) register
+the same way. `IConfigValidator` has an implementation (`ConfigValidator`) but is not yet DI-registered —
+the Import/Analyze tab will register it when built. Pages resolve via `App.Services`.
 
 ### Data Flow
 UI (future) collects device data → `NetworkDeviceConfig` (or dict) → `IConfigGenerator.Generate` /
@@ -298,7 +305,7 @@ Legend: ✅ done · 🚧 in progress · ⏳ planned · ❌ blocked.
 | DI registration of generator | — | `App.xaml.cs` | ✅ | — | `services.AddSingleton<IConfigGenerator, NetworkConfigGenerator>()`; page resolves via `((App)Application.Current).Services` | None |
 | Navigation / page shell | GUI `QTabWidget` | `networker/NetworkConfig/Views/` + `MainWindow.xaml` | ✅ | DI | `NavigationViewItem` (Tag `networkconfig`, Icon `Code`) + palette command; page shell has all 5 tabs | Full tab content |
 | Config parser | `src/core/parsers/config_parser.py` (1508 lines) | `NetTools/Config/` (new) | ⏳ | Models | Python has CiscoIOS, JuniperJunos, SONiC + factory | Port `BaseConfigParser`, 3 parsers, factory; unit tests |
-| Config validator | `src/core/validators/config_validator.py` (606 lines) | `NetTools/Config/` (new) | ⏳ | Models | `Severity`, `Category`, `ValidationIssue` | Port rules; merge with `ConfigAuditor`; tests |
+| Config validator | `src/core/validators/config_validator.py` (606 lines) | `Services/NetworkConfig/ConfigValidator.cs` | ✅ | Models | Implements pre-existing `IConfigValidator`; 38 tests | Merge with `ConfigAuditor` (deferred) |
 | Secure vault | `src/security/vault.py` (430 lines) | `Services/NetworkConfig/IVaultService` + impl | ⏳ | — | Use Windows DPAPI + AES; no Fernet compat | Implement + tests |
 | Predefined template library | `src/gui/app.py` `TEMPLATES` dict | `Services/NetworkConfig/ITemplateLibrary` + impl | ⏳ | Models | Store as embedded JSON | Port templates + service + tests |
 | Generate tab UI | `src/gui/app.py` | `networker/NetworkConfig/Views/` (new) | ⏳ | DI, renderers | Vendor combo, device form, interface/VLAN/ACL/routing/STP grids + dialogs | Build |
@@ -433,12 +440,25 @@ Start with the checklist below. Each task lists objective, files, expected outco
 - **Note:** Generate tab currently has a vendor ComboBox + "Generate sample configuration" (proof of
   life); the full device form is Task 7.
 
-### Task 3 — Port Config Validator
+### Task 3 — Port Config Validator ✅ DONE
 - **Objective:** `ConfigValidator` + `Severity`/`Category`/`ValidationIssue` matching
   `config_validator.py`; merge with existing `ConfigAuditor` (extend, don't replace).
-- **Files:** new `NetTools/Config/ConfigValidator.cs` (+ `ValidationIssue.cs`), extend `ConfigAuditor`.
+- **Files:** `Services/NetworkConfig/ConfigValidator.cs` (new, implements the pre-existing
+  `IConfigValidator` contract — placed next to the contract + `NetworkConfigGenerator` rather than
+  `NetTools/Config/`, consistent with Tasks 1–2; the `ConfigAuditor` merge is deferred).
 - **Expected outcome:** all Python rules present; existing auditor tests still pass.
-- **Validation:** unit tests for each category; full suite green.
+- **Validation:** 38 new tests ported from `tests/unit/test_validator.py` (plus extras for rules
+  Python's suite skips); full suite green.
+- **Notes:**
+  - Stateless `Validate(config) -> IReadOnlyList<ValidationIssue>`; `GetSummary` ported as a static
+    helper on the concrete class (not on the interface).
+  - `Severity`/`Category` map 1:1 onto the pre-existing `ValidationSeverity`/`ValidationCategory`.
+  - Interface IP-validity check dropped: the C# `Interface.IpAddress` is `IPAddress?`, which cannot
+    hold an invalid address (Python's `test_invalid_ip_address` is not portable for this reason).
+    Invalid-IP checks remain for string-typed fields (`StaticRoute.Destination/NextHop`,
+    `BgpNeighbor.IpAddress`, `OspfConfig.RouterId`, `AclEntry.Source`).
+  - Interface reserved-VLAN check reads `VlanId ?? AccessVlan` (C# split Python's single `vlan_id`
+    into legacy + new fields); `IsValidIp` is IPv4-only to match Python's `IPv4Address`.
 
 ### Task 4 — Port Config Parser
 - **Objective:** `ParseResult`, `BaseConfigParser`, `CiscoIosParser`, `JuniperJunosParser`,
@@ -486,7 +506,7 @@ Start with the checklist below. Each task lists objective, files, expected outco
 
 ### Current Build Status
 - `dotnet build networker.sln -c Debug`: **0 errors**. (Release build not yet required this slice.)
-- `dotnet test Networker.Core.Tests -c Debug`: **125/125 passed** (includes 13 golden tests).
+- `dotnet test Networker.Core.Tests -c Debug`: **163/163 passed** (125 prior + 38 validator tests).
 
 ### Remaining Warnings (all pre-existing)
 - 14 × `CS1998` "async method lacks await" in `MainPage.xaml.cs` (lines 217, 255, 309, 328, 348, 358,
@@ -502,7 +522,9 @@ Start with the checklist below. Each task lists objective, files, expected outco
   only execution path so far.
 
 ### Pending Testing
-- Parser, validator, vault, template library unit tests (not ported yet).
+- Parser, vault, template library unit tests (not ported yet).
+- `ConfigValidator` is ported (38 tests) but not yet wired into a UI surface — the Import/Analyze tab
+  is the consumer.
 - UI smoke tests once tabs exist.
 - Performance benchmark once UI is wired.
 
@@ -649,7 +671,7 @@ Start with the checklist below. Each task lists objective, files, expected outco
 - [x] ✅ Full suite 125/125; Debug build 0 errors
 
 ### Phase B — Services (Slice C, planned)
-- [ ] ⏳ `ConfigValidator` port + `Severity`/`Category`/`ValidationIssue`
+- [x] ✅ `ConfigValidator` port + `Severity`/`Category`/`ValidationIssue` (38 tests)
 - [ ] ⏳ Merge `ConfigAuditor` with validator
 - [ ] ⏳ `ConfigParser` port (`BaseConfigParser`, CiscoIOS, JuniperJunos, SONiC, factory)
 - [ ] ⏳ `VaultService` (DPAPI + AES-256-GCM)
@@ -683,15 +705,17 @@ Start with the checklist below. Each task lists objective, files, expected outco
 ## 14. Handoff Notes
 
 ### Where Work Stopped
-Slice A (Core generation) is **complete and green**: 125/125 tests, 0 build errors. Slice B Tasks 1–2
-(DI registration + Network Config page shell with all 5 tabs) are complete and committed. The page's
-Generate tab has a working sample-generator through DI; the full device form, the Import/Analyze,
-Diff, Vault, and Templates tabs, and the parser/validator/vault/template-library services remain.
+Slice A (Core generation) is **complete and green**: 13 golden + full suite 163/163 tests, 0 build
+errors. Slice B Tasks 1–2 (DI registration + Network Config page shell with all 5 tabs) and Task 3
+(`ConfigValidator` port with 38 tests) are complete and committed. The page's Generate tab has a
+working sample-generator through DI; the full device form, the Import/Analyze, Diff, Vault, and
+Templates tabs, and the parser/vault/template-library services remain.
 
 ### What to Tackle First Next Session
-Continue §8 in order: **Task 3 (ConfigValidator port)** — it has no UI dependency and unblocks the
-Import/Analyze tab — then **Task 4 (ConfigParser port)**. Task 7 (Generate tab UI) can proceed in
-parallel conceptually but per plan order comes after the services.
+Continue §8 in order: **Task 4 (ConfigParser port)** — the biggest remaining risk
+(1508-line Python regex parser; target vendors Cisco IOS, Juniper Junos, SONiC + factory
+auto-detection). It pairs with the completed validator to unblock the Import/Analyze tab.
+Then Task 5 (Vault) and Task 6 (Template Library). Task 7 (Generate tab UI) comes after the services.
 
 ### Important Assumptions
 - `C:\Users\Kenny\NetworkConfigPro` is the Python reference; `src/core/templates/vendors/*.j2` are the

@@ -57,6 +57,7 @@ namespace networker
             {
                 new PaletteCommand("Go to Home", "Open the chat workspace", "\uE80F", () => NavigateTo("home"), "chat", "home"),
                 new PaletteCommand("Go to Tools", "Open the network toolkit", "\uE774", () => NavigateTo("tools"), "ip", "config", "tools", "subnet", "audit"),
+                new PaletteCommand("Go to Network Config", "Generate, import, and validate device configs", "\uE943", () => NavigateTo("networkconfig"), "config", "generate", "vault", "network"),
                 new PaletteCommand("Go to Settings", "Provider and application settings", "\uE713", () => NavigateTo("settings"), "settings", "provider", "theme"),
                 new PaletteCommand("Toggle theme", "Switch light / dark / system", "\uE790", ToggleTheme, "theme", "dark", "light"),
                 new PaletteCommand("New chat", "Start a fresh conversation", "\uE8BD", () => MainPage.Current?.NewChat(), "new", "chat", "clear"),
@@ -70,6 +71,7 @@ namespace networker
             {
                 case "home": ContentFrame.Navigate(typeof(MainPage)); break;
                 case "tools": ContentFrame.Navigate(typeof(ToolsPage)); break;
+                case "networkconfig": ContentFrame.Navigate(typeof(NetworkConfig.Views.NetworkConfigPage)); break;
                 case "settings": ContentFrame.Navigate(typeof(SettingsPg)); break;
             }
         }

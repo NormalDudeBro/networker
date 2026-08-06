@@ -53,9 +53,13 @@ existing C# **Networker** WinUI 3 application, so it feels like a native feature
 ### Completed Phases
 - **Slice A — Core generation layer (DONE).** Models, interfaces, filters, six C# template renderers,
   dispatcher, dictionary conversion, golden tests.
+- **Slice B Tasks 1–2 — DI + page shell (DONE).** `IConfigGenerator` registered in `App.xaml.cs`
+  (resolved by the new page via `Application.Current`); "Network Config" nav item + palette command;
+  `NetworkConfig/Views/NetworkConfigPage.xaml/.cs` shell with the 5 feature tabs. The Generate tab
+  already exercises the full DI → generator → render → `CodeBlockView` path with a sample config.
 
 ### In-Progress Phases
-- None. (Slice A ended clean; Slice B has not started.)
+- Slice B — UI integration (remaining: full Generate tab form, Import/Analyze, Diff, Vault, Templates tabs).
 
 ### Remaining Phases
 - Slice B — UI integration (DI registration, navigation, Generate/Import/Diff/Vault/Templates tabs).
@@ -63,9 +67,9 @@ existing C# **Networker** WinUI 3 application, so it feels like a native feature
 - Polish & Release — theme verification, settings integration, shortcuts, accessibility, README,
   Release build, performance check, generator-system unification.
 
-### Overall Estimated Completion: **~40%**
-Generation (a large fraction of the value) is fully done and tested; the parser/validator/vault and
-all UI remain.
+### Overall Estimated Completion: **~45%**
+Generation (a large fraction of the value) is fully done and tested; DI + page shell landed;
+the parser/validator/vault and the full UI tabs remain.
 
 ### Major Accomplishments This Session
 - **All 13 golden tests pass** (6 vendors × `Generate` + `GenerateFromDict`, byte-exact, plus
@@ -291,8 +295,8 @@ Legend: ✅ done · 🚧 in progress · ⏳ planned · ❌ blocked.
 | Config generator — Fortinet FortiGate | `fortinet_fortigate.j2` | `FortinetFortiGateConfigTemplate.cs` | ✅ | Models, filters | Golden 7043; ends `end\n\n`; iface name conversions (see §11) | None |
 | Custom template filters (10) | `config_generator.py` filters | `NetTools/Config/ConfigTemplateFilters.cs` | ✅ | — | 17 static methods incl. helpers | None |
 | Dispatcher + `Generate`/`GenerateFromDict` | `ConfigGenerator.generate` | `Services/NetworkConfig/NetworkConfigGenerator.cs` | ✅ | Renderers | `DictionaryToConfig` maps snake_case keys | None |
-| DI registration of generator | — | `App.xaml.cs` | ⏳ | — | Currently only `LlmRuntime.Router` registered | Add `AddSingleton<IConfigGenerator, NetworkConfigGenerator>()` |
-| Navigation / page shell | GUI `QTabWidget` | `networker/NetworkConfig/` + `MainWindow.xaml` | ⏳ | DI | Match ToolsPage pattern | Create page + NavigationViewItem |
+| DI registration of generator | — | `App.xaml.cs` | ✅ | — | `services.AddSingleton<IConfigGenerator, NetworkConfigGenerator>()`; page resolves via `((App)Application.Current).Services` | None |
+| Navigation / page shell | GUI `QTabWidget` | `networker/NetworkConfig/Views/` + `MainWindow.xaml` | ✅ | DI | `NavigationViewItem` (Tag `networkconfig`, Icon `Code`) + palette command; page shell has all 5 tabs | Full tab content |
 | Config parser | `src/core/parsers/config_parser.py` (1508 lines) | `NetTools/Config/` (new) | ⏳ | Models | Python has CiscoIOS, JuniperJunos, SONiC + factory | Port `BaseConfigParser`, 3 parsers, factory; unit tests |
 | Config validator | `src/core/validators/config_validator.py` (606 lines) | `NetTools/Config/` (new) | ⏳ | Models | `Severity`, `Category`, `ValidationIssue` | Port rules; merge with `ConfigAuditor`; tests |
 | Secure vault | `src/security/vault.py` (430 lines) | `Services/NetworkConfig/IVaultService` + impl | ⏳ | — | Use Windows DPAPI + AES; no Fernet compat | Implement + tests |
@@ -412,18 +416,22 @@ then re-verified the whole suite.
 
 Start with the checklist below. Each task lists objective, files, expected outcome, and validation.
 
-### Task 1 — Register the generator in DI
+### Task 1 — Register the generator in DI ✅ DONE
 - **Objective:** expose `IConfigGenerator` via `App.Services`.
 - **Files:** `App.xaml.cs` (`BuildServiceProvider`).
 - **Expected outcome:** `App.Services.GetService<IConfigGenerator>()` returns a `NetworkConfigGenerator`.
-- **Validation:** add a temporary resolve in `OnLaunched` or a unit assertion; build Debug clean.
+- **Validation:** done — page resolves it in the ctor (throws if missing); Debug build clean.
+- **Note:** the app's existing pages use statics (`LlmRuntime.Router`); the new page resolves through
+  `((App)Application.Current).Services` — the first real DI consumer in the app.
 
-### Task 2 — Add Network Config page shell + navigation
+### Task 2 — Add Network Config page shell + navigation ✅ DONE
 - **Objective:** a new page reachable from MainWindow, hosting the 5 feature tabs.
-- **Files:** `networker/NetworkConfig/NetworkConfigPage.xaml/.cs` (new, mirror `ToolsPage` layout),
-  `MainWindow.xaml` (add NavigationViewItem + frame routing).
+- **Files:** `networker/NetworkConfig/Views/NetworkConfigPage.xaml/.cs` (new, mirrors `ToolsPage`
+  layout), `MainWindow.xaml` (NavigationViewItem + palette command + frame routing).
 - **Expected outcome:** app launches, tab visible, placeholder page renders with themed controls.
-- **Validation:** run app; verify navigation + theme toggle on the new page.
+- **Validation:** Debug build 0 errors; Generate tab produces a sample config per vendor through DI.
+- **Note:** Generate tab currently has a vendor ComboBox + "Generate sample configuration" (proof of
+  life); the full device form is Task 7.
 
 ### Task 3 — Port Config Validator
 - **Objective:** `ConfigValidator` + `Severity`/`Category`/`ValidationIssue` matching
@@ -649,8 +657,8 @@ Start with the checklist below. Each task lists objective, files, expected outco
 - [ ] ⏳ Unit tests for each new service
 
 ### Phase C — UI (Slice B, planned)
-- [ ] ⏳ DI registration of `IConfigGenerator`
-- [ ] ⏳ "Network Config" NavigationViewItem + page shell (TabView)
+- [x] ✅ DI registration of `IConfigGenerator`
+- [x] ✅ "Network Config" NavigationViewItem + page shell (TabView)
 - [ ] ⏳ Generate tab (vendor, device basics, interfaces, VLANs, routing, ACLs, STP, output)
 - [ ] ⏳ Import/Analyze tab
 - [ ] ⏳ Diff tab (reuse `TextDiff`)
@@ -675,14 +683,15 @@ Start with the checklist below. Each task lists objective, files, expected outco
 ## 14. Handoff Notes
 
 ### Where Work Stopped
-Slice A (Core generation) is **complete and green**: 125/125 tests, 0 build errors. The last action
-was fixing the Sonic whitespace quirks so all 6 vendors match the Python reference byte-for-byte.
-No work has started on DI registration, UI, parser, validator, vault, or template library.
+Slice A (Core generation) is **complete and green**: 125/125 tests, 0 build errors. Slice B Tasks 1–2
+(DI registration + Network Config page shell with all 5 tabs) are complete and committed. The page's
+Generate tab has a working sample-generator through DI; the full device form, the Import/Analyze,
+Diff, Vault, and Templates tabs, and the parser/validator/vault/template-library services remain.
 
 ### What to Tackle First Next Session
-Follow §8 in order: **Task 1 (DI registration) → Task 2 (navigation + page shell)** first — they
-are small, low-risk, and make the feature visible in the app. Then services (validator, parser,
-vault, templates), then the UI tabs.
+Continue §8 in order: **Task 3 (ConfigValidator port)** — it has no UI dependency and unblocks the
+Import/Analyze tab — then **Task 4 (ConfigParser port)**. Task 7 (Generate tab UI) can proceed in
+parallel conceptually but per plan order comes after the services.
 
 ### Important Assumptions
 - `C:\Users\Kenny\NetworkConfigPro` is the Python reference; `src/core/templates/vendors/*.j2` are the

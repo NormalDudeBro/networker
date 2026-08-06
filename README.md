@@ -1,4 +1,4 @@
-# NetOps Copilot
+# Networker
 
 A modern WinUI 3 desktop app for network engineers — deterministic tools + AI-powered chat.
 

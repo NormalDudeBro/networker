@@ -27,6 +27,25 @@
                 </StackPanel>
                 <TextBlock x:Name="ConnectionStatusText" FontSize="14"/>
             </StackPanel>
+
+            <TextBlock Text="Global Prompt" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,10,0,0"/>
+            <TextBlock Text="The instructions below are automatically prepended to every request sent to the selected model. Both fields are optional." TextWrapping="Wrap" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+            <StackPanel Spacing="5">
+                <TextBlock Text="System Prompt" FontWeight="SemiBold"/>
+                <TextBox x:Name="SystemPromptTextBox" PlaceholderText="e.g. You are a helpful coding assistant." AcceptsReturn="True" TextWrapping="Wrap" Height="120" ScrollViewer.VerticalScrollBarVisibility="Auto" LostFocus="SystemPromptTextBox_LostFocus"/>
+            </StackPanel>
+
+            <StackPanel Spacing="5">
+                <TextBlock Text="Custom Instructions / Training" FontWeight="SemiBold"/>
+                <TextBox x:Name="CustomInstructionsTextBox" PlaceholderText="e.g. Always respond with concise, code-first answers." AcceptsReturn="True" TextWrapping="Wrap" Height="120" ScrollViewer.VerticalScrollBarVisibility="Auto" LostFocus="CustomInstructionsTextBox_LostFocus"/>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="SavePromptButton" Content="Save" Click="SavePromptButton_Click"/>
+                <Button x:Name="ResetPromptButton" Content="Reset" Click="ResetPromptButton_Click"/>
+                <TextBlock x:Name="PromptStatusText" FontSize="14" VerticalAlignment="Center"/>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>

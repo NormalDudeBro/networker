@@ -22,6 +22,8 @@ namespace networker
             _isInitializing = true;
             EndpointTextBox.Text = AppSettings.OllamaEndpoint;
             ApiKeyPasswordBox.Password = AppSettings.OllamaApiKey;
+            SystemPromptTextBox.Text = AppSettings.GlobalSystemPrompt;
+            CustomInstructionsTextBox.Text = AppSettings.GlobalCustomInstructions;
             _isInitializing = false;
 
             await FetchModelsAsync();
@@ -50,6 +52,36 @@ namespace networker
         {
             if (_isInitializing || ModelComboBox.SelectedItem == null) return;
             AppSettings.SelectedModel = ModelComboBox.SelectedItem.ToString() ?? "";
+        }
+
+        private void SystemPromptTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (_isInitializing) return;
+            SaveGlobalPrompt();
+        }
+
+        private void CustomInstructionsTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (_isInitializing) return;
+            SaveGlobalPrompt();
+        }
+
+        private void SavePromptButton_Click(object sender, RoutedEventArgs e) => SaveGlobalPrompt();
+
+        private void ResetPromptButton_Click(object sender, RoutedEventArgs e)
+        {
+            SystemPromptTextBox.Text = "";
+            CustomInstructionsTextBox.Text = "";
+            SaveGlobalPrompt();
+            PromptStatusText.Text = "Cleared";
+        }
+
+        private void SaveGlobalPrompt()
+        {
+            AppSettings.GlobalSystemPrompt = SystemPromptTextBox.Text ?? "";
+            AppSettings.GlobalCustomInstructions = CustomInstructionsTextBox.Text ?? "";
+            PromptStatusText.Text = "Saved";
+            PromptStatusText.Foreground = new SolidColorBrush(Colors.Green);
         }
 
         private async System.Threading.Tasks.Task FetchModelsAsync()

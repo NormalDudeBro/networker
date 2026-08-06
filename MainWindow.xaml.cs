@@ -19,7 +19,7 @@ namespace networker
                 switch (item.Tag?.ToString())
                 {
                     case "home": ContentFrame.Navigate(typeof(MainPage)); break;
-                    case "settings": ContentFrame.Navigate(typeof(SettingsPage)); break;
+                    case "settings": ContentFrame.Navigate(typeof(SettingsPg)); break;
                 }
             }
         }

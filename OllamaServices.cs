@@ -26,7 +26,10 @@ namespace networker
             var models = new List<string>();
             if (result?.Models != null)
             {
-                foreach (var model in result.Models) models.Add(model.Name);
+                foreach (var model in result.Models)
+                {
+                    if (model?.Name != null) models.Add(model.Name);
+                }
             }
             return models;
         }
@@ -64,29 +67,29 @@ namespace networker
 
     public class OllamaTagsResponse
     {
-        [JsonPropertyName("models")] public List<OllamaModelInfo> Models { get; set; }
+        [JsonPropertyName("models")] public required List<OllamaModelInfo> Models { get; set; }
     }
 
     public class OllamaModelInfo
     {
-        [JsonPropertyName("name")] public string Name { get; set; }
+        [JsonPropertyName("name")] public required string Name { get; set; }
     }
 
     public class OllamaRequest
     {
-        [JsonPropertyName("model")] public string Model { get; set; }
-        [JsonPropertyName("messages")] public List<OllamaMessage> Messages { get; set; }
+        [JsonPropertyName("model")] public required string Model { get; set; }
+        [JsonPropertyName("messages")] public required List<OllamaMessage> Messages { get; set; }
         [JsonPropertyName("stream")] public bool Stream { get; set; }
     }
 
     public class OllamaMessage
     {
-        [JsonPropertyName("role")] public string Role { get; set; }
-        [JsonPropertyName("content")] public string Content { get; set; }
+        [JsonPropertyName("role")] public required string Role { get; set; }
+        [JsonPropertyName("content")] public required string Content { get; set; }
     }
 
     public class OllamaResponse
     {
-        [JsonPropertyName("message")] public OllamaMessage Message { get; set; }
+        [JsonPropertyName("message")] public required OllamaMessage Message { get; set; }
     }
 }

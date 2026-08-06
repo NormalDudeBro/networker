@@ -32,7 +32,7 @@ namespace networker
         private async void EndpointTextBox_LostFocus(object sender, RoutedEventArgs e)
         {
             if (_isInitializing) return;
-            string newEndpoint = EndpointTextBox.Text.Trim();
+            string newEndpoint = (EndpointTextBox.Text ?? "").Trim();
             if (!string.IsNullOrWhiteSpace(newEndpoint) && newEndpoint != AppSettings.OllamaEndpoint)
             {
                 AppSettings.OllamaEndpoint = newEndpoint;
@@ -43,13 +43,13 @@ namespace networker
         private void ApiKeyPasswordBox_LostFocus(object sender, RoutedEventArgs e)
         {
             if (_isInitializing) return;
-            AppSettings.OllamaApiKey = ApiKeyPasswordBox.Password;
+            AppSettings.OllamaApiKey = ApiKeyPasswordBox.Password ?? "";
         }
 
         private void ModelComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_isInitializing || ModelComboBox.SelectedItem == null) return;
-            AppSettings.SelectedModel = ModelComboBox.SelectedItem.ToString();
+            AppSettings.SelectedModel = ModelComboBox.SelectedItem.ToString() ?? "";
         }
 
         private async System.Threading.Tasks.Task FetchModelsAsync()
@@ -60,8 +60,8 @@ namespace networker
 
             try
             {
-                AppSettings.OllamaEndpoint = EndpointTextBox.Text.Trim();
-                AppSettings.OllamaApiKey = ApiKeyPasswordBox.Password;
+                AppSettings.OllamaEndpoint = (EndpointTextBox.Text ?? "").Trim();
+                AppSettings.OllamaApiKey = ApiKeyPasswordBox.Password ?? "";
 
                 var models = await OllamaService.GetModelsAsync(AppSettings.OllamaEndpoint, AppSettings.OllamaApiKey);
 
@@ -83,7 +83,7 @@ namespace networker
                     ModelComboBox.ItemsSource = models;
 
                     string previousSelection = AppSettings.SelectedModel;
-                    string modelToSelect = null;
+                    string? modelToSelect = null;
 
                     if (!string.IsNullOrEmpty(previousSelection) && models.Contains(previousSelection))
                         modelToSelect = previousSelection;
@@ -93,7 +93,7 @@ namespace networker
                         modelToSelect = models.First();
 
                     ModelComboBox.SelectedItem = modelToSelect;
-                    AppSettings.SelectedModel = modelToSelect;
+                    AppSettings.SelectedModel = modelToSelect ?? "";
                     _isInitializing = false;
                 }
             }

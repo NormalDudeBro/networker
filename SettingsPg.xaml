@@ -6,8 +6,18 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Padding="20" Spacing="15" MaxWidth="600" HorizontalAlignment="Left">
-            <TextBlock Text="Ollama Settings" Style="{StaticResource TitleTextBlockStyle}"/>
 
+            <TextBlock Text="Settings" Style="{StaticResource TitleTextBlockStyle}"/>
+
+            <TextBlock Text="Provider" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,10,0,0"/>
+            <TextBlock Style="{StaticResource CaptionTextStyle}"
+                       Text="Select the AI provider. Ollama runs locally with no cloud credentials. Grok and Gemini are configured through environment variables (see .env.example)."/>
+            <StackPanel Spacing="5">
+                <TextBlock Text="Active provider" FontWeight="SemiBold"/>
+                <ComboBox x:Name="ProviderComboBox" SelectionChanged="ProviderComboBox_SelectionChanged" HorizontalAlignment="Stretch"/>
+            </StackPanel>
+
+            <TextBlock Text="Ollama Connection" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,10,0,0"/>
             <StackPanel Spacing="5">
                 <TextBlock Text="API Endpoint" FontWeight="SemiBold"/>
                 <TextBox x:Name="EndpointTextBox" PlaceholderText="http://localhost:11434" LostFocus="EndpointTextBox_LostFocus"/>
@@ -29,7 +39,8 @@
             </StackPanel>
 
             <TextBlock Text="Global Prompt" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,10,0,0"/>
-            <TextBlock Text="The instructions below are automatically prepended to every request sent to the selected model. Both fields are optional." TextWrapping="Wrap" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            <TextBlock Style="{StaticResource CaptionTextStyle}"
+                       Text="The instructions below are automatically prepended to every request sent to the selected model. Both fields are optional."/>
 
             <StackPanel Spacing="5">
                 <TextBlock Text="System Prompt" FontWeight="SemiBold"/>
@@ -46,6 +57,13 @@
                 <Button x:Name="ResetPromptButton" Content="Reset" Click="ResetPromptButton_Click"/>
                 <TextBlock x:Name="PromptStatusText" FontSize="14" VerticalAlignment="Center"/>
             </StackPanel>
+
+            <TextBlock Text="Appearance" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,10,0,0"/>
+            <StackPanel Spacing="5">
+                <TextBlock Text="Theme" FontWeight="SemiBold"/>
+                <ComboBox x:Name="ThemeComboBox" SelectionChanged="ThemeComboBox_SelectionChanged" HorizontalAlignment="Stretch"/>
+            </StackPanel>
+
         </StackPanel>
     </ScrollViewer>
 </Page>

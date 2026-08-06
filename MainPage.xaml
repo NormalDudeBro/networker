@@ -1,20 +1,302 @@
+<?xml version="1.0" encoding="utf-8"?>
 <Page
     x:Class="networker.MainPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:networker">
+    xmlns:controls="using:networker.Controls"
+    xmlns:models="using:networker.Models"
+    xmlns:local="using:networker"
+    Background="{ThemeResource AppBackgroundBrush}">
 
-    <Grid Padding="20" RowDefinitions="Auto, Auto, *">
-        <TextBox Grid.Row="0" x:Name="myTextBox" PlaceholderText="Enter your prompt here..." Height="100" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,10"/>
+    <Page.Resources>
+        <DataTemplate x:Key="UserMessageTemplate" x:DataType="models:ChatMessage">
+            <StackPanel HorizontalAlignment="Right" Spacing="4" Margin="0,0,0,12" MaxWidth="720">
+                <Border Style="{StaticResource UserBubbleStyle}">
+                    <TextBlock Style="{StaticResource UserBubbleTextStyle}" Text="{x:Bind Text}"/>
+                </Border>
+                <TextBlock Style="{StaticResource CaptionTextStyle}" HorizontalAlignment="Right" FontSize="11">
+                    <Run Text="You"/><Run Text=" · "/><Run Text="{x:Bind Timestamp, Mode=OneWay}"/>
+                </TextBlock>
+            </StackPanel>
+        </DataTemplate>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="15" Margin="0,0,0,10">
-            <Button x:Name="RunButton" Content="Run AI" Click="RunButton_Click" Width="120" Style="{StaticResource AccentButtonStyle}"/>
-            <ProgressRing x:Name="LoadingRing" IsActive="False" Visibility="Collapsed" Width="30" Height="30"/>
-            <TextBlock x:Name="WarningText" Foreground="OrangeRed" VerticalAlignment="Center" Visibility="Collapsed"/>
-        </StackPanel>
+        <DataTemplate x:Key="AssistantMessageTemplate" x:DataType="models:ChatMessage">
+            <StackPanel Spacing="6" Margin="0,0,0,16" MaxWidth="760">
+                <TextBlock Style="{StaticResource CaptionTextStyle}" FontSize="11">
+                    <Run Text="Assistant"/>
+                    <Run Text="{x:Bind Provider, Mode=OneWay}" Foreground="{ThemeResource AppAccentBrush}"/>
+                    <Run Text="{x:Bind Model, Mode=OneWay}"/>
+                </TextBlock>
+                <TextBlock
+                    Style="{StaticResource AssistantMessageTextStyle}"
+                    Text="{x:Bind Text, Mode=OneWay}"/>
+                <StackPanel
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    Visibility="{x:Bind IsStreaming, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                    <ProgressRing IsActive="True" Width="12" Height="12"/>
+                    <TextBlock Text="Generating…" Style="{StaticResource CaptionTextStyle}"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
 
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}" BorderThickness="1" Padding="10" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-            <TextBlock x:Name="outputTextBlock" TextWrapping="Wrap" IsTextSelectionEnabled="True" Text="Awaiting prompt..."/>
+        <DataTemplate x:Key="CodeMessageTemplate" x:DataType="models:ChatMessage">
+            <StackPanel Spacing="4" Margin="0,0,0,16" MaxWidth="860" HorizontalAlignment="Left">
+                <controls:CodeBlockView/>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ErrorMessageTemplate" x:DataType="models:ChatMessage">
+            <Border
+                Margin="0,0,0,16"
+                MaxWidth="720"
+                HorizontalAlignment="Left"
+                Background="{ThemeResource BadgeDangerBackgroundBrush}"
+                BorderBrush="{ThemeResource AppDangerBrush}"
+                BorderThickness="1"
+                CornerRadius="{ThemeResource RadiusMD}"
+                Padding="14,10">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Request failed" FontWeight="SemiBold" Foreground="{ThemeResource AppDangerBrush}"/>
+                    <TextBlock Style="{StaticResource AssistantMessageTextStyle}" Text="{x:Bind Text}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <controls:MessageTemplateSelector
+            x:Key="MessageSelector"
+            UserTemplate="{StaticResource UserMessageTemplate}"
+            AssistantTemplate="{StaticResource AssistantMessageTemplate}"
+            CodeTemplate="{StaticResource CodeMessageTemplate}"
+            ErrorTemplate="{StaticResource ErrorMessageTemplate}"/>
+
+        <controls:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <controls:BoolToVisibilityConverter x:Key="InverseBoolToVis" Invert="True"/>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ======================= Header ======================= -->
+        <Grid Grid.Row="0" Grid.Column="0" Padding="16,10,16,10" ColumnDefinitions="Auto,*,Auto" Background="{ThemeResource AppSurfaceBrush}">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <FontIcon Glyph="&#xE774;" FontSize="20" Foreground="{ThemeResource AppAccentBrush}"/>
+                <TextBlock Text="NetOps Copilot" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <Border Style="{StaticResource BadgeInfoStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Ellipse x:Name="HealthDot" Width="8" Height="8" Fill="{ThemeResource AppTextSecondaryBrush}"/>
+                        <TextBlock x:Name="HealthText" Text="Unknown" Style="{StaticResource BadgeTextStyle}"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource BadgeInfoStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock x:Name="ProviderText" Text="ollama" Style="{StaticResource BadgeTextStyle}"/>
+                        <TextBlock x:Name="ModelText" Text="no model" Style="{StaticResource BadgeTextStyle}" Foreground="{ThemeResource AppTextSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <Button
+                    Style="{StaticResource IconButtonStyle}"
+                    Click="PaletteButton_Click"
+                    ToolTipService.ToolTip="Command palette (Ctrl+K)"
+                    AutomationProperties.Name="Command palette">
+                    <FontIcon Glyph="&#xE721;" FontSize="16"/>
+                </Button>
+                <Button
+                    Style="{StaticResource IconButtonStyle}"
+                    Click="ThemeButton_Click"
+                    ToolTipService.ToolTip="Toggle theme"
+                    AutomationProperties.Name="Toggle theme">
+                    <FontIcon Glyph="&#xE790;" FontSize="16"/>
+                </Button>
+                <Button
+                    x:Name="PanelToggleButton"
+                    Style="{StaticResource IconButtonStyle}"
+                    Click="PanelToggleButton_Click"
+                    ToolTipService.ToolTip="Toggle assistant panel"
+                    AutomationProperties.Name="Toggle assistant panel">
+                    <FontIcon Glyph="&#xE8E7;" FontSize="16"/>
+                </Button>
+                <Button
+                    Style="{StaticResource IconButtonStyle}"
+                    Click="NewChatButton_Click"
+                    ToolTipService.ToolTip="New chat"
+                    AutomationProperties.Name="New chat">
+                    <FontIcon Glyph="&#xE8BD;" FontSize="16"/>
+                </Button>
+                <Button
+                    Style="{StaticResource IconButtonStyle}"
+                    Click="ClearHistoryButton_Click"
+                    ToolTipService.ToolTip="Clear history"
+                    AutomationProperties.Name="Clear history">
+                    <FontIcon Glyph="&#xE74D;" FontSize="16"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ======================= Chat area ======================= -->
+        <Grid Grid.Row="1" Grid.Column="0">
+            <Grid x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
+                <StackPanel Spacing="10" HorizontalAlignment="Center">
+                    <FontIcon Glyph="&#xE8BD;" FontSize="44" Foreground="{ThemeResource AppAccentBrush}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Start a conversation" Style="{StaticResource SectionHeaderTextStyle}" HorizontalAlignment="Center"/>
+                    <TextBlock Style="{StaticResource CaptionTextStyle}" TextAlignment="Center"
+                               Text="Ask about network configs, troubleshooting, IP math, or log analysis. The assistant runs deterministic tools first and uses the model for explanation."/>
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Margin="0,8,0,0">
+                        <Button Style="{StaticResource ChipButtonStyle}" Content="Calculate a subnet" Click="QuickStart_Click" Tag="ip"/>
+                        <Button Style="{StaticResource ChipButtonStyle}" Content="Generate OSPF config" Click="QuickStart_Click" Tag="ospf"/>
+                        <Button Style="{StaticResource ChipButtonStyle}" Content="Audit a config" Click="QuickStart_Click" Tag="audit"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <ListView
+                x:Name="MessagesList"
+                Visibility="Collapsed"
+                SelectionMode="None"
+                IsItemClickEnabled="False"
+                ItemTemplateSelector="{StaticResource MessageSelector}"
+                Padding="24,16,24,8"
+                Background="Transparent"/>
+        </Grid>
+
+        <!-- ======================= Quick actions ======================= -->
+        <ScrollViewer
+            Grid.Row="2" Grid.Column="0"
+            HorizontalScrollBarVisibility="Auto"
+            VerticalScrollBarVisibility="Disabled"
+            HorizontalScrollMode="Enabled">
+            <StackPanel x:Name="QuickActionsRow" Orientation="Horizontal" Spacing="8" Padding="16,4,16,4">
+                <TextBlock Text="Quick actions:" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="Subnet calc" Click="QuickStart_Click" Tag="ip"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="OSPF config" Click="QuickStart_Click" Tag="ospf"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="BGP config" Click="QuickStart_Click" Tag="bgp"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="Audit config" Click="QuickStart_Click" Tag="audit"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="BGP troubleshooting" Click="QuickStart_Click" Tag="bgp-trouble"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="Explain BGP flapping" Click="QuickStart_Click" Tag="explain"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="Analyze logs" Click="QuickStart_Click" Tag="logs"/>
+            </StackPanel>
         </ScrollViewer>
+
+        <!-- ======================= Input ======================= -->
+        <Grid Grid.Row="3" Grid.Column="0" Padding="16,8,16,16">
+            <Border
+                Background="{ThemeResource AppSurfaceBrush}"
+                BorderBrush="{ThemeResource AppBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="{ThemeResource RadiusMD}"
+                Padding="8,6">
+                <Grid ColumnDefinitions="*,Auto,Auto">
+                    <TextBox
+                        x:Name="InputBox"
+                        Grid.Column="0"
+                        PlaceholderText="Ask about network engineering… (Ctrl+Enter to send)"
+                        AcceptsReturn="True"
+                        TextWrapping="Wrap"
+                        TextChanged="InputBox_TextChanged"
+                        KeyDown="InputBox_KeyDown"
+                        MinHeight="36"
+                        MaxHeight="160"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto"
+                        BorderThickness="0"
+                        Background="Transparent"/>
+                    <Button
+                        x:Name="CancelButton"
+                        Grid.Column="1"
+                        Visibility="Collapsed"
+                        Style="{StaticResource IconButtonStyle}"
+                        Click="CancelButton_Click"
+                        ToolTipService.ToolTip="Stop generation"
+                        AutomationProperties.Name="Stop generation">
+                        <FontIcon Glyph="&#xE711;" FontSize="14"/>
+                    </Button>
+                    <Button
+                        x:Name="SendButton"
+                        Grid.Column="2"
+                        Margin="4,0,0,0"
+                        Click="SendButton_Click"
+                        ToolTipService.ToolTip="Send (Ctrl+Enter)"
+                        AutomationProperties.Name="Send message"
+                        Style="{StaticResource AccentButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE724;" FontSize="14"/>
+                            <TextBlock Text="Send" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ======================= Assistant panel ======================= -->
+        <Grid
+            x:Name="AssistantPanel"
+            Grid.Row="1" Grid.RowSpan="3" Grid.Column="1"
+            Width="320"
+            Visibility="Collapsed"
+            Background="{ThemeResource AppSurfaceBrush}"
+            BorderBrush="{ThemeResource AppBorderBrush}"
+            BorderThickness="1,0,0,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Padding="16" Spacing="14">
+                    <TextBlock Text="Assistant" Style="{StaticResource SectionHeaderTextStyle}"/>
+
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Provider" FontWeight="SemiBold"/>
+                        <ComboBox x:Name="ProviderComboBox" SelectionChanged="ProviderComboBox_SelectionChanged" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="5">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Model" FontWeight="SemiBold"/>
+                            <ProgressRing x:Name="ModelLoadingRing" IsActive="False" Width="16" Height="16"/>
+                        </StackPanel>
+                        <ComboBox x:Name="ModelComboBox" SelectionChanged="ModelComboBox_SelectionChanged" HorizontalAlignment="Stretch" IsEnabled="False"/>
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="Auto,*">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                            <Ellipse x:Name="PanelHealthDot" Width="8" Height="8" Fill="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="PanelHealthText" Text="Not checked" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource ChipButtonStyle}" Content="Check" Click="HealthCheckButton_Click" HorizontalAlignment="Right" Padding="10,4"/>
+                    </Grid>
+
+                    <Border Height="1" Background="{ThemeResource AppBorderBrush}"/>
+
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="History" FontWeight="SemiBold"/>
+                        <TextBox x:Name="HistorySearchBox" PlaceholderText="Search messages…" TextChanged="HistorySearchBox_TextChanged"/>
+                        <ListView x:Name="HistoryList" MaxHeight="160" SelectionMode="Single" ItemClick="HistoryList_ItemClick" IsItemClickEnabled="True">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="models:ChatMessage">
+                                    <TextBlock Text="{x:Bind Text}" TextTrimming="CharacterEllipsis" MaxLines="1" FontSize="13"/>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <Button Content="Clear history" Click="ClearHistoryButton_Click" Style="{StaticResource DangerButtonStyle}" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+
+                    <Border Height="1" Background="{ThemeResource AppBorderBrush}"/>
+
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Tool activity" FontWeight="SemiBold"/>
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" x:Name="ToolActivityPlaceholder"
+                                   Text="Tool invocations will be listed here as collapsible audit cards."/>
+                        <StackPanel x:Name="ToolActivityList" Spacing="6"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
     </Grid>
 </Page>

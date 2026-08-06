@@ -25,6 +25,18 @@ namespace networker
             set => LocalSettings.Values["SelectedModel"] = value;
         }
 
+        public static string ThemeMode
+        {
+            get => (LocalSettings.Values["ThemeMode"] as string) ?? "System";
+            set => LocalSettings.Values["ThemeMode"] = value;
+        }
+
+        public static string SelectedProvider
+        {
+            get => (LocalSettings.Values["SelectedProvider"] as string) ?? "ollama";
+            set => LocalSettings.Values["SelectedProvider"] = value;
+        }
+
         public static string GlobalSystemPrompt
         {
             get => GetLocalFileValue("GlobalSystemPrompt.txt");

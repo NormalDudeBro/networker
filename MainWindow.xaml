@@ -4,13 +4,51 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:networker"
-    Title="networker">
+    xmlns:controls="using:networker.Controls"
+    Title="NetOps Copilot">
 
-    <NavigationView x:Name="NavView" ItemInvoked="NavView_ItemInvoked" IsBackButtonVisible="Collapsed">
-        <NavigationView.MenuItems>
-            <NavigationViewItem Content="Home" Tag="home" Icon="Home"/>
-            <NavigationViewItem Content="Settings" Tag="settings" Icon="Setting"/>
-        </NavigationView.MenuItems>
-        <Frame x:Name="ContentFrame" Margin="0"/>
-    </NavigationView>
+    <Grid x:Name="Root">
+
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Key="K" Modifiers="Control" Invoked="PaletteAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="F5" Invoked="RefreshHealthAccelerator_Invoked"/>
+        </Grid.KeyboardAccelerators>
+
+        <NavigationView
+            x:Name="NavView"
+            ItemInvoked="NavView_ItemInvoked"
+            IsBackButtonVisible="Collapsed"
+            IsSettingsVisible="False"
+            IsPaneToggleButtonVisible="True"
+            OpenPaneLength="220"
+            CompactPaneLength="48"
+            Background="{ThemeResource AppBackgroundBrush}">
+
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="Home" Tag="home" Icon="Home"/>
+                <NavigationViewItem Content="Tools" Tag="tools" Icon="World"/>
+                <NavigationViewItem Content="Settings" Tag="settings" Icon="Setting"/>
+            </NavigationView.MenuItems>
+
+            <NavigationView.PaneFooter>
+                <StackPanel Padding="12,0,12,12" Spacing="4">
+                    <TextBlock Text="NetOps Copilot" FontSize="12" FontWeight="SemiBold" Opacity="0.7"/>
+                    <TextBlock Text="Local-first network assistant" Style="{StaticResource CaptionTextStyle}"/>
+                </StackPanel>
+            </NavigationView.PaneFooter>
+
+            <Frame x:Name="ContentFrame"/>
+        </NavigationView>
+
+        <Grid x:Name="OverlayHost" IsHitTestVisible="False" Background="Transparent">
+            <StackPanel
+                x:Name="ToastHost"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,8,8,0"
+                Spacing="0"
+                IsHitTestVisible="True"/>
+            <controls:CommandPalette x:Name="Palette" Visibility="Collapsed"/>
+        </Grid>
+    </Grid>
 </Window>

@@ -4,6 +4,7 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using networker.Services;
 
 namespace networker
 {
@@ -20,10 +21,24 @@ namespace networker
         private async void SettingsPg_Loaded(object sender, RoutedEventArgs e)
         {
             _isInitializing = true;
+
+            ProviderComboBox.Items.Clear();
+            ProviderComboBox.Items.Add("ollama");
+            ProviderComboBox.Items.Add("grok");
+            ProviderComboBox.Items.Add("gemini");
+            ProviderComboBox.SelectedItem = AppSettings.SelectedProvider;
+
+            ThemeComboBox.Items.Clear();
+            ThemeComboBox.Items.Add("System");
+            ThemeComboBox.Items.Add("Light");
+            ThemeComboBox.Items.Add("Dark");
+            ThemeComboBox.SelectedItem = AppSettings.ThemeMode;
+
             EndpointTextBox.Text = AppSettings.OllamaEndpoint;
             ApiKeyPasswordBox.Password = AppSettings.OllamaApiKey;
             SystemPromptTextBox.Text = AppSettings.GlobalSystemPrompt;
             CustomInstructionsTextBox.Text = AppSettings.GlobalCustomInstructions;
+
             _isInitializing = false;
 
             await FetchModelsAsync();
@@ -52,6 +67,27 @@ namespace networker
         {
             if (_isInitializing || ModelComboBox.SelectedItem == null) return;
             AppSettings.SelectedModel = ModelComboBox.SelectedItem.ToString() ?? "";
+        }
+
+        private void ProviderComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || ProviderComboBox.SelectedItem is not string provider) return;
+            AppSettings.SelectedProvider = provider;
+
+            if (provider != "ollama")
+            {
+                Toaster.Show(
+                    $"Provider '{provider}' requires environment configuration (XAI_API_KEY / GEMINI_API_KEY). See .env.example.",
+                    InfoBarSeverity.Warning,
+                    "Cloud provider");
+            }
+        }
+
+        private void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || ThemeComboBox.SelectedItem is not string theme) return;
+            AppSettings.ThemeMode = theme;
+            MainWindow.Instance?.ApplyTheme();
         }
 
         private void SystemPromptTextBox_LostFocus(object sender, RoutedEventArgs e)
@@ -99,7 +135,7 @@ namespace networker
 
                 if (models == null || models.Count == 0)
                 {
-                    ConnectionStatusText.Text = "⚠ Connected, but no models found.";
+                    ConnectionStatusText.Text = "Connected, but no models found.";
                     ConnectionStatusText.Foreground = new SolidColorBrush(Colors.OrangeRed);
                     ModelComboBox.ItemsSource = null;
                     ModelComboBox.IsEnabled = false;
@@ -107,7 +143,7 @@ namespace networker
                 }
                 else
                 {
-                    ConnectionStatusText.Text = "✅ Connected";
+                    ConnectionStatusText.Text = "Connected";
                     ConnectionStatusText.Foreground = new SolidColorBrush(Colors.Green);
                     ModelComboBox.IsEnabled = true;
 
@@ -131,7 +167,7 @@ namespace networker
             }
             catch (Exception ex)
             {
-                ConnectionStatusText.Text = $"❌ Unable to connect: {ex.Message}";
+                ConnectionStatusText.Text = $"Unable to connect: {ex.Message}";
                 ConnectionStatusText.Foreground = new SolidColorBrush(Colors.Red);
                 ModelComboBox.ItemsSource = null;
                 ModelComboBox.IsEnabled = false;

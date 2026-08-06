@@ -179,13 +179,14 @@
             HorizontalScrollMode="Enabled">
             <StackPanel x:Name="QuickActionsRow" Orientation="Horizontal" Spacing="8" Padding="16,4,16,4">
                 <TextBlock Text="Quick actions:" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="Subnet calc" Click="QuickStart_Click" Tag="ip"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="OSPF config" Click="QuickStart_Click" Tag="ospf"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="BGP config" Click="QuickStart_Click" Tag="bgp"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="Audit config" Click="QuickStart_Click" Tag="audit"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="BGP troubleshooting" Click="QuickStart_Click" Tag="bgp-trouble"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="Explain BGP flapping" Click="QuickStart_Click" Tag="explain"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="Analyze logs" Click="QuickStart_Click" Tag="logs"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="Subnet calc" Click="RunTool_Click" Tag="ip"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="OSPF config" Click="RunTool_Click" Tag="ospf"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="BGP config" Click="RunTool_Click" Tag="bgp"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="Audit config" Click="RunTool_Click" Tag="audit"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="Analyze logs" Click="RunTool_Click" Tag="logs"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="Topology" Click="RunTool_Click" Tag="topology"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="Translate" Click="RunTool_Click" Tag="translate"/>
+                <Button Style="{StaticResource ChipButtonStyle}" Content="Playbook" Click="RunTool_Click" Tag="playbook"/>
             </StackPanel>
         </ScrollViewer>
 

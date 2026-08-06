@@ -27,10 +27,9 @@ namespace networker
         {
             this.InitializeComponent();
         }
-
-        private void myButton_Click(object sender, RoutedEventArgs e)
+        private void RunButton_Click(object sender, RoutedEventArgs e)
         {
-            myButton.Content = "Clicked";
+            string command = myTextBox.Text;
         }
     }
 }

@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using NetOps.Core.Prompting;
 
 namespace networker
 {
@@ -36,10 +37,12 @@ namespace networker
 
         public static async Task<string> ChatAsync(string endpoint, string apiKey, string model, string prompt)
         {
+            string composedPrompt = PromptBuilder.BuildUserMessage(AppSettings.GlobalSystemPrompt, AppSettings.GlobalCustomInstructions, prompt);
+
             var request = new OllamaRequest
             {
                 Model = model,
-                Messages = new List<OllamaMessage> { new OllamaMessage { Role = "user", Content = prompt } },
+                Messages = new List<OllamaMessage> { new OllamaMessage { Role = "user", Content = composedPrompt } },
                 Stream = false
             };
 

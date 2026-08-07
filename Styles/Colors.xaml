@@ -50,6 +50,9 @@
             <Color x:Key="AppChatUserBubbleColor">#0969DA</Color>
             <Color x:Key="AppChatUserTextColor">#FFFFFF</Color>
 
+            <!-- Text on accent backgrounds (primary buttons, user bubbles) -->
+            <Color x:Key="AppOnAccentColor">#FFFFFF</Color>
+
             <!-- Syntax (code highlighting) -->
             <Color x:Key="AppKeywordColor">#0550AE</Color>
             <Color x:Key="AppIpColor">#116329</Color>
@@ -104,7 +107,12 @@
 
             <!-- Chat -->
             <Color x:Key="AppChatUserBubbleColor">#3D8BFD</Color>
-            <Color x:Key="AppChatUserTextColor">#FFFFFF</Color>
+            <Color x:Key="AppChatUserTextColor">#0B0E11</Color>
+
+            <!-- Text on accent backgrounds (primary buttons, user bubbles).
+                 Dark theme keeps a bright accent, so the on-accent foreground
+                 inverts to near-black to hold a 4.5:1 text contrast ratio. -->
+            <Color x:Key="AppOnAccentColor">#0B0E11</Color>
 
             <!-- Syntax (code highlighting) -->
             <Color x:Key="AppKeywordColor">#79B8FF</Color>
@@ -160,6 +168,9 @@
     <!-- ===================== Chat ===================== -->
     <SolidColorBrush x:Key="AppChatUserBubbleBrush" Color="{ThemeResource AppChatUserBubbleColor}" />
     <SolidColorBrush x:Key="AppChatUserTextBrush" Color="{ThemeResource AppChatUserTextColor}" />
+
+    <!-- ===================== Text on accent ===================== -->
+    <SolidColorBrush x:Key="AppOnAccentBrush" Color="{ThemeResource AppOnAccentColor}" />
 
     <!-- ===================== Syntax ===================== -->
     <SolidColorBrush x:Key="AppKeywordBrush" Color="{ThemeResource AppKeywordColor}" />

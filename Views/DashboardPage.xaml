@@ -155,7 +155,8 @@
                                 x:Name="AiStatusDot"
                                 Width="10" Height="10"
                                 Fill="{ThemeResource AppTextDisabledBrush}"
-                                VerticalAlignment="Center"/>
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name="AI connection status"/>
                             <TextBlock x:Name="AiStatusText" Text="Not checked" VerticalAlignment="Center"/>
                             <ProgressRing x:Name="AiRefreshRing" IsActive="False" Width="14" Height="14" Margin="4,0,0,0"/>
                         </StackPanel>

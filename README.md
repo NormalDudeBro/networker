@@ -32,15 +32,23 @@ A modern WinUI 3 desktop app for network engineers — deterministic tools + AI-
 - Credential scrubbing before send
 - Tool cards: deterministic results render inline (CodeBlockView) + Assistant panel history
 
+### Workspace
+- **Dashboard** — landing page with quick actions, a recent-activity feed (30 most recent events with
+  relative timestamps), and live AI connection status
+- **Activity log** — every tool run, config generation/parse/diff, and vault change is recorded
+- **Keyboard first** — `Ctrl+K` command palette, `Ctrl+1..5` page shortcuts, `Ctrl+Enter` on the
+  Generate / Parse / Diff forms, `F5` provider health check
+
 ## Architecture
 
 ```
 networker/                 # WinUI 3 app (net8.0-windows10.0.19041)
 ├── Controls/              # CodeBlockView, MessageTemplateSelector, CommandPalette
-├── Models/                # ChatMessage, ChatRole
-├── Services/              # ChatService, LlmRuntime, Toaster, ConfigSyntaxHighlighter
+├── Models/                # ChatMessage, ChatRole, ActivityItem
+├── Services/              # ChatService, LlmRuntime, RecentActivity, Toaster, ConfigSyntaxHighlighter
 ├── Styles/                # Colors, Fonts, Styles (design tokens, theme switching)
-├── MainPage.xaml          # Chat workspace, sidebar, input
+├── Views/DashboardPage.xaml  # Dashboard landing (quick actions, activity feed, AI status)
+├── MainPage.xaml          # Assistant workspace (chat, history panel, quick tools)
 ├── ToolsPage.xaml         # 8-tab deterministic toolkit
 ├── SettingsPg.xaml        # Provider/model/prompt/theme, Network Config defaults
 ├── NetworkConfig/         # Network Config feature (5 tabs, ported from NetworkConfigPro)
@@ -57,7 +65,7 @@ Networker.Core/               # Deterministic net logic (net8.0, no UI deps)
 │   └── Topology/          # TopologyBuilder
 ├── Models/NetworkConfig/  # Device + feature models (Vendor, Interface, VLAN, ACL, routing, STP)
 ├── Services/NetworkConfig/# Generator dispatcher, parser factory, validator, vault, template library
-└── Tests/                 # 240 xUnit tests (no external deps)
+└── Tests/                 # 253 xUnit tests (no external deps)
 ```
 
 ## Getting Started
@@ -90,7 +98,7 @@ Or configure in-app via **Settings → Provider**.
 
 ```powershell
 dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj
-# 240 tests passing (239 unit + golden-parity tests, 1 performance smoke test)
+# 253 tests passing (unit + golden-parity + performance smoke, no external deps)
 ```
 
 ## Key Design Decisions

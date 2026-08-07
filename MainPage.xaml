@@ -252,13 +252,13 @@
                     <TextBlock Text="Session" Style="{StaticResource SectionHeaderTextStyle}"/>
 
                     <StackPanel Spacing="5">
-                        <TextBlock Text="Provider" FontWeight="SemiBold"/>
+                        <TextBlock Text="Provider" Style="{StaticResource FieldLabelTextStyle}"/>
                         <ComboBox x:Name="ProviderComboBox" SelectionChanged="ProviderComboBox_SelectionChanged" HorizontalAlignment="Stretch"/>
                     </StackPanel>
 
                     <StackPanel Spacing="5">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="Model" FontWeight="SemiBold"/>
+                            <TextBlock Text="Model" Style="{StaticResource FieldLabelTextStyle}"/>
                             <ProgressRing x:Name="ModelLoadingRing" IsActive="False" Width="16" Height="16"/>
                         </StackPanel>
                         <ComboBox x:Name="ModelComboBox" SelectionChanged="ModelComboBox_SelectionChanged" HorizontalAlignment="Stretch" IsEnabled="False"/>
@@ -266,7 +266,7 @@
 
                     <Grid ColumnDefinitions="Auto,*">
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                            <Ellipse x:Name="PanelHealthDot" Width="8" Height="8" Fill="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <Ellipse x:Name="PanelHealthDot" Width="8" Height="8" Fill="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center" AutomationProperties.Name="AI provider status"/>
                             <TextBlock x:Name="PanelHealthText" Text="Not checked" VerticalAlignment="Center"/>
                         </StackPanel>
                         <Button Grid.Column="1" Style="{StaticResource ChipButtonStyle}" Content="Check" Click="HealthCheckButton_Click" HorizontalAlignment="Right" Padding="10,4"/>
@@ -275,7 +275,7 @@
                     <Border Height="1" Background="{ThemeResource AppBorderBrush}"/>
 
                     <StackPanel Spacing="5">
-                        <TextBlock Text="History" FontWeight="SemiBold"/>
+                        <TextBlock Text="History" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="HistorySearchBox" PlaceholderText="Search messages…" TextChanged="HistorySearchBox_TextChanged"/>
                         <ListView x:Name="HistoryList" MaxHeight="160" SelectionMode="Single" ItemClick="HistoryList_ItemClick" IsItemClickEnabled="True">
                             <ListView.ItemTemplate>

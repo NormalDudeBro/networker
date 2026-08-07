@@ -208,7 +208,7 @@
     <!-- ===================== Buttons ===================== -->
     <Style x:Key="PrimaryButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{ThemeResource AppAccentBrush}" />
-        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="Foreground" Value="{ThemeResource AppOnAccentBrush}" />
         <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
         <Setter Property="MinHeight" Value="32" />
         <Setter Property="Padding" Value="14,6" />

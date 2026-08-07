@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media;
 using networker.Controls;
 using networker.Services;
 using networker.Views;
+using Windows.Graphics;
 
 namespace networker
 {
@@ -15,10 +16,29 @@ namespace networker
     {
         public static MainWindow? Instance { get; private set; }
 
+        // Dashboard right rail (348) + two-column nav content + padding at 1280x800 target.
+        private const int MinWindowWidth = 1000;
+        private const int MinWindowHeight = 640;
+
         public MainWindow()
         {
             this.InitializeComponent();
             Instance = this;
+
+            // Enforce a usable minimum window size (no native MinWidth/MinHeight in WinUI 3).
+            this.AppWindow.Changed += (_, args) =>
+            {
+                if (args.DidSizeChange)
+                {
+                    var size = this.AppWindow.Size;
+                    var width = Math.Max(size.Width, MinWindowWidth);
+                    var height = Math.Max(size.Height, MinWindowHeight);
+                    if (width != size.Width || height != size.Height)
+                    {
+                        this.AppWindow.Resize(new SizeInt32(width, height));
+                    }
+                }
+            };
 
             // Initialize theme from settings using Root Grid's RequestedTheme (propagates to all children)
             ApplyThemeToRoot();

@@ -7,37 +7,64 @@
     xmlns:controls="using:networker.Controls"
     Title="Networker Copilot">
 
-    <Grid x:Name="Root" x:FieldModifier="public">
+    <Grid x:Name="Root" x:FieldModifier="public" RowDefinitions="*,Auto">
 
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="K" Modifiers="Control" Invoked="PaletteAccelerator_Invoked"/>
             <KeyboardAccelerator Key="F5" Invoked="RefreshHealthAccelerator_Invoked"/>
         </Grid.KeyboardAccelerators>
 
+        <!-- ======================= Navigation ======================= -->
         <NavigationView
             x:Name="NavView"
+            Grid.Row="0"
             ItemInvoked="NavView_ItemInvoked"
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="False"
             IsPaneToggleButtonVisible="True"
-            OpenPaneLength="220"
+            PaneDisplayMode="LeftCompact"
+            OpenPaneLength="232"
             CompactPaneLength="48"
             Background="{ThemeResource AppBackgroundBrush}">
 
+            <NavigationView.MenuItemContainerStyle>
+                <Style TargetType="NavigationViewItem">
+                    <Setter Property="MinHeight" Value="34"/>
+                    <Setter Property="Margin" Value="4,1"/>
+                    <Setter Property="CornerRadius" Value="6"/>
+                    <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}"/>
+                </Style>
+            </NavigationView.MenuItemContainerStyle>
+
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="Home" Tag="home" Icon="Home"/>
-                <NavigationViewItem Content="Tools" Tag="tools" Icon="World"/>
+                <NavigationViewItem Content="Home" Tag="home" Icon="Home">
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="NavAccelerator_Invoked"/>
+                    </NavigationViewItem.KeyboardAccelerators>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Tools" Tag="tools" Icon="World">
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="Number2" Modifiers="Control" Invoked="NavAccelerator_Invoked"/>
+                    </NavigationViewItem.KeyboardAccelerators>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Network Config" Tag="networkconfig">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE943;"/>
                     </NavigationViewItem.Icon>
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="Number3" Modifiers="Control" Invoked="NavAccelerator_Invoked"/>
+                    </NavigationViewItem.KeyboardAccelerators>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Settings" Tag="settings" Icon="Setting"/>
+                <NavigationViewItem Content="Settings" Tag="settings" Icon="Setting">
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="Number4" Modifiers="Control" Invoked="NavAccelerator_Invoked"/>
+                    </NavigationViewItem.KeyboardAccelerators>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
 
             <NavigationView.PaneFooter>
-                <StackPanel Padding="12,0,12,12" Spacing="4">
-                    <TextBlock Text="Networker Copilot" FontSize="12" FontWeight="SemiBold" Opacity="0.7"/>
+                <StackPanel Padding="16,0,16,14" Spacing="2">
+                    <TextBlock Text="Networker Copilot" FontSize="12" FontWeight="SemiBold" Opacity="0.85"/>
                     <TextBlock Text="Local-first network assistant" Style="{StaticResource CaptionTextStyle}"/>
                 </StackPanel>
             </NavigationView.PaneFooter>
@@ -45,7 +72,64 @@
             <Frame x:Name="ContentFrame"/>
         </NavigationView>
 
-        <Grid x:Name="OverlayHost" IsHitTestVisible="False" Background="Transparent">
+        <!-- ======================= Status bar ======================= -->
+        <Grid
+            Grid.Row="1"
+            Padding="10,5,12,5"
+            ColumnDefinitions="Auto,*,Auto"
+            Background="{ThemeResource AppBackgroundBrush}"
+            BorderBrush="{ThemeResource AppBorderBrush}"
+            BorderThickness="0,1,0,0">
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="6" ToolTipService.ToolTip="AI provider connection status">
+                    <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{ThemeResource AppTextDisabledBrush}" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="StatusText" Text="Not checked" Style="{StaticResource CaptionTextStyle}"/>
+                </StackPanel>
+                <Border Width="1" Height="14" Background="{ThemeResource AppBorderBrush}"/>
+                <StackPanel Orientation="Horizontal" Spacing="6" ToolTipService.ToolTip="Active provider and model">
+                    <FontIcon Glyph="&#xE774;" FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="StatusProviderText" Style="{StaticResource CaptionTextStyle}" FontWeight="SemiBold"/>
+                    <TextBlock Text="/" Style="{StaticResource CaptionTextStyle}" Foreground="{ThemeResource AppTextDisabledBrush}"/>
+                    <TextBlock x:Name="StatusModelText" Style="{StaticResource CaptionTextStyle}"/>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <Button
+                    x:Name="StatusRefreshButton"
+                    Style="{StaticResource IconButtonStyle}"
+                    Width="30" Height="30"
+                    Click="StatusRefreshButton_Click"
+                    ToolTipService.ToolTip="Check connection (Ctrl+F5)"
+                    AutomationProperties.Name="Check AI provider connection">
+                    <FontIcon Glyph="&#xE72C;" FontSize="14"/>
+                </Button>
+                <Button
+                    x:Name="StatusThemeButton"
+                    Style="{StaticResource IconButtonStyle}"
+                    Width="30" Height="30"
+                    Click="ThemeButton_Click"
+                    ToolTipService.ToolTip="Toggle light / dark theme"
+                    AutomationProperties.Name="Toggle theme">
+                    <FontIcon Glyph="&#xE790;" FontSize="14"/>
+                </Button>
+                <Border Style="{StaticResource KbdStyle}" Margin="4,0,0,0">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="Ctrl" Style="{StaticResource CaptionTextStyle}"/>
+                        <TextBlock Text="K" Style="{StaticResource CaptionTextStyle}"/>
+                        <TextBlock Text="Commands" Style="{StaticResource CaptionTextStyle}" Foreground="{ThemeResource AppTextDisabledBrush}"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+
+        <!-- ======================= Overlay (toasts + palette) ======================= -->
+        <Grid
+            x:Name="OverlayHost"
+            Grid.RowSpan="2"
+            IsHitTestVisible="False"
+            Background="Transparent">
             <StackPanel
                 x:Name="ToastHost"
                 HorizontalAlignment="Right"
@@ -57,4 +141,3 @@
         </Grid>
     </Grid>
 </Window>
-

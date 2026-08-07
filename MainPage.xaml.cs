@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -31,6 +30,8 @@ namespace networker
         {
             this.InitializeComponent();
             MessagesList.ItemsSource = _messages;
+            LlmSession.Changed += LlmSession_Changed;
+            UpdateAssistantPanel();
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -51,13 +52,14 @@ namespace networker
             }
 
             UpdateProviderLabel();
-            _ = RefreshConnectionAsync();
+            _ = LlmSession.RefreshAsync();
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
             base.OnNavigatedFrom(e);
             if (Current == this) Current = null;
+            LlmSession.Changed -= LlmSession_Changed;
         }
 
         // ============================ Sending ============================
@@ -469,112 +471,42 @@ namespace networker
 
         private void UpdateProviderLabel()
         {
-            ProviderText.Text = AppSettings.SelectedProvider;
-            ModelText.Text = string.IsNullOrWhiteSpace(AppSettings.SelectedModel) ? "no model" : AppSettings.SelectedModel;
+            ProviderText.Text = LlmSession.Provider;
+            ModelText.Text = string.IsNullOrWhiteSpace(LlmSession.Model) ? "no model" : LlmSession.Model;
         }
 
-        private async void HealthCheckButton_Click(object sender, RoutedEventArgs e) => await RefreshConnectionAsync();
+        private async void HealthCheckButton_Click(object sender, RoutedEventArgs e) => await LlmSession.RefreshAsync();
 
-        public async Task RefreshConnectionAsync()
+        private void LlmSession_Changed() => DispatcherQueue.TryEnqueue(UpdateAssistantPanel);
+
+        private void UpdateAssistantPanel()
         {
-            PanelHealthText.Text = "Checking…";
-            PanelHealthDot.Fill = new SolidColorBrush(Colors.Gray);
-            HealthText.Text = "Checking";
-            HealthDot.Fill = new SolidColorBrush(Colors.Gray);
-
-            bool connected = false;
-            try
-            {
-                var status = await LlmRuntime.GetSelectedProviderHealthAsync(AppSettings.SelectedProvider);
-                connected = status.IsAvailable;
-                if (!connected)
-                {
-                    SetUnhealthy(status.Message ?? "Provider unavailable");
-                }
-            }
-            catch (Exception ex)
-            {
-                SetUnhealthy(ex.Message);
-            }
-
-            bool hasModels = await LoadModelsAsync();
-
-            if (connected)
-            {
-                SetHealthy(hasModels);
-            }
-
             UpdateProviderLabel();
-        }
 
-        public void RefreshConnection()
-        {
-            _ = RefreshConnectionAsync();
-        }
+            string dotKey = LlmSession.IsChecking ? "AppTextDisabledBrush"
+                : LlmSession.IsConnected ? "AppOnlineBrush"
+                : "AppOfflineBrush";
+            var dotBrush = (SolidColorBrush)Application.Current.Resources[dotKey];
+            PanelHealthDot.Fill = dotBrush;
+            HealthDot.Fill = dotBrush;
 
-        private void SetHealthy(bool hasModels)
-        {
-            var green = new SolidColorBrush(Colors.LightGreen);
-            PanelHealthDot.Fill = green;
-            HealthDot.Fill = green;
-            PanelHealthText.Text = "Connected";
-            HealthText.Text = "Connected";
+            PanelHealthText.Text = LlmSession.StatusMessage;
+            HealthText.Text = LlmSession.StatusMessage;
 
-            if (!hasModels)
+            ModelLoadingRing.IsActive = LlmSession.IsChecking;
+            ModelComboBox.IsEnabled = LlmSession.HasModels;
+            if (LlmSession.HasModels)
             {
-                PanelHealthText.Text = "Connected — no models";
-            }
-        }
-
-        private void SetUnhealthy(string message)
-        {
-            var red = new SolidColorBrush(Colors.OrangeRed);
-            PanelHealthDot.Fill = red;
-            HealthDot.Fill = red;
-            string shortMessage = message.Length > 60 ? message[..60] : message;
-            PanelHealthText.Text = $"Offline: {shortMessage}";
-            HealthText.Text = "Offline";
-        }
-
-        private async Task<bool> LoadModelsAsync()
-        {
-            ModelLoadingRing.IsActive = true;
-            try
-            {
-                var models = await LlmRuntime.GetModelsAsync();
-                if (models.Count == 0)
+                if (!ReferenceEquals(ModelComboBox.ItemsSource, LlmSession.Models))
                 {
-                    ModelComboBox.ItemsSource = null;
-                    ModelComboBox.IsEnabled = false;
-                    AppSettings.SelectedModel = "";
-                    return false;
+                    ModelComboBox.ItemsSource = LlmSession.Models;
                 }
 
-                var ids = models.Select(m => m.Id).ToList();
-                ModelComboBox.IsEnabled = true;
-                ModelComboBox.ItemsSource = ids;
-
-                string previous = AppSettings.SelectedModel;
-                ModelComboBox.SelectedItem = !string.IsNullOrEmpty(previous) && ids.Contains(previous)
-                    ? previous
-                    : ids[0];
-                if (ModelComboBox.SelectedItem is string selected)
-                {
-                    AppSettings.SelectedModel = selected;
-                }
-
-                return true;
+                ModelComboBox.SelectedItem = LlmSession.Model;
             }
-            catch
+            else
             {
                 ModelComboBox.ItemsSource = null;
-                ModelComboBox.IsEnabled = false;
-                return false;
-            }
-            finally
-            {
-                ModelLoadingRing.IsActive = false;
-                UpdateProviderLabel();
             }
         }
 
@@ -582,10 +514,9 @@ namespace networker
         {
             if (ProviderComboBox.SelectedItem is string provider)
             {
-                AppSettings.SelectedProvider = provider;
-                LlmRuntime.ApplyProviderSelection(provider, AppSettings.SelectedModel);
-                UpdateProviderLabel();
-                _ = RefreshConnectionAsync();
+                LlmSession.SetProvider(provider);
+                LlmRuntime.ApplyProviderSelection(provider, LlmSession.Model);
+                _ = LlmSession.RefreshAsync();
             }
         }
 
@@ -593,9 +524,8 @@ namespace networker
         {
             if (ModelComboBox.SelectedItem is string model)
             {
-                AppSettings.SelectedModel = model;
-                LlmRuntime.ApplyProviderSelection(AppSettings.SelectedProvider, model);
-                UpdateProviderLabel();
+                LlmSession.SetModel(model);
+                LlmRuntime.ApplyProviderSelection(LlmSession.Provider, model);
             }
         }
 

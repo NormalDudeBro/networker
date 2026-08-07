@@ -17,7 +17,7 @@
                     <TextBlock Text="Template" Style="{StaticResource SectionHeaderTextStyle}"/>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <ComboBox x:Name="TemplateSelector" Width="320" MinWidth="260" DisplayMemberPath="Name"/>
-                        <Button Content="Apply Template" Click="ApplyTemplate_Click"/>
+                        <Button Content="Apply Template" Click="ApplyTemplate_Click" Style="{StaticResource SecondaryButtonStyle}"/>
                     </StackPanel>
                     <TextBlock Style="{StaticResource CaptionTextStyle}"
                                Text="Select a predefined template to pre-fill the form (vendor, interfaces, VLANs, routing, ACLs). Adjust any value, then generate."/>
@@ -42,22 +42,22 @@
                             <RowDefinition/>
                         </Grid.RowDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Vendor" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Vendor" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <ComboBox x:Name="VendorSelector" Grid.Row="0" Grid.Column="1" Width="260" HorizontalAlignment="Left"/>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Hostname" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Hostname" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="HostnameInput" Grid.Row="1" Grid.Column="1" PlaceholderText="e.g. core-router-01"/>
 
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Domain Name" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Domain Name" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="DomainInput" Grid.Row="2" Grid.Column="1" PlaceholderText="e.g. example.com"/>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Enable Secret" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Enable Secret" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <PasswordBox x:Name="EnableInput" Grid.Row="3" Grid.Column="1" PlaceholderText="Optional privileged EXEC secret"/>
 
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="DNS Servers" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="DNS Servers" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="DnsInput" Grid.Row="4" Grid.Column="1" PlaceholderText="Comma-separated, e.g. 8.8.8.8, 8.8.4.4"/>
 
-                        <TextBlock Grid.Row="5" Grid.Column="0" Text="NTP Servers" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="NTP Servers" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="NtpInput" Grid.Row="5" Grid.Column="1" PlaceholderText="Comma-separated, e.g. pool.ntp.org"/>
                     </Grid>
                 </StackPanel>
@@ -86,7 +86,7 @@
                                     <TextBox Grid.Column="2" Text="{x:Bind Description, Mode=TwoWay}" PlaceholderText="Description"/>
                                     <TextBox Grid.Column="3" Text="{x:Bind Ip, Mode=TwoWay}" PlaceholderText="IP address"/>
                                     <TextBox Grid.Column="4" Text="{x:Bind Mask, Mode=TwoWay}" PlaceholderText="Subnet mask"/>
-                                    <Button Grid.Column="5" Content="Remove" Click="RemoveInterface_Click"/>
+                                    <Button Grid.Column="5" Content="Remove" Click="RemoveInterface_Click" Style="{StaticResource SecondaryButtonStyle}"/>
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -101,10 +101,10 @@
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="10">
                     <TextBlock Text="VLANs &amp; Static Routes" Style="{StaticResource SectionHeaderTextStyle}"/>
-                    <TextBlock Text="VLANs — one per line: vlan_id,name" FontWeight="SemiBold"/>
+                    <TextBlock Text="VLANs — one per line: vlan_id,name" Style="{StaticResource FieldLabelTextStyle}"/>
                     <TextBox x:Name="VlansInput" AcceptsReturn="True" TextWrapping="Wrap" Height="88"
                              PlaceholderText="10,MANAGEMENT&#x0a;20,DATA&#x0a;30,VOICE"/>
-                    <TextBlock Text="Static Routes — one per line: destination,mask,next-hop" FontWeight="SemiBold"/>
+                    <TextBlock Text="Static Routes — one per line: destination,mask,next-hop" Style="{StaticResource FieldLabelTextStyle}"/>
                     <TextBox x:Name="RoutesInput" AcceptsReturn="True" TextWrapping="Wrap" Height="88"
                              PlaceholderText="0.0.0.0,0.0.0.0,10.0.0.1"/>
                 </StackPanel>
@@ -121,9 +121,9 @@
                             <ColumnDefinition Width="80"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="ACL Name" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="0" Text="ACL Name" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="AclNameInput" Grid.Column="1" PlaceholderText="e.g. INBOUND-FILTER"/>
-                        <TextBlock Grid.Column="2" Text="Type" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="Type" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <ComboBox x:Name="AclTypeCombo" Grid.Column="3" ItemsSource="{x:Bind local:GenerateTab.AclTypeOptions}" SelectedIndex="1"/>
                     </Grid>
                     <TextBlock Style="{StaticResource CaptionTextStyle}"
@@ -157,7 +157,7 @@
                                         <TextBox Grid.Column="7" Text="{x:Bind DestinationPort, Mode=TwoWay}" PlaceholderText="Dst port"/>
                                         <ComboBox Grid.Column="8" ItemsSource="{x:Bind local:GenerateTab.LogOptions}"
                                                   SelectedItem="{x:Bind Log, Mode=TwoWay}"/>
-                                        <Button Grid.Column="9" Content="Remove" Click="RemoveAclEntry_Click"/>
+                                        <Button Grid.Column="9" Content="Remove" Click="RemoveAclEntry_Click" Style="{StaticResource SecondaryButtonStyle}"/>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -178,16 +178,16 @@
                             <ColumnDefinition Width="140"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="Process ID" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="0" Text="Process ID" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="OspfProcessInput" Grid.Column="1" PlaceholderText="e.g. 1"/>
-                        <TextBlock Grid.Column="2" Text="Router ID" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="Router ID" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="OspfRouterIdInput" Grid.Column="3" PlaceholderText="Optional"/>
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Ref. Bandwidth" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Ref. Bandwidth" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="OspfRefBwInput" Grid.Row="1" Grid.Column="1" PlaceholderText="Default 100"/>
-                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Passive Interfaces" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Passive Interfaces" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="OspfPassiveInput" Grid.Row="1" Grid.Column="3" PlaceholderText="Comma-separated"/>
                     </Grid>
-                    <TextBlock Text="Networks — one per line: network,wildcard,area" FontWeight="SemiBold"/>
+                    <TextBlock Text="Networks — one per line: network,wildcard,area" Style="{StaticResource FieldLabelTextStyle}"/>
                     <TextBox x:Name="OspfNetworksInput" AcceptsReturn="True" TextWrapping="Wrap" Height="80"
                              PlaceholderText="10.0.0.0,0.0.0.255,0"/>
                     <TextBlock Style="{StaticResource CaptionTextStyle}"
@@ -206,9 +206,9 @@
                             <ColumnDefinition Width="140"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="Local AS" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="0" Text="Local AS" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="BgpAsInput" Grid.Column="1" PlaceholderText="e.g. 65000"/>
-                        <TextBlock Grid.Column="2" Text="Router ID" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="Router ID" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="BgpRouterIdInput" Grid.Column="3" PlaceholderText="Optional"/>
                     </Grid>
                     <ItemsControl x:Name="BgpNeighborRows">
@@ -228,13 +228,13 @@
                                     <TextBox Grid.Column="2" Text="{x:Bind Description, Mode=TwoWay}" PlaceholderText="Description"/>
                                     <TextBox Grid.Column="3" Text="{x:Bind UpdateSource, Mode=TwoWay}" PlaceholderText="Update source"/>
                                     <TextBox Grid.Column="4" Text="{x:Bind EbgpMultihop, Mode=TwoWay}" PlaceholderText="Multihop"/>
-                                    <Button Grid.Column="5" Content="Remove" Click="RemoveBgpNeighbor_Click"/>
+                                    <Button Grid.Column="5" Content="Remove" Click="RemoveBgpNeighbor_Click" Style="{StaticResource SecondaryButtonStyle}"/>
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <Button Content="Add Neighbor" Click="AddBgpNeighbor_Click" HorizontalAlignment="Left" Style="{StaticResource ChipButtonStyle}"/>
-                    <TextBlock Text="Networks — one per line" FontWeight="SemiBold"/>
+                    <TextBlock Text="Networks — one per line" Style="{StaticResource FieldLabelTextStyle}"/>
                     <TextBox x:Name="BgpNetworksInput" AcceptsReturn="True" TextWrapping="Wrap" Height="80"
                              PlaceholderText="10.0.0.0/8"/>
                     <TextBlock Style="{StaticResource CaptionTextStyle}"
@@ -253,16 +253,16 @@
                             <ColumnDefinition Width="140"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="AS Number" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="0" Text="AS Number" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="EigrpAsInput" Grid.Column="1" PlaceholderText="e.g. 100"/>
-                        <TextBlock Grid.Column="2" Text="Router ID" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="Router ID" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="EigrpRouterIdInput" Grid.Column="3" PlaceholderText="Optional"/>
                         <CheckBox x:Name="EigrpNamedModeCheck" Grid.Row="1" Grid.Column="0" Content="Named Mode"/>
                         <TextBox x:Name="EigrpNameInput" Grid.Row="1" Grid.Column="1" PlaceholderText="Process name (default EIGRP_PROCESS)"/>
-                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Passive Interfaces" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Passive Interfaces" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="EigrpPassiveInput" Grid.Row="1" Grid.Column="3" PlaceholderText="Comma-separated"/>
                     </Grid>
-                    <TextBlock Text="Networks — one per line: network[,wildcard]" FontWeight="SemiBold"/>
+                    <TextBlock Text="Networks — one per line: network[,wildcard]" Style="{StaticResource FieldLabelTextStyle}"/>
                     <TextBox x:Name="EigrpNetworksInput" AcceptsReturn="True" TextWrapping="Wrap" Height="80"
                              PlaceholderText="10.0.0.0,0.0.0.255"/>
                     <TextBlock Style="{StaticResource CaptionTextStyle}"
@@ -281,13 +281,13 @@
                             <ColumnDefinition Width="140"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="Mode" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="0" Text="Mode" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <ComboBox x:Name="StpModeCombo" Grid.Column="1" ItemsSource="{x:Bind local:GenerateTab.StpModeOptions}" SelectedIndex="0"/>
-                        <TextBlock Grid.Column="2" Text="Priority" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Text="Priority" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="StpPriorityInput" Grid.Column="3" PlaceholderText="e.g. 4096"/>
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Root Primary VLANs" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Root Primary VLANs" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="StpRootPrimaryInput" Grid.Row="1" Grid.Column="1" PlaceholderText="Comma-separated"/>
-                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Root Secondary VLANs" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Root Secondary VLANs" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="StpRootSecondaryInput" Grid.Row="1" Grid.Column="3" PlaceholderText="Comma-separated"/>
                         <CheckBox x:Name="StpPortfastCheck" Grid.Row="2" Grid.Column="0" Content="Portfast Default" VerticalAlignment="Center"/>
                         <CheckBox x:Name="StpBpduguardCheck" Grid.Row="2" Grid.Column="2" Content="BPDU Guard Default" VerticalAlignment="Center"/>
@@ -302,7 +302,7 @@
                 <StackPanel Spacing="10">
                     <TextBlock Text="Output" Style="{StaticResource SectionHeaderTextStyle}"/>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Content="Generate Configuration" Click="Generate_Click">
+                        <Button Content="Generate Configuration" Style="{StaticResource PrimaryButtonStyle}" Click="Generate_Click">
                             <Button.KeyboardAccelerators>
                                 <KeyboardAccelerator Key="Enter" Modifiers="Control" ScopeOwner="{x:Bind GenerateRoot}"/>
                             </Button.KeyboardAccelerators>
@@ -310,7 +310,31 @@
                         <TextBlock x:Name="StatusText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>
                     </StackPanel>
                     <controls:CodeBlockView x:Name="GenerateOutput" Visibility="Collapsed"/>
-                    <TextBlock x:Name="ValidationText" Style="{StaticResource MonoTextStyle}" TextWrapping="Wrap" Visibility="Collapsed"/>
+                    <TextBlock x:Name="ValidationSummaryText" Style="{StaticResource FieldLabelTextStyle}" Visibility="Collapsed"/>
+                    <ListView x:Name="ValidationList" Visibility="Collapsed" SelectionMode="None" Background="Transparent">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="10" Padding="0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="96"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border CornerRadius="{ThemeResource RadiusPill}" Padding="10,2" VerticalAlignment="Top" HorizontalAlignment="Left">
+                                        <Grid>
+                                            <Border Background="{Binding SeverityBrush}" Opacity="0.16" CornerRadius="{ThemeResource RadiusPill}"/>
+                                            <TextBlock Text="{Binding Severity}" Style="{StaticResource BadgeTextStyle}" FontWeight="SemiBold"
+                                                       Foreground="{Binding SeverityBrush}" HorizontalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Location}" Style="{StaticResource MonoTextStyle}" Foreground="{ThemeResource AppTextSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding Recommendation}" Style="{StaticResource CaptionTextStyle}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
                 </StackPanel>
             </Border>
 

@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using networker.Models;
+using networker.Services;
 using Networker.Core.Models.NetworkConfig;
 using Networker.Core.Services.NetworkConfig;
 using Windows.Storage;
@@ -81,6 +83,7 @@ namespace networker.NetworkConfig.Views.Tabs
 
             ResultsText.Text = FormatResults(result, config);
             SetStatus($"Parsed: {config.Hostname}");
+            LogActivity("Config Parse", $"{config.Hostname} — {result.Vendor}", "\uE774");
         }
 
         private async void ImportSyslogFile_Click(object sender, RoutedEventArgs e)
@@ -111,6 +114,7 @@ namespace networker.NetworkConfig.Views.Tabs
                 ImportText.Text = content;
                 ShowSyslogSummary(content, file.Name);
                 SetStatus($"Loaded syslog file: {file.Name}");
+                LogActivity("Syslog Import", file.Name, "\uE774");
             }
             catch (Exception ex)
             {
@@ -265,6 +269,18 @@ namespace networker.NetworkConfig.Views.Tabs
             StatusText.Foreground = error
                 ? (Brush)Application.Current.Resources["AppDangerBrush"]
                 : (Brush)Application.Current.Resources["AppTextSecondaryBrush"];
+        }
+
+        private static void LogActivity(string title, string detail, string glyph = "\uE774")
+        {
+            string text = (detail ?? "").Trim();
+            RecentActivity.Add(new ActivityItem
+            {
+                Title = title,
+                Detail = text.Length <= 200 ? text : text[..200] + "…",
+                Timestamp = DateTime.Now,
+                Glyph = glyph,
+            });
         }
     }
 }

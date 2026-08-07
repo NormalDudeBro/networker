@@ -4,6 +4,8 @@ using System.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using networker.Models;
+using networker.Services;
 using Networker.Core.NetTools.Config;
 
 namespace networker.NetworkConfig.Views.Tabs
@@ -40,6 +42,7 @@ namespace networker.NetworkConfig.Views.Tabs
                 DiffResultsText.Text = "Configurations are identical - no differences found.";
                 DiffStatsText.Text = "0 additions, 0 deletions";
                 SetStatus("Configurations are identical");
+                LogActivity("Config Diff", "Configurations are identical", "\uE8C8");
                 return;
             }
 
@@ -51,6 +54,7 @@ namespace networker.NetworkConfig.Views.Tabs
             DiffResultsText.Text = sb.ToString();
             DiffStatsText.Text = $"{additions} additions, {deletions} deletions";
             SetStatus($"Diff complete: {additions} additions, {deletions} deletions");
+            LogActivity("Config Diff", $"{additions} additions, {deletions} deletions", "\uE8C8");
         }
 
         private void Clear_Click(object sender, RoutedEventArgs e)
@@ -68,6 +72,18 @@ namespace networker.NetworkConfig.Views.Tabs
             StatusText.Foreground = error
                 ? (Brush)Application.Current.Resources["AppDangerBrush"]
                 : (Brush)Application.Current.Resources["AppTextSecondaryBrush"];
+        }
+
+        private static void LogActivity(string title, string detail, string glyph = "\uE774")
+        {
+            string text = (detail ?? "").Trim();
+            RecentActivity.Add(new ActivityItem
+            {
+                Title = title,
+                Detail = text.Length <= 200 ? text : text[..200] + "…",
+                Timestamp = DateTime.Now,
+                Glyph = glyph,
+            });
         }
     }
 }

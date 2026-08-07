@@ -1024,5 +1024,6 @@ resize, navigation, large datasets, virtualization, no gratuitous animation).
 - Keyboard review, focus visuals, high-contrast sanity, contrast check, virtualization check on
   lists, resize behavior, startup path review. Full suite + release build + README update.
 
-**Status:** Phases 1–3 complete (design tokens, shell/nav/status bar, dashboard + Assistant
-page + shared recent-activity log). Phase 4 in progress (Tools page restyle).
+**Status:** Phases 1–4 complete (design tokens, shell/nav/status bar, dashboard + Assistant
+page + shared recent-activity log, toolkit restyle with severity pills). Phase 5 in progress
+(Network Config tabs restyle).

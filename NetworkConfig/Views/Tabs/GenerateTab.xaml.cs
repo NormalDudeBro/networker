@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using networker.Models;
+using networker.Services;
 using Networker.Core.Models.NetworkConfig;
 using Networker.Core.Services.NetworkConfig;
 
@@ -117,6 +119,7 @@ namespace networker.NetworkConfig.Views.Tabs
             {
                 ApplyFormData(data);
                 StatusText.Text = $"Applied template '{item.Name}'.";
+                LogActivity("Template Applied", $"'{item.Name}' pre-filled the generate form", "\uE8A5");
             }
         }
 
@@ -127,7 +130,8 @@ namespace networker.NetworkConfig.Views.Tabs
             {
                 StatusText.Text = "Hostname is required.";
                 GenerateOutput.Visibility = Visibility.Collapsed;
-                ValidationText.Visibility = Visibility.Collapsed;
+                ValidationSummaryText.Visibility = Visibility.Collapsed;
+                ValidationList.Visibility = Visibility.Collapsed;
                 return;
             }
 
@@ -145,6 +149,7 @@ namespace networker.NetworkConfig.Views.Tabs
             ShowValidation(_validator.Validate(config));
             StatusText.Text = $"Generated configuration for {form.Basic.Hostname.Trim()}";
             AppSettings.DefaultVendor = form.Basic.Vendor;
+            LogActivity("Config Generator", $"{form.Basic.Hostname.Trim()} — {form.Basic.Vendor}", "\uE943");
         }
 
         private TemplateFormData CollectFormData() => new()
@@ -294,38 +299,72 @@ namespace networker.NetworkConfig.Views.Tabs
         {
             if (issues.Count == 0)
             {
-                ValidationText.Text = "No issues found!";
+                ValidationSummaryText.Text = "No issues found — configuration validated clean.";
+                ValidationSummaryText.Visibility = Visibility.Visible;
+                ValidationList.Visibility = Visibility.Collapsed;
+                return;
             }
-            else
+
+            var errors = issues.Count(i => i.Severity == ValidationSeverity.Error);
+            var warnings = issues.Count(i => i.Severity == ValidationSeverity.Warning);
+            var infos = issues.Count(i => i.Severity == ValidationSeverity.Info);
+
+            ValidationSummaryText.Text = $"Found: {errors} errors, {warnings} warnings, {infos} info";
+            ValidationSummaryText.Visibility = Visibility.Visible;
+
+            ValidationList.ItemsSource = issues.Select(issue => new ValidationRow
             {
-                var errors = issues.Count(i => i.Severity == ValidationSeverity.Error);
-                var warnings = issues.Count(i => i.Severity == ValidationSeverity.Warning);
-                var infos = issues.Count(i => i.Severity == ValidationSeverity.Info);
+                Severity = issue.Severity.ToString(),
+                SeverityBrush = SeverityBrush(issue.Severity),
+                Message = issue.Message,
+                Location = issue.Location,
+                Recommendation = string.IsNullOrEmpty(issue.Recommendation)
+                    ? string.Empty
+                    : $"Tip: {issue.Recommendation}",
+            }).ToList();
+            ValidationList.Visibility = Visibility.Visible;
+        }
 
-                var sb = new StringBuilder();
-                sb.AppendLine($"Found: {errors} errors, {warnings} warnings, {infos} info");
-                sb.AppendLine();
+        /// <summary>
+        /// Display row for the validation findings list — mirrors the severity
+        /// pill pattern used across the toolkit (see ToolsPage FindingItem).
+        /// </summary>
+        private sealed class ValidationRow
+        {
+            public required string Severity { get; init; }
+            public required SolidColorBrush SeverityBrush { get; init; }
+            public required string Message { get; init; }
+            public required string Location { get; init; }
+            public required string Recommendation { get; init; }
+        }
 
-                foreach (var issue in issues)
-                {
-                    var icon = issue.Severity switch
-                    {
-                        ValidationSeverity.Error => "[ERROR]",
-                        ValidationSeverity.Warning => "[WARN]",
-                        _ => "[INFO]",
-                    };
-                    sb.AppendLine($"{icon} {issue.Message}");
-                    sb.AppendLine($"       Location: {issue.Location}");
-                    if (!string.IsNullOrEmpty(issue.Recommendation))
-                    {
-                        sb.AppendLine($"       Tip: {issue.Recommendation}");
-                    }
-                }
+        private static SolidColorBrush SeverityBrush(ValidationSeverity severity) => severity switch
+        {
+            ValidationSeverity.Error => Brush("AppDangerBrush"),
+            ValidationSeverity.Warning => Brush("AppWarningBrush"),
+            _ => Brush("AppTextSecondaryBrush"),
+        };
 
-                ValidationText.Text = sb.ToString();
+        private static SolidColorBrush Brush(string key)
+        {
+            if (Application.Current.Resources.TryGetValue(key, out object value) && value is SolidColorBrush brush)
+            {
+                return brush;
             }
 
-            ValidationText.Visibility = Visibility.Visible;
+            return new SolidColorBrush(Colors.Gray);
+        }
+
+        private static void LogActivity(string title, string detail, string glyph = "\uE774")
+        {
+            string text = (detail ?? "").Trim();
+            RecentActivity.Add(new ActivityItem
+            {
+                Title = title,
+                Detail = text.Length <= 200 ? text : text[..200] + "…",
+                Timestamp = DateTime.Now,
+                Glyph = glyph,
+            });
         }
 
         private void AddInterface_Click(object sender, RoutedEventArgs e) =>

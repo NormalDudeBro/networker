@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using networker.Models;
+using networker.Services;
 using Networker.Core.Services.NetworkConfig;
 
 namespace networker.NetworkConfig.Views.Tabs
@@ -39,6 +41,7 @@ namespace networker.NetworkConfig.Views.Tabs
             if (!_vault.Exists)
             {
                 VaultStatusText.Text = "No vault exists - Enter a password to create one";
+                VaultStatusText.Foreground = (Brush)Application.Current.Resources["AppTextSecondaryBrush"];
                 VaultUnlockButton.Content = "Create Vault";
                 VaultUnlockButton.IsEnabled = true;
                 VaultLockButton.IsEnabled = false;
@@ -49,6 +52,7 @@ namespace networker.NetworkConfig.Views.Tabs
             else if (_vault.IsLocked)
             {
                 VaultStatusText.Text = "Vault is LOCKED";
+                VaultStatusText.Foreground = (Brush)Application.Current.Resources["AppDangerBrush"];
                 VaultUnlockButton.Content = "Unlock";
                 VaultUnlockButton.IsEnabled = true;
                 VaultLockButton.IsEnabled = false;
@@ -59,6 +63,7 @@ namespace networker.NetworkConfig.Views.Tabs
             else
             {
                 VaultStatusText.Text = "Vault is UNLOCKED";
+                VaultStatusText.Foreground = (Brush)Application.Current.Resources["AppSuccessBrush"];
                 VaultUnlockButton.IsEnabled = false;
                 VaultLockButton.IsEnabled = true;
                 VaultPasswordInput.IsEnabled = false;
@@ -131,11 +136,13 @@ namespace networker.NetworkConfig.Views.Tabs
                     }
 
                     SetStatus("Vault unlocked successfully");
+                    LogActivity("Vault Unlocked", "Master-password vault unlocked", "\uE785");
                 }
                 else
                 {
                     _vault.Create(password);
                     SetStatus("Vault created successfully");
+                    LogActivity("Vault Created", "A new encrypted vault was created", "\uE72E");
                 }
             }
             catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
@@ -152,6 +159,7 @@ namespace networker.NetworkConfig.Views.Tabs
             _vault.Lock();
             UpdateVaultUi();
             SetStatus("Vault locked");
+            LogActivity("Vault Locked", "Vault locked — stored data is encrypted", "\uE72E");
         }
 
         private void AddCredential_Click(object sender, RoutedEventArgs e)
@@ -177,6 +185,7 @@ namespace networker.NetworkConfig.Views.Tabs
             {
                 _vault.StoreCredential(name, username, password, description);
                 SetStatus($"Credential '{name}' stored");
+                LogActivity("Vault Credential", $"'{name}' stored", "\uE774");
                 CredNameInput.Text = string.Empty;
                 CredUserInput.Text = string.Empty;
                 CredPassInput.Password = string.Empty;
@@ -207,6 +216,7 @@ namespace networker.NetworkConfig.Views.Tabs
             if (_vault.DeleteCredential(name))
             {
                 SetStatus($"Credential '{name}' deleted");
+                LogActivity("Vault Credential", $"'{name}' deleted", "\uE774");
                 DelCredNameInput.Text = string.Empty;
                 RefreshVaultLists();
             }
@@ -238,6 +248,7 @@ namespace networker.NetworkConfig.Views.Tabs
             {
                 _vault.StoreVariable(name, value, isSecret);
                 SetStatus($"Variable '{name}' stored");
+                LogActivity("Vault Variable", $"'{name}' stored as {(isSecret ? "secret" : "plain")}", "\uE774");
                 VarNameInput.Text = string.Empty;
                 VarValueInput.Text = string.Empty;
                 VarSecretCombo.SelectedIndex = 0;
@@ -255,6 +266,18 @@ namespace networker.NetworkConfig.Views.Tabs
             StatusText.Foreground = error
                 ? (Brush)Application.Current.Resources["AppDangerBrush"]
                 : (Brush)Application.Current.Resources["AppTextSecondaryBrush"];
+        }
+
+        private static void LogActivity(string title, string detail, string glyph = "\uE774")
+        {
+            string text = (detail ?? "").Trim();
+            RecentActivity.Add(new ActivityItem
+            {
+                Title = title,
+                Detail = text.Length <= 200 ? text : text[..200] + "…",
+                Timestamp = DateTime.Now,
+                Glyph = glyph,
+            });
         }
     }
 }

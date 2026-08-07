@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using networker.Models;
+using networker.Services;
 using Networker.Core.Models.NetworkConfig;
 using Networker.Core.Services.NetworkConfig;
 
@@ -94,6 +95,7 @@ namespace networker.NetworkConfig.Views.Tabs
             if (_templates.DeleteCustomTemplate(item.Info.Name))
             {
                 SetStatus($"Template '{item.Info.Name}' deleted");
+                LogActivity("Template Deleted", $"'{item.Info.Name}' removed from custom templates", "\uE8A5");
                 LoadTemplates();
                 TemplateList.SelectedItem = null;
             }
@@ -120,6 +122,18 @@ namespace networker.NetworkConfig.Views.Tabs
             StatusText.Foreground = error
                 ? (Brush)Application.Current.Resources["AppDangerBrush"]
                 : (Brush)Application.Current.Resources["AppTextSecondaryBrush"];
+        }
+
+        private static void LogActivity(string title, string detail, string glyph = "\uE774")
+        {
+            string text = (detail ?? "").Trim();
+            RecentActivity.Add(new ActivityItem
+            {
+                Title = title,
+                Detail = text.Length <= 200 ? text : text[..200] + "…",
+                Timestamp = DateTime.Now,
+                Glyph = glyph,
+            });
         }
     }
 

@@ -14,12 +14,12 @@
                     <TextBox x:Name="ImportText" AcceptsReturn="True" TextWrapping="NoWrap" Height="240"
                              PlaceholderText="Paste a configuration here... (Cisco IOS, Juniper Junos, or SONiC)"/>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Content="Parse Configuration" Click="Parse_Click">
+                        <Button Content="Parse Configuration" Style="{StaticResource PrimaryButtonStyle}" Click="Parse_Click">
                             <Button.KeyboardAccelerators>
                                 <KeyboardAccelerator Key="Enter" Modifiers="Control" ScopeOwner="{x:Bind ImportRoot}"/>
                             </Button.KeyboardAccelerators>
                         </Button>
-                        <Button Content="Import Syslog File" Click="ImportSyslogFile_Click" Style="{StaticResource ChipButtonStyle}"/>
+                        <Button Content="Import Syslog File" Click="ImportSyslogFile_Click" Style="{StaticResource SecondaryButtonStyle}"/>
                         <Button Content="Clear" Click="Clear_Click" Style="{StaticResource ChipButtonStyle}"/>
                         <TextBlock x:Name="StatusText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>
                     </StackPanel>

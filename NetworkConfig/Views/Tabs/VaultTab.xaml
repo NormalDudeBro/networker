@@ -13,7 +13,7 @@
                     <TextBlock x:Name="VaultStatusText" FontWeight="SemiBold"/>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <PasswordBox x:Name="VaultPasswordInput" Width="280" PlaceholderText="Master password"/>
-                        <Button x:Name="VaultUnlockButton" Content="Unlock" Click="UnlockOrCreate_Click"/>
+                        <Button x:Name="VaultUnlockButton" Content="Unlock" Style="{StaticResource PrimaryButtonStyle}" Click="UnlockOrCreate_Click"/>
                         <Button x:Name="VaultLockButton" Content="Lock" Click="Lock_Click" IsEnabled="False"/>
                         <TextBlock x:Name="StatusText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>
                     </StackPanel>
@@ -40,7 +40,7 @@
                         <PasswordBox x:Name="CredPassInput" Grid.Column="2" PlaceholderText="Password"/>
                         <TextBox x:Name="CredDescInput" Grid.Column="3" PlaceholderText="Description"/>
                     </Grid>
-                    <Button Content="Add Credential" Click="AddCredential_Click" HorizontalAlignment="Left"/>
+                    <Button Content="Add Credential" Style="{StaticResource PrimaryButtonStyle}" Click="AddCredential_Click" HorizontalAlignment="Left"/>
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBox x:Name="DelCredNameInput" Width="240" PlaceholderText="Credential name to delete"/>
                         <Button Content="Delete" Click="DeleteCredential_Click" Style="{StaticResource DangerButtonStyle}"/>
@@ -61,7 +61,7 @@
                             <x:String>Normal</x:String>
                             <x:String>Secret</x:String>
                         </ComboBox>
-                        <Button Content="Add Variable" Click="AddVariable_Click"/>
+                        <Button Content="Add Variable" Style="{StaticResource PrimaryButtonStyle}" Click="AddVariable_Click"/>
                     </StackPanel>
                 </StackPanel>
             </Border>

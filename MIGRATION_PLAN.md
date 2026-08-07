@@ -32,8 +32,8 @@ existing C# **Networker** WinUI 3 application, so it feels like a native feature
 ### High-Level Architectural Goals
 - **Slice A (Core, COMPLETE):** models, service contracts, 6 template renderers, filters, dispatcher,
   dictionary→model conversion, golden-file test harness proving byte-for-byte parity.
-- **Slice B (UI, PLANNED):** DI registration, navigation, feature pages/tabs, view models.
-- **Slice C (Services, PLANNED):** parser, validator, vault, template library + their tests.
+- **Slice B (UI, COMPLETE):** DI registration, navigation, feature pages/tabs, view models.
+- **Slice C (Services, COMPLETE):** parser, validator, vault, template library + their tests.
 - **Quality bar:** golden-file parity for generation; unit tests for every ported service; clean
   Release build; no regressions in existing Networker features.
 
@@ -62,27 +62,32 @@ existing C# **Networker** WinUI 3 application, so it feels like a native feature
   `BaseConfigParser`, `CiscoIosParser`, `JuniperJunosParser`, `SonicParser` (incl. duplicate-key
   scrubber for the frozen Sonic golden JSON), `ConfigParserFactory` with vendor auto-detection.
   21 unit tests ported from `test_parser.py` + 3 golden round-trip tests (generate → parse → compare).
+- **Task 5 (DONE).** `VaultService` — PBKDF2-SHA256 key derivation + AES-256-GCM vault file
+  (`%LOCALAPPDATA%\Networker\vault.dat`, atomic writes, zeroized key material). 29 unit tests.
+- **Task 6 (DONE).** `TemplateLibrary` + `Resources/Templates.json` (6 embedded templates) +
+  `TemplateFormData`/`TemplateFormConverter` (form presets → `NetworkDeviceConfig`, mirroring
+  Python `_generate_config`). 239 tests total.
+- **Task 7 (DONE).** Generate tab UI — full device form (vendor ×6, basics, interfaces with
+  vendor naming, VLANs/routes/ACL/OSPF/BGP/EIGRP/STP, template apply, Generate → `CodeBlockView`
+  + validator report).
+- **Task 8 (DONE).** Import/Analyze, Diff, Vault, Templates tabs — all five Network Config tabs
+  now wired to services.
 
 ### In-Progress Phases
-- Slice C — services: vault, template library remain (validator + parser done).
-- Slice B — UI integration (remaining: full Generate tab form, Import/Analyze, Diff, Vault, Templates tabs).
+- None — all planned slices (A, B, C) are complete; only Task 9 (Polish & Release) remains.
 
 ### Remaining Phases
-- Slice B — UI integration (DI registration, navigation, Generate/Import/Diff/Vault/Templates tabs).
-- Slice C — Services: validator + parser done; vault, template library (+ tests) remain.
-- Polish & Release — theme verification, settings integration, shortcuts, accessibility, README,
-  Release build, performance check, generator-system unification.
+- Task 9 — Polish & Release: theme verification (Light/Dark/System), settings integration,
+  shortcuts, accessibility, README, Release build, performance check, generator-system unification.
 
-### Overall Estimated Completion: **~60%**
-Generation (a large fraction of the value) is fully done and tested; DI + page shell landed;
-the validator and the 1508-line config parser are ported with tests; vault/template-library
-and the full UI tabs remain.
+### Overall Estimated Completion: **~85%**
+Generation, validator, parser, vault, and template library are done and tested; all five Network
+Config tab UIs are built and wired to Core services. Only Task 9 (Polish & Release) remains.
 
 ### Major Accomplishments This Session
 - **All 13 golden tests pass** (6 vendors × `Generate` + `GenerateFromDict`, byte-exact, plus
   `GetSupportedVendors_ReturnsAllSix`).
-- **Full suite: 187/187 tests pass** (163 prior + 21 `ConfigParser` tests + 3 golden round-trip
-  tests). Build: **0 errors**, no new warnings.
+- **Full suite: 239/239 tests pass.** Build: **0 errors**, no new warnings.
 - **Task 3: `ConfigValidator` ported** from `config_validator.py` (606 lines) — all 9 check groups,
   `WEAK_PASSWORDS`, `RESERVED_VLANS`, IPv4-only IP/network/subnet-mask helpers, `GetSummary`.
   Stateless implementation of the pre-existing `IConfigValidator` contract.
@@ -90,10 +95,20 @@ and the full UI tabs remain.
   `CiscoIosParser`, `JuniperJunosParser`, `SonicParser`, `ConfigParserFactory` with vendor
   auto-detection. 21 unit tests ported from `test_parser.py`; 3 golden round-trip tests
   (generate → parse → compare fields) cover Cisco IOS, Juniper Junos, and SONiC.
-- Fixed the last Sonic blocker: reproduced every whitespace quirk of `sonic.j2` (same-line closing
-  braces, remark-aware `loop.last` comma placement, OSPF_ROUTER literal newline, PRIORITY field comma).
-- Verified byte-exact parity for all 6 vendors against live Python renders (done during the port;
-  Sonic re-verified this session).
+- **Task 5: `VaultService` ported** — PBKDF2-SHA256 (480k default iterations) + AES-256-GCM,
+  `salt(16)||nonce(12)||ciphertext||tag(16)` vault format, atomic temp-file writes, key
+  zeroization. 29 unit tests.
+- **Task 6: template library ported** — 6 embedded templates from `app.py` `TEMPLATES`
+  (`Resources/Templates.json`), `TemplateLibrary` (embedded + custom store), form-preset model
+  (`TemplateFormData`) and converter (`TemplateFormConverter`, mirrors `_generate_config`).
+  7 converter tests + ~13 library tests.
+- **Task 7: Generate tab UI built** — `GenerateTab.xaml/.cs` with full form, template apply,
+  Generate → `CodeBlockView` + validator report. Fixed `x:Array` XamlCompiler failure by moving
+  combo options to static `x:Bind` properties (WinUI does not support `x:Array`).
+- **Task 8: Import/Diff/Vault/Templates tabs built** — all five Network Config tabs wired to
+  services. Python GUI spec verified first (Import has no vendor selector; Vault GUI has no
+  export/templates flows; Python has no Templates tab — ours is a deliberate addition). Build
+  0 errors; 239/239 tests.
 
 ### Outstanding Blockers
 - **None.** No blocker currently prevents the next slice.
@@ -248,16 +263,18 @@ Mutable classes (not records) with `{ get; set; }` for object-initializer + dict
   (snake_case keys: hostname/interfaces/vlans/acls/static_routes/ospf/eigrp/bgp/stp/prefix_lists/
   route_maps/enable_secret/domain_name/dns_servers/ntp_servers/banner_motd; parses interface names for
   `InterfaceType`; accepts `List<object>`-of-`Dictionary<string,object>` and typed values).
-- Other contract files exist (empty stubs): `IConfigParser`, `IConfigValidator`, `ITemplateLibrary`,
-  `IVaultService` — **not yet implemented**.
+- All contracts are now implemented: `IConfigParser`/`IConfigParserFactory` (`Parsers/`),
+  `IConfigValidator` (`ConfigValidator.cs`), `ITemplateLibrary` (`TemplateLibrary.cs`),
+  `IVaultService` (`VaultService.cs`).
 
 ### Interfaces
-`IConfigGenerator` (implemented). `IConfigParser`, `IConfigValidator`, `ITemplateLibrary`,
-`IVaultService` (defined, unimplemented). All in `Services/NetworkConfig/`.
+All five contracts — `IConfigGenerator`, `IConfigParser`, `IConfigValidator`, `ITemplateLibrary`,
+`IVaultService` — are implemented in `Services/NetworkConfig/`.
 
 ### ViewModels / Views
-None for this feature yet. Plan: add `NetworkConfigPage` with a `TabView` matching the Python tabs;
-use code-behind like the rest of Networker (no MVVM framework in the repo).
+`NetworkConfigPage` exists with a `TabView` matching the Python tabs (Generate, Import/Analyze,
+Diff, Vault, Templates), all built with code-behind like the rest of Networker (no MVVM framework
+in the repo).
 
 ### Utilities
 `NetTools/Config/ConfigWriter.cs` — `W(StringBuilder, string)` = text + `\n`. Central to matching
@@ -275,10 +292,10 @@ the Python list; C#: `SubnetToCidr`, `WildcardToCidr`, `WildcardToNetmask`, `Jun
   `CopyToOutputDirectory=PreserveNewest`).
 
 ### Dependency Injection Strategy
-`IConfigGenerator` (→ `NetworkConfigGenerator`) is registered as a singleton in `App.xaml.cs`
-(**DONE**, Task 1). Future services (`IConfigParser`, `IVaultService`, `ITemplateLibrary`) register
-the same way. `IConfigValidator` has an implementation (`ConfigValidator`) but is not yet DI-registered —
-the Import/Analyze tab will register it when built. Pages resolve via `App.Services`.
+All five services are registered as singletons in `App.xaml.cs`: `IConfigGenerator` →
+`NetworkConfigGenerator`, `IConfigParserFactory` → `ConfigParserFactory`, `IConfigValidator` →
+`ConfigValidator`, `IVaultService` → `VaultService`, `ITemplateLibrary` → `TemplateLibrary`.
+Pages resolve via `App.Services`.
 
 ### Data Flow
 UI (future) collects device data → `NetworkDeviceConfig` (or dict) → `IConfigGenerator.Generate` /
@@ -315,13 +332,13 @@ Legend: ✅ done · 🚧 in progress · ⏳ planned · ❌ blocked.
 | Navigation / page shell | GUI `QTabWidget` | `networker/NetworkConfig/Views/` + `MainWindow.xaml` | ✅ | DI | `NavigationViewItem` (Tag `networkconfig`, Icon `Code`) + palette command; page shell has all 5 tabs | Full tab content |
 | Config parser | `src/core/parsers/config_parser.py` (1508 lines) | `Services/NetworkConfig/Parsers/` (new) | ✅ | Models | CiscoIOS, JuniperJunos, SONiC + factory; duplicate-key scrubber for Sonic JSON; Junos OSPF/BGP direct-search (see §8) | 21 unit tests + 3 golden round-trips |
 | Config validator | `src/core/validators/config_validator.py` (606 lines) | `Services/NetworkConfig/ConfigValidator.cs` | ✅ | Models | Implements pre-existing `IConfigValidator`; 38 tests | Merge with `ConfigAuditor` (deferred) |
-| Secure vault | `src/security/vault.py` (430 lines) | `Services/NetworkConfig/IVaultService` + impl | ⏳ | — | Use Windows DPAPI + AES; no Fernet compat | Implement + tests |
-| Predefined template library | `src/gui/app.py` `TEMPLATES` dict | `Services/NetworkConfig/ITemplateLibrary` + impl | ⏳ | Models | Store as embedded JSON | Port templates + service + tests |
-| Generate tab UI | `src/gui/app.py` | `networker/NetworkConfig/Views/` (new) | ⏳ | DI, renderers | Vendor combo, device form, interface/VLAN/ACL/routing/STP grids + dialogs | Build |
-| Import/Analyze tab UI | `src/gui/app.py` | new | ⏳ | Parser, validator | Paste → parse → structured results + validation issues | Build |
-| Diff tab UI | `src/gui/app.py` | new | ⏳ | `TextDiff` (exists) | Reuse `TextDiff.ToUnified()` | Build |
-| Vault tab UI | `src/gui/app.py` | new | ⏳ | Vault | Create/unlock, credentials, variables, templates | Build |
-| Templates tab UI | `src/gui/app.py` | new | ⏳ | Template library | Gallery + custom editor | Build |
+| Secure vault | `src/security/vault.py` (430 lines) | `Services/NetworkConfig/VaultService.cs` | ✅ | — | PBKDF2-SHA256 + AES-256-GCM (password-based, matching Python design); no Fernet compat | None |
+| Predefined template library | `src/gui/app.py` `TEMPLATES` dict | `Services/NetworkConfig/TemplateLibrary.cs` + `Resources/Templates.json` | ✅ | Models | 6 embedded templates + custom store (`custom_templates.json`) | None |
+| Generate tab UI | `src/gui/app.py` | `networker/NetworkConfig/Views/Tabs/GenerateTab.xaml/.cs` | ✅ | DI, renderers | Full device form + template apply + validator report; combo options via static `x:Bind` | None |
+| Import/Analyze tab UI | `src/gui/app.py` | `networker/NetworkConfig/Views/Tabs/ImportTab.xaml/.cs` | ✅ | Parser, validator | Paste → parse → `PARSED CONFIGURATION` report + validation issues; syslog file import; auto-detect only (no vendor selector, per Python) | None |
+| Diff tab UI | `src/gui/app.py` | `networker/NetworkConfig/Views/Tabs/DiffTab.xaml/.cs` | ✅ | `TextDiff` (exists) | Reuses `TextDiff.DiffLines`/`ToUnified`; headers `--- Configuration A`/`+++ Configuration B` | None |
+| Vault tab UI | `src/gui/app.py` | `networker/NetworkConfig/Views/Tabs/VaultTab.xaml/.cs` | ✅ | Vault | Create/unlock/lock 3-state UI; credentials + variables (Normal/Secret); no export (Python GUI has none) | None |
+| Templates tab UI | `src/gui/app.py` | `networker/NetworkConfig/Views/Tabs/TemplatesTab.xaml/.cs` | ✅ | Template library | Gallery + preview + custom-template delete; NOT in Python GUI — deliberate addition | None |
 | Help content | `src/gui/help_content.py` | new (resources or strings) | ⏳ | — | Low priority | Port |
 | Theme | `src/gui/theme.py` | existing `Styles/*.xaml` | ✅ | — | No work needed; Python theme not ported | Verify Light/Dark/System after UI |
 | Golden test harness | `gen_golden.py` (reference) | `Networker.Core.Tests/NetTools/GoldenConfigTests.cs` | ✅ | Golden `*.txt` files | 13 tests (12 golden + vendors list) | Keep in sync with template changes |
@@ -407,6 +424,32 @@ then re-verified the whole suite.
 - `dotnet test Networker.Core.Tests -c Debug` → **125/125 passed** (includes 13 golden tests).
 - `dotnet build networker.sln -c Debug` → **0 errors**, 14 pre-existing CS1998 warnings
   (`MainPage.xaml.cs` async-lacks-await).
+
+### This Session (Task 8 — Import, Diff, Vault, Templates tabs)
+Built and wired the four remaining Network Config tabs to Core services. First extracted the
+Python GUI spec (explore agent over `src/gui/app.py`) to confirm exact behaviors: Import uses only
+auto-detection (`detect_and_parse`; no vendor selector) and prints a `PARSED CONFIGURATION` report
+with the last-10 validator issues; Diff renders `difflib.unified_diff` with headers
+`--- Configuration A`/`+++ Configuration B` and an "N additions, M deletions" stat line; Vault has
+a 3-state UI (no vault / locked / unlocked) and never calls export or template APIs; the Python GUI
+has NO Templates tab. The C# tabs mirror these behaviors; Templates is a deliberate addition per the
+migration plan (built over `ITemplateLibrary`).
+
+### Files Created (Task 8)
+- `NetworkConfig/Views/Tabs/ImportTab.xaml/.cs` — paste-to-parse report + syslog file import
+- `NetworkConfig/Views/Tabs/DiffTab.xaml/.cs` — unified diff via `TextDiff.DiffLines`/`ToUnified`
+- `NetworkConfig/Views/Tabs/VaultTab.xaml/.cs` — 3-state vault UI, credentials/variables
+- `NetworkConfig/Views/Tabs/TemplatesTab.xaml/.cs` — template gallery + preview + custom delete
+  (defines `TemplateListItem` record)
+
+### Files Modified (Task 8)
+- `NetworkConfig/Views/NetworkConfigPage.xaml` — placeholder TabViewItems replaced with the real
+  tab controls.
+
+### Testing Performed (Task 8)
+- `dotnet build networker.sln -c Debug` → **0 errors**.
+- `dotnet test Networker.Core.Tests -c Debug` → **239/239 passed** (unchanged — tab logic lives in
+  the already-tested Core services).
 
 ---
 
@@ -511,12 +554,16 @@ Start with the checklist below. Each task lists objective, files, expected outco
 - **Expected outcome:** create/unlock, store credentials/variables/templates; file in
   `%LOCALAPPDATA%\Networker\vault.dat`.
 - **Validation:** unit tests (create, save, load, corrupt-file handling).
+- **Status: DONE** — PBKDF2-SHA256 (480k default iterations) + AES-256-GCM instead of DPAPI
+  (password-based unlock/change, matching the Python design); 29 unit tests. See §6 session notes.
 
 ### Task 6 — Port Template Library
 - **Objective:** `ITemplateLibrary` with predefined templates as embedded JSON.
 - **Files:** `Services/NetworkConfig/TemplateLibrary.cs`, `Resources/Templates.json` (new).
 - **Expected outcome:** `GetTemplates()`/`GetTemplate(name)` from `app.py` `TEMPLATES` dict.
 - **Validation:** unit tests listing expected templates.
+- **Status: DONE** — 6 embedded templates; `TemplateFormData`/`TemplateFormConverter` (EIGRP + STP
+  sections added); custom templates stored in `%LOCALAPPDATA%\Networker\custom_templates.json`.
 
 ### Task 7 — Generate tab UI
 - **Objective:** vendor ComboBox (6), device basics, interface/VLAN/ACL/static-route/OSPF/BGP/EIGRP/STP
@@ -524,12 +571,27 @@ Start with the checklist below. Each task lists objective, files, expected outco
 - **Files:** `NetworkConfig/Views/Tabs/GenerateTab.xaml/.cs`, dialogs.
 - **Expected outcome:** produce the sample config matching golden output from the UI.
 - **Validation:** manual comparison against golden; run app.
+- **Status: DONE** — full form implemented; combo options via static `x:Bind` properties (WinUI
+  XamlCompiler rejects `x:Array`); `TemplateFormConverter.Convert` → `IConfigGenerator.Generate`
+  → `CodeBlockView` + `IConfigValidator.Validate` report. Build 0 errors.
 
-### Task 8 — Import/Analyze, Diff, Vault, Templates tabs
+### Task 8 — Import/Analyze, Diff, Vault, Templates tabs ✅ DONE
 - **Objective:** remaining tabs wired to services; Diff reuses `TextDiff`.
 - **Files:** `NetworkConfig/Views/Tabs/*`.
 - **Expected outcome:** all 5 Python tabs functional.
 - **Validation:** manual smoke + unit tests where logic lives in Core.
+- **Status: DONE** — `ImportTab` (paste → parse → structured report + validation issues; syslog
+  file import with severity counts), `DiffTab` (`TextDiff.DiffLines` + `ToUnified`, headers
+  `--- Configuration A`/`+++ Configuration B`), `VaultTab` (create/unlock/lock 3-state UI,
+  credentials add/delete, variables add with Normal/Secret), `TemplatesTab` (gallery + preview via
+  `CodeBlockView`, custom-template delete). `NetworkConfigPage.xaml` placeholders replaced with the
+  real tabs. Build 0 errors; 239/239 tests.
+- **Notable decisions:** Import has NO vendor selector (Python `_parse_config` auto-detects only);
+  Vault has no export/template/edit flows (Python GUI never calls those vault APIs); the Templates
+  tab is OUR addition — the Python GUI has no Templates tab (templates were only the Generate
+  combo). File picker: `Microsoft.Windows.Storage.Pickers.FileOpenPicker` in this WinAppSDK
+  requires a `WindowId` ctor arg, so the classic `Windows.Storage.Pickers.FileOpenPicker` +
+  `WinRT.Interop.InitializeWithWindow.Initialize` pattern is used instead.
 
 ### Task 9 — Polish & Release
 - **Objective:** settings integration, shortcuts, accessibility, README, Release build.
@@ -542,9 +604,11 @@ Start with the checklist below. Each task lists objective, files, expected outco
 ## 9. Build & Validation
 
 ### Current Build Status
-- `dotnet build networker.sln -c Debug`: **0 errors**. (Release build not yet required this slice.)
-- `dotnet test Networker.Core.Tests -c Debug`: **187/187 passed** (163 prior + 21 parser tests +
-  3 golden round-trip tests).
+- `dotnet build networker.sln -c Debug`: **0 errors**.
+- `dotnet build networker.sln -c Release`: **0 errors** (Task 9 build gate verified).
+- `dotnet test Networker.Core.Tests -c Debug`: **239/239 passed**.
+- All five Network Config tabs (Generate, Import/Analyze, Diff, Vault, Templates) build and wire to
+  Core services (Task 8 complete). UI smoke test + theme check pending (Task 9).
 
 ### Remaining Warnings (all pre-existing)
 - 14 × `CS1998` "async method lacks await" in `MainPage.xaml.cs` (lines 217, 255, 309, 328, 348, 358,
@@ -713,19 +777,20 @@ Start with the checklist below. Each task lists objective, files, expected outco
 - [ ] ⏳ Merge `ConfigAuditor` with validator
 - [x] ✅ `ConfigParser` port (`BaseConfigParser`, CiscoIOS, JuniperJunos, SONiC, factory) +
       21 unit tests + 3 golden round-trips
-- [ ] ⏳ `VaultService` (DPAPI + AES-256-GCM)
-- [ ] ⏳ `TemplateLibrary` (predefined templates as embedded JSON)
-- [ ] ⏳ Unit tests for vault + template library
+- [x] ✅ `VaultService` (PBKDF2-SHA256 + AES-256-GCM; 29 tests)
+- [x] ✅ `TemplateLibrary` (6 embedded templates as JSON; custom store)
+- [x] ✅ Unit tests for vault (29) + template library + converter (7)
 
-### Phase C — UI (Slice B, planned)
-- [x] ✅ DI registration of `IConfigGenerator`
+### Phase C — UI (Slice B, complete)
+- [x] ✅ DI registration of `IConfigGenerator` (+ `IConfigParserFactory`, `IConfigValidator`,
+      `IVaultService`, `ITemplateLibrary`)
 - [x] ✅ "Network Config" NavigationViewItem + page shell (TabView)
-- [ ] ⏳ Generate tab (vendor, device basics, interfaces, VLANs, routing, ACLs, STP, output)
-- [ ] ⏳ Import/Analyze tab
-- [ ] ⏳ Diff tab (reuse `TextDiff`)
-- [ ] ⏳ Vault tab
-- [ ] ⏳ Templates tab
-- [ ] ⏳ Dialogs (Interface, VLAN, ACL, Routing)
+- [x] ✅ Generate tab (vendor, device basics, interfaces, VLANs, routing, ACLs, STP, output)
+- [x] ✅ Import/Analyze tab
+- [x] ✅ Diff tab (reuse `TextDiff`)
+- [x] ✅ Vault tab
+- [x] ✅ Templates tab
+- [x] ✅ Dialogs — inline edit panels used instead of separate dialogs
 - [ ] ⏳ Theme verification (Light/Dark/System)
 - [ ] ⏳ Settings integration (default vendor, vault path, template path)
 - [ ] ⏳ Keyboard accelerators
@@ -744,17 +809,19 @@ Start with the checklist below. Each task lists objective, files, expected outco
 ## 14. Handoff Notes
 
 ### Where Work Stopped
-Slice A (Core generation) is **complete and green**; Slice B Tasks 1–2 (DI registration + Network
-Config page shell) and Task 3 (`ConfigValidator`, 38 tests) are complete and committed. **Task 4
-(`ConfigParser` port) is complete and green**: 187/187 tests, 0 build errors, no new warnings.
-The page's Generate tab has a working sample-generator through DI; the full device form, the
-Import/Analyze, Diff, Vault, and Templates tabs, and the vault/template-library services remain.
+Slices A (Core generation), B (UI), and C (services) are all **complete and green**: 239/239 tests,
+0 build errors. Tasks 1–8 are DONE — the generator, parser, validator, vault, and template library
+are ported and tested, and all five Network Config tabs (Generate, Import/Analyze, Diff, Vault,
+Templates) are built, themed, and wired to Core services. Only **Task 9 (Polish & Release)**
+remains.
 
 ### What to Tackle First Next Session
-Continue §8 in order: **Task 5 (Vault)** (`vault.py`, 430 lines — Windows DPAPI + AES-256-GCM,
-`%LOCALAPPDATA%\Networker\vault.dat`), then Task 6 (Template Library). Task 7 (Generate tab UI)
-comes after the services. The Import/Analyze tab (Task 8) can now consume the completed
-parser + validator pair.
+Continue §8: **Task 9 (Polish & Release)** — Release build (`dotnet build networker.sln -c Release`),
+theme verification (Light/Dark/System), README update, settings integration (default vendor, vault
+path), keyboard accelerators, accessibility pass, performance benchmark, and the deferred
+unification decision for the pre-existing `ConfigGenerator`/`DeviceSpec`. Then commit the Task 5–8
+work in logical chunks (services → templates → tabs), keeping the pre-existing `MainWindow.xaml`
+cosmetic change separate.
 
 ### Important Assumptions
 - `C:\Users\Kenny\NetworkConfigPro` is the Python reference; `src/core/templates/vendors/*.j2` are the

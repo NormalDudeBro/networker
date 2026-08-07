@@ -63,7 +63,6 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
-        <Setter Property="LineHeight" Value="{ThemeResource LineHeightTitle}" />
     </Style>
 
     <Style x:Key="PageSubtitleTextStyle" TargetType="TextBlock">
@@ -71,7 +70,6 @@
         <Setter Property="Foreground" Value="{ThemeResource AppTextSecondaryBrush}" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
         <Setter Property="TextWrapping" Value="Wrap" />
-        <Setter Property="LineHeight" Value="{ThemeResource LineHeightBody}" />
     </Style>
 
     <Style x:Key="SectionHeaderTextStyle" TargetType="TextBlock">
@@ -79,7 +77,6 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
-        <Setter Property="LineHeight" Value="{ThemeResource LineHeightSection}" />
     </Style>
 
     <Style x:Key="SectionLabelTextStyle" TargetType="TextBlock">
@@ -95,7 +92,6 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
-        <Setter Property="LineHeight" Value="{ThemeResource LineHeightCaption}" />
     </Style>
 
     <Style x:Key="CaptionTextStyle" TargetType="TextBlock">
@@ -103,7 +99,6 @@
         <Setter Property="Foreground" Value="{ThemeResource AppTextSecondaryBrush}" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
         <Setter Property="TextWrapping" Value="Wrap" />
-        <Setter Property="LineHeight" Value="{ThemeResource LineHeightCaption}" />
     </Style>
 
     <Style x:Key="InlineErrorTextStyle" TargetType="TextBlock">
@@ -151,14 +146,12 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
-        <Setter Property="LineHeight" Value="{ThemeResource LineHeightTitle}" />
     </Style>
 
     <Style x:Key="MetricLabelTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="{ThemeResource FontSizeCaption}" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextSecondaryBrush}" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
-        <Setter Property="LineHeight" Value="{ThemeResource LineHeightCaption}" />
     </Style>
 
     <!-- ===================== Badges & status dots ===================== -->
@@ -281,7 +274,6 @@
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
         <Setter Property="IsTextSelectionEnabled" Value="True" />
-        <Setter Property="LineHeight" Value="{ThemeResource LineHeightCode}" />
     </Style>
 
     <Style x:Key="CodeTitleTextStyle" TargetType="TextBlock">
@@ -296,7 +288,6 @@
         <Setter Property="FontFamily" Value="{ThemeResource CodeFontFamily}" />
         <Setter Property="FontSize" Value="{ThemeResource FontSizeCode}" />
         <Setter Property="TextWrapping" Value="Wrap" />
-        <Setter Property="LineHeight" Value="{ThemeResource LineHeightCode}" />
     </Style>
 
     <Style x:Key="MonoSecondaryTextStyle" TargetType="TextBlock" BasedOn="{StaticResource MonoTextStyle}">
@@ -351,7 +342,6 @@
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="IsTextSelectionEnabled" Value="True" />
-        <Setter Property="LineHeight" Value="{ThemeResource LineHeightBody}" />
     </Style>
 
 </ResourceDictionary>

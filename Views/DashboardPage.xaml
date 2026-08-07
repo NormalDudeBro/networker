@@ -7,7 +7,7 @@
     xmlns:local="using:networker.Views"
     Background="{ThemeResource AppBackgroundBrush}">
 
-    <Grid Padding="24,20,24,24" RowDefinitions="Auto,*">
+    <Grid Padding="20,16,20,16" RowDefinitions="Auto,*" MaxWidth="1600" HorizontalAlignment="Stretch">
 
         <!-- ======================= Header ======================= -->
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="16">
@@ -28,11 +28,23 @@
             </Button>
         </Grid>
 
-        <Grid Grid.Row="1" Margin="0,20,0,0" ColumnDefinitions="*,348" ColumnSpacing="16">
+        <ScrollViewer Grid.Row="1" Margin="0,20,0,0" VerticalScrollBarVisibility="Auto">
+        <Grid
+            x:Name="DashboardLayout"
+            ColumnSpacing="16"
+            RowSpacing="16"
+            SizeChanged="DashboardLayout_SizeChanged">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition x:Name="DashboardRightColumn" Width="348"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
             <!-- ======================= Left column ======================= -->
-            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
-                <StackPanel Spacing="16">
+            <StackPanel Grid.Column="0" Spacing="16">
 
                     <!-- Quick actions -->
                     <Border Style="{StaticResource CardStyle}">
@@ -41,26 +53,27 @@
                             <GridView
                                 x:Name="QuickActionsGrid"
                                 SelectionMode="None"
-                                IsItemClickEnabled="True"
-                                ItemClick="QuickAction_Click">
-                                <GridView.ItemContainerStyle>
-                                    <Style TargetType="GridViewItem">
-                                        <Setter Property="MinWidth" Value="160"/>
-                                        <Setter Property="MinHeight" Value="84"/>
-                                        <Setter Property="Margin" Value="0,0,10,10"/>
-                                        <Setter Property="Padding" Value="12"/>
+                                 IsItemClickEnabled="True"
+                                 ItemClick="QuickAction_Click"
+                                 Loaded="QuickActionsGrid_Loaded"
+                                 SizeChanged="QuickActionsGrid_SizeChanged">
+                                 <GridView.ItemContainerStyle>
+                                     <Style TargetType="GridViewItem">
+                                         <Setter Property="MinWidth" Value="0"/>
+                                         <Setter Property="Margin" Value="0,0,10,10"/>
+                                         <Setter Property="Padding" Value="12"/>
                                         <Setter Property="Background" Value="{ThemeResource AppSurfaceBrush}"/>
                                         <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}"/>
                                         <Setter Property="BorderThickness" Value="1"/>
-                                        <Setter Property="CornerRadius" Value="8"/>
-                                        <Setter Property="HorizontalContentAlignment" Value="Left"/>
-                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                         <Setter Property="CornerRadius" Value="8"/>
+                                         <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                                         <Setter Property="VerticalContentAlignment" Value="Stretch"/>
                                         <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}"/>
                                     </Style>
                                 </GridView.ItemContainerStyle>
-                                <GridView.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="4"/>
+                                 <GridView.ItemsPanel>
+                                     <ItemsPanelTemplate>
+                                         <ItemsWrapGrid Orientation="Horizontal"/>
                                     </ItemsPanelTemplate>
                                 </GridView.ItemsPanel>
                                 <GridView.ItemTemplate>
@@ -81,11 +94,10 @@
                                             </Grid>
                                                 <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                             </StackPanel>
-                                            <TextBlock
-                                                Text="{x:Bind Subtitle}"
-                                                Style="{StaticResource CaptionTextStyle}"
-                                                MaxLines="2"
-                                                TextWrapping="Wrap"/>
+                                             <TextBlock
+                                                 Text="{x:Bind Subtitle}"
+                                                 Style="{StaticResource CaptionTextStyle}"
+                                                 TextWrapping="Wrap"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </GridView.ItemTemplate>
@@ -140,11 +152,10 @@
                             </ItemsControl>
                         </StackPanel>
                     </Border>
-                </StackPanel>
-            </ScrollViewer>
+            </StackPanel>
 
             <!-- ======================= Right column ======================= -->
-            <StackPanel Grid.Column="1" Spacing="16">
+            <StackPanel x:Name="DashboardRightRail" Grid.Column="1" Spacing="16">
 
                 <!-- AI connection -->
                 <Border Style="{StaticResource CardStyle}">
@@ -234,5 +245,6 @@
                 </Border>
             </StackPanel>
         </Grid>
+        </ScrollViewer>
     </Grid>
 </Page>

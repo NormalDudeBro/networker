@@ -9,10 +9,10 @@
     <Border x:Name="Scrim" Background="{ThemeResource AppScrimBrush}">
         <Border
             x:Name="Panel"
-            Width="580"
+            MaxWidth="580"
             MaxHeight="560"
-            Margin="0,96,0,0"
-            HorizontalAlignment="Center"
+            Margin="16,48,16,16"
+            HorizontalAlignment="Stretch"
             VerticalAlignment="Top"
             Style="{StaticResource CardStyle}"
             Padding="0"

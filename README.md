@@ -38,6 +38,9 @@ A modern WinUI 3 desktop app for network engineers — deterministic tools + AI-
 - **Activity log** — every tool run, config generation/parse/diff, and vault change is recorded
 - **Keyboard first** — `Ctrl+K` command palette, `Ctrl+1..5` page shortcuts, `Ctrl+Enter` on the
   Generate / Parse / Diff forms, `F5` provider health check
+- **Responsive workspace** — adaptive Overview columns and quick-action cards, natural-width tab
+  headers, bounded ultrawide content, DPI-aware minimum sizing, and scroll containment for dense
+  interface, ACL, and BGP editors
 
 ## Architecture
 
@@ -107,6 +110,8 @@ dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj
 - **LLM for explanation only** — Summary, troubleshooting, translation, doc generation
 - **Zero-warning build** — CI enforces clean output
 - **Design system** — Tokens for colors/fonts/radius, single-theme Application resource
+- **Adaptive layout** — Relative grids and bounded content widths preserve access across window and
+  display scales without sacrificing the dense desktop workflow
 - **Dependency Injection** — `Microsoft.Extensions.DependencyInjection` in `App.xaml.cs`
 
 ## License

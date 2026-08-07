@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="20,16,20,12" Spacing="16" MaxWidth="680" HorizontalAlignment="Left">
+        <StackPanel Padding="20,16,20,12" Spacing="16" MaxWidth="880" HorizontalAlignment="Stretch">
 
             <StackPanel Spacing="2">
                 <TextBlock Text="Settings" Style="{StaticResource SectionHeaderTextStyle}"/>
@@ -39,11 +39,11 @@
                     </StackPanel>
                     <StackPanel Spacing="6">
                         <TextBlock Text="Default Model" Style="{StaticResource FieldLabelTextStyle}"/>
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <ComboBox x:Name="ModelComboBox" Width="300" SelectionChanged="ModelComboBox_SelectionChanged" IsEnabled="False"/>
-                            <Button x:Name="RefreshButton" Content="Refresh Models" Click="RefreshButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
-                            <ProgressRing x:Name="LoadingRing" IsActive="False" Width="24" Height="24" Visibility="Collapsed"/>
-                        </StackPanel>
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                            <ComboBox x:Name="ModelComboBox" MinWidth="0" SelectionChanged="ModelComboBox_SelectionChanged" IsEnabled="False"/>
+                            <Button x:Name="RefreshButton" Grid.Column="1" Content="Refresh Models" Click="RefreshButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                            <ProgressRing x:Name="LoadingRing" Grid.Column="2" IsActive="False" Width="24" Height="24" Visibility="Collapsed"/>
+                        </Grid>
                         <TextBlock x:Name="ConnectionStatusText" Style="{StaticResource CaptionTextStyle}"/>
                     </StackPanel>
                 </StackPanel>
@@ -67,11 +67,11 @@
                                  AcceptsReturn="True" TextWrapping="Wrap" Height="120"
                                  ScrollViewer.VerticalScrollBarVisibility="Auto" LostFocus="CustomInstructionsTextBox_LostFocus"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
                         <Button x:Name="SavePromptButton" Content="Save" Click="SavePromptButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
-                        <Button x:Name="ResetPromptButton" Content="Reset" Click="ResetPromptButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
-                        <TextBlock x:Name="PromptStatusText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>
-                    </StackPanel>
+                        <Button x:Name="ResetPromptButton" Grid.Column="1" Content="Reset" Click="ResetPromptButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                        <TextBlock x:Name="PromptStatusText" Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
+                    </Grid>
                 </StackPanel>
             </Border>
 

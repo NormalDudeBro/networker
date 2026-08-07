@@ -5,18 +5,18 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="16,12" Spacing="12" MaxWidth="840" HorizontalAlignment="Left">
+        <StackPanel Padding="16,12" Spacing="12" MaxWidth="1200" HorizontalAlignment="Stretch">
 
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="10">
                     <TextBlock Text="Vault Status" Style="{StaticResource SectionHeaderTextStyle}"/>
                     <TextBlock x:Name="VaultStatusText" FontWeight="SemiBold"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <PasswordBox x:Name="VaultPasswordInput" Width="280" PlaceholderText="Master password"/>
-                        <Button x:Name="VaultUnlockButton" Content="Unlock" Style="{StaticResource PrimaryButtonStyle}" Click="UnlockOrCreate_Click"/>
-                        <Button x:Name="VaultLockButton" Content="Lock" Click="Lock_Click" IsEnabled="False"/>
-                        <TextBlock x:Name="StatusText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>
-                    </StackPanel>
+                    <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="6">
+                        <PasswordBox x:Name="VaultPasswordInput" MinWidth="0" PlaceholderText="Master password"/>
+                        <Button x:Name="VaultUnlockButton" Grid.Column="1" Content="Unlock" Style="{StaticResource PrimaryButtonStyle}" Click="UnlockOrCreate_Click"/>
+                        <Button x:Name="VaultLockButton" Grid.Column="2" Content="Lock" Click="Lock_Click" IsEnabled="False"/>
+                        <TextBlock x:Name="StatusText" Grid.Row="1" Grid.ColumnSpan="3" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
+                    </Grid>
                     <TextBlock Style="{StaticResource CaptionTextStyle}"
                                Text="The vault encrypts stored data with AES-256-GCM, keyed by your master password (PBKDF2-SHA256). No plaintext ever touches disk."/>
                 </StackPanel>
@@ -41,10 +41,10 @@
                         <TextBox x:Name="CredDescInput" Grid.Column="3" PlaceholderText="Description"/>
                     </Grid>
                     <Button Content="Add Credential" Style="{StaticResource PrimaryButtonStyle}" Click="AddCredential_Click" HorizontalAlignment="Left"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBox x:Name="DelCredNameInput" Width="240" PlaceholderText="Credential name to delete"/>
-                        <Button Content="Delete" Click="DeleteCredential_Click" Style="{StaticResource DangerButtonStyle}"/>
-                    </StackPanel>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <TextBox x:Name="DelCredNameInput" MinWidth="0" PlaceholderText="Credential name to delete"/>
+                        <Button Grid.Column="1" Content="Delete" Click="DeleteCredential_Click" Style="{StaticResource DangerButtonStyle}"/>
+                    </Grid>
                 </StackPanel>
             </Border>
 
@@ -54,15 +54,15 @@
                     <TextBox x:Name="VarsList" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="110"
                              FontFamily="{ThemeResource CodeFontFamily}" FontSize="{ThemeResource FontSizeCode}"
                              Foreground="{ThemeResource AppTextPrimaryBrush}"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBox x:Name="VarNameInput" Width="220" PlaceholderText="Variable name (e.g. SNMP_COMMUNITY)"/>
-                        <TextBox x:Name="VarValueInput" Width="240" PlaceholderText="Value"/>
-                        <ComboBox x:Name="VarSecretCombo" Width="120" SelectedIndex="0">
+                    <Grid ColumnDefinitions="*,*,Auto,Auto" ColumnSpacing="8">
+                        <TextBox x:Name="VarNameInput" MinWidth="0" PlaceholderText="Variable name (e.g. SNMP_COMMUNITY)"/>
+                        <TextBox x:Name="VarValueInput" Grid.Column="1" MinWidth="0" PlaceholderText="Value"/>
+                        <ComboBox x:Name="VarSecretCombo" Grid.Column="2" MinWidth="100" SelectedIndex="0">
                             <x:String>Normal</x:String>
                             <x:String>Secret</x:String>
                         </ComboBox>
-                        <Button Content="Add Variable" Style="{StaticResource PrimaryButtonStyle}" Click="AddVariable_Click"/>
-                    </StackPanel>
+                        <Button Grid.Column="3" Content="Add Variable" Style="{StaticResource PrimaryButtonStyle}" Click="AddVariable_Click"/>
+                    </Grid>
                 </StackPanel>
             </Border>
 

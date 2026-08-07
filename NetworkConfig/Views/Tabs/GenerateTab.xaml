@@ -9,16 +9,16 @@
     xmlns:controls="using:networker.Controls">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="16,12" Spacing="14" MaxWidth="880" HorizontalAlignment="Left">
+        <StackPanel Padding="16,12" Spacing="14" MaxWidth="1200" HorizontalAlignment="Stretch">
 
             <!-- ===================== Template ===================== -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="10">
                     <TextBlock Text="Template" Style="{StaticResource SectionHeaderTextStyle}"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <ComboBox x:Name="TemplateSelector" Width="320" MinWidth="260" DisplayMemberPath="Name"/>
-                        <Button Content="Apply Template" Click="ApplyTemplate_Click" Style="{StaticResource SecondaryButtonStyle}"/>
-                    </StackPanel>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <ComboBox x:Name="TemplateSelector" MinWidth="0" DisplayMemberPath="Name"/>
+                        <Button Grid.Column="1" Content="Apply Template" Click="ApplyTemplate_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                    </Grid>
                     <TextBlock Style="{StaticResource CaptionTextStyle}"
                                Text="Select a predefined template to pre-fill the form (vendor, interfaces, VLANs, routing, ACLs). Adjust any value, then generate."/>
                 </StackPanel>
@@ -67,30 +67,32 @@
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="10">
                     <TextBlock Text="Interfaces" Style="{StaticResource SectionHeaderTextStyle}"/>
-                    <ItemsControl x:Name="InterfaceRows">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="services:TemplateInterfaceEntry">
-                                <Grid ColumnSpacing="8" Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="170"/>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="130"/>
-                                        <ColumnDefinition Width="150"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <ComboBox Grid.Column="0" MinWidth="160"
-                                              ItemsSource="{x:Bind local:GenerateTab.InterfaceTypeOptions}"
-                                              SelectedItem="{x:Bind Type, Mode=TwoWay}"/>
-                                    <TextBox Grid.Column="1" Text="{x:Bind Number, Mode=TwoWay}" PlaceholderText="Number"/>
-                                    <TextBox Grid.Column="2" Text="{x:Bind Description, Mode=TwoWay}" PlaceholderText="Description"/>
-                                    <TextBox Grid.Column="3" Text="{x:Bind Ip, Mode=TwoWay}" PlaceholderText="IP address"/>
-                                    <TextBox Grid.Column="4" Text="{x:Bind Mask, Mode=TwoWay}" PlaceholderText="Subnet mask"/>
-                                    <Button Grid.Column="5" Content="Remove" Click="RemoveInterface_Click" Style="{StaticResource SecondaryButtonStyle}"/>
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                        <ItemsControl x:Name="InterfaceRows">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="services:TemplateInterfaceEntry">
+                                    <Grid ColumnSpacing="8" Margin="0,0,0,8" MinWidth="820">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="170"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="130"/>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ComboBox Grid.Column="0" MinWidth="160"
+                                                  ItemsSource="{x:Bind local:GenerateTab.InterfaceTypeOptions}"
+                                                  SelectedItem="{x:Bind Type, Mode=TwoWay}"/>
+                                        <TextBox Grid.Column="1" Text="{x:Bind Number, Mode=TwoWay}" PlaceholderText="Number"/>
+                                        <TextBox Grid.Column="2" Text="{x:Bind Description, Mode=TwoWay}" PlaceholderText="Description"/>
+                                        <TextBox Grid.Column="3" Text="{x:Bind Ip, Mode=TwoWay}" PlaceholderText="IP address"/>
+                                        <TextBox Grid.Column="4" Text="{x:Bind Mask, Mode=TwoWay}" PlaceholderText="Subnet mask"/>
+                                        <Button Grid.Column="5" Content="Remove" Click="RemoveInterface_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                     <Button Content="Add Interface" Click="AddInterface_Click" HorizontalAlignment="Left" Style="{StaticResource ChipButtonStyle}"/>
                     <TextBlock Style="{StaticResource CaptionTextStyle}"
                                Text="Interface names are derived from the type and vendor automatically (e.g. GigabitEthernet0/0, ge-0/0/0, Ethernet1). Rows without a number are ignored."/>
@@ -128,7 +130,7 @@
                     </Grid>
                     <TextBlock Style="{StaticResource CaptionTextStyle}"
                                Text="The ACL is included only when a name is set and at least one entry has a sequence and source."/>
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
                         <ItemsControl x:Name="AclEntryRows">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="services:TemplateAclEntry">
@@ -211,28 +213,30 @@
                         <TextBlock Grid.Column="2" Text="Router ID" VerticalAlignment="Center" Style="{StaticResource FieldLabelTextStyle}"/>
                         <TextBox x:Name="BgpRouterIdInput" Grid.Column="3" PlaceholderText="Optional"/>
                     </Grid>
-                    <ItemsControl x:Name="BgpNeighborRows">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="services:TemplateBgpNeighbor">
-                                <Grid ColumnSpacing="8" Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="150"/>
-                                        <ColumnDefinition Width="90"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="140"/>
-                                        <ColumnDefinition Width="70"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBox Grid.Column="0" Text="{x:Bind IpAddress, Mode=TwoWay}" PlaceholderText="Neighbor IP"/>
-                                    <TextBox Grid.Column="1" Text="{x:Bind RemoteAs, Mode=TwoWay}" PlaceholderText="Remote AS"/>
-                                    <TextBox Grid.Column="2" Text="{x:Bind Description, Mode=TwoWay}" PlaceholderText="Description"/>
-                                    <TextBox Grid.Column="3" Text="{x:Bind UpdateSource, Mode=TwoWay}" PlaceholderText="Update source"/>
-                                    <TextBox Grid.Column="4" Text="{x:Bind EbgpMultihop, Mode=TwoWay}" PlaceholderText="Multihop"/>
-                                    <Button Grid.Column="5" Content="Remove" Click="RemoveBgpNeighbor_Click" Style="{StaticResource SecondaryButtonStyle}"/>
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                        <ItemsControl x:Name="BgpNeighborRows">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="services:TemplateBgpNeighbor">
+                                    <Grid ColumnSpacing="8" Margin="0,0,0,8" MinWidth="760">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="70"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0" Text="{x:Bind IpAddress, Mode=TwoWay}" PlaceholderText="Neighbor IP"/>
+                                        <TextBox Grid.Column="1" Text="{x:Bind RemoteAs, Mode=TwoWay}" PlaceholderText="Remote AS"/>
+                                        <TextBox Grid.Column="2" Text="{x:Bind Description, Mode=TwoWay}" PlaceholderText="Description"/>
+                                        <TextBox Grid.Column="3" Text="{x:Bind UpdateSource, Mode=TwoWay}" PlaceholderText="Update source"/>
+                                        <TextBox Grid.Column="4" Text="{x:Bind EbgpMultihop, Mode=TwoWay}" PlaceholderText="Multihop"/>
+                                        <Button Grid.Column="5" Content="Remove" Click="RemoveBgpNeighbor_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                     <Button Content="Add Neighbor" Click="AddBgpNeighbor_Click" HorizontalAlignment="Left" Style="{StaticResource ChipButtonStyle}"/>
                     <TextBlock Text="Networks — one per line" Style="{StaticResource FieldLabelTextStyle}"/>
                     <TextBox x:Name="BgpNetworksInput" AcceptsReturn="True" TextWrapping="Wrap" Height="80"
@@ -301,14 +305,14 @@
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="10">
                     <TextBlock Text="Output" Style="{StaticResource SectionHeaderTextStyle}"/>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                         <Button Content="Generate Configuration" Style="{StaticResource PrimaryButtonStyle}" Click="Generate_Click">
                             <Button.KeyboardAccelerators>
                                 <KeyboardAccelerator Key="Enter" Modifiers="Control" ScopeOwner="{x:Bind GenerateRoot}"/>
                             </Button.KeyboardAccelerators>
                         </Button>
-                        <TextBlock x:Name="StatusText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>
-                    </StackPanel>
+                        <TextBlock x:Name="StatusText" Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
+                    </Grid>
                     <controls:CodeBlockView x:Name="GenerateOutput" Visibility="Collapsed"/>
                     <TextBlock x:Name="ValidationSummaryText" Style="{StaticResource FieldLabelTextStyle}" Visibility="Collapsed"/>
                     <ListView x:Name="ValidationList" Visibility="Collapsed" SelectionMode="None" Background="Transparent">

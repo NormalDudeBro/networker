@@ -23,16 +23,16 @@
                         <TextBox x:Name="DiffRightText" Grid.Column="1" AcceptsReturn="True" TextWrapping="NoWrap"
                                  Height="260" PlaceholderText="Configuration B (New/Modified)"/>
                     </Grid>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="8">
                         <Button Content="Compare" Style="{StaticResource PrimaryButtonStyle}" Click="Compare_Click">
                             <Button.KeyboardAccelerators>
                                 <KeyboardAccelerator Key="Enter" Modifiers="Control" ScopeOwner="{x:Bind DiffRoot}"/>
                             </Button.KeyboardAccelerators>
                         </Button>
-                        <Button Content="Clear" Click="Clear_Click" Style="{StaticResource ChipButtonStyle}"/>
-                        <TextBlock x:Name="DiffStatsText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>
-                        <TextBlock x:Name="StatusText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>
-                    </StackPanel>
+                        <Button Grid.Column="1" Content="Clear" Click="Clear_Click" Style="{StaticResource ChipButtonStyle}"/>
+                        <TextBlock x:Name="DiffStatsText" Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}" TextWrapping="NoWrap"/>
+                        <TextBlock x:Name="StatusText" Grid.Column="3" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
+                    </Grid>
                 </StackPanel>
             </Border>
 

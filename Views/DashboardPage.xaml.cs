@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Specialized;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -63,6 +64,30 @@ namespace networker.Views
             AiProviderText.Text = LlmSession.Provider;
             AiModelText.Text = string.IsNullOrWhiteSpace(LlmSession.Model) ? "no model" : LlmSession.Model;
             AiRefreshRing.IsActive = LlmSession.IsChecking;
+        }
+
+        private void DashboardLayout_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            bool stackRail = e.NewSize.Width < 840;
+            DashboardRightColumn.Width = stackRail ? new GridLength(0) : new GridLength(348);
+            Grid.SetColumn(DashboardRightRail, stackRail ? 0 : 1);
+            Grid.SetRow(DashboardRightRail, stackRail ? 1 : 0);
+        }
+
+        private void QuickActionsGrid_Loaded(object sender, RoutedEventArgs e) => UpdateQuickActionWidth();
+
+        private void QuickActionsGrid_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateQuickActionWidth();
+
+        private void UpdateQuickActionWidth()
+        {
+            if (QuickActionsGrid.ItemsPanelRoot is not ItemsWrapGrid panel || QuickActionsGrid.ActualWidth <= 0)
+            {
+                return;
+            }
+
+            double width = QuickActionsGrid.ActualWidth;
+            int columns = width >= 760 ? 4 : width >= 540 ? 3 : width >= 340 ? 2 : 1;
+            panel.ItemWidth = Math.Max(140, Math.Floor((width - columns * 10) / columns));
         }
 
         private void QuickAction_Click(object sender, ItemClickEventArgs e)

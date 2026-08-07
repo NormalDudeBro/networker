@@ -12,7 +12,13 @@
                        Text="Generate, import, validate, and compare multi-vendor device configurations — ported from NetworkConfigPro."/>
         </StackPanel>
 
-        <TabView x:Name="ConfigTabs" Grid.Row="1" Margin="0,14,0,0" IsAddTabButtonVisible="False" VerticalAlignment="Stretch">
+        <TabView
+            x:Name="ConfigTabs"
+            Grid.Row="1"
+            Margin="0,14,0,0"
+            IsAddTabButtonVisible="False"
+            TabWidthMode="SizeToContent"
+            VerticalAlignment="Stretch">
             <TabView.TabItems>
 
                 <!-- ===================== Generate ===================== -->

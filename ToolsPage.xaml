@@ -12,13 +12,19 @@
                        Text="Deterministic tools that run locally: IP math, config generation and audit, diffs, log analysis, playbooks, topology diagrams, and vendor translation."/>
         </StackPanel>
 
-        <TabView x:Name="ToolsTabs" Grid.Row="1" Margin="0,14,0,0" IsAddTabButtonVisible="False" VerticalAlignment="Stretch">
+        <TabView
+            x:Name="ToolsTabs"
+            Grid.Row="1"
+            Margin="0,14,0,0"
+            IsAddTabButtonVisible="False"
+            TabWidthMode="SizeToContent"
+            VerticalAlignment="Stretch">
             <TabView.TabItems>
 
                 <!-- ===================== IP Calculator ===================== -->
                 <TabViewItem Header="IP Calculator">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="780" HorizontalAlignment="Left">
+                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="1200" HorizontalAlignment="Stretch">
                             <Border Style="{StaticResource CardStyle}">
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="CIDR input" Style="{StaticResource FieldLabelTextStyle}"/>
@@ -34,7 +40,7 @@
                 <!-- ===================== Config Generator ===================== -->
                 <TabViewItem Header="Config Generator">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="840" HorizontalAlignment="Left">
+                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="1200" HorizontalAlignment="Stretch">
                             <Border Style="{StaticResource CardStyle}">
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="Platform" Style="{StaticResource FieldLabelTextStyle}"/>
@@ -60,7 +66,7 @@
                 <!-- ===================== Config Audit ===================== -->
                 <TabViewItem Header="Config Audit">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="900" HorizontalAlignment="Left">
+                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="1200" HorizontalAlignment="Stretch">
                             <Border Style="{StaticResource CardStyle}">
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="Configuration" Style="{StaticResource FieldLabelTextStyle}"/>
@@ -109,7 +115,7 @@
                 <!-- ===================== Diff ===================== -->
                 <TabViewItem Header="Config Diff">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="920" HorizontalAlignment="Left">
+                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="1200" HorizontalAlignment="Stretch">
                             <Border Style="{StaticResource CardStyle}">
                                 <StackPanel Spacing="10">
                                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
@@ -139,7 +145,7 @@
                 <!-- ===================== Log Analyzer ===================== -->
                 <TabViewItem Header="Log Analyzer">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="900" HorizontalAlignment="Left">
+                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="1200" HorizontalAlignment="Stretch">
                             <Border Style="{StaticResource CardStyle}">
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="Syslog lines" Style="{StaticResource FieldLabelTextStyle}"/>
@@ -190,7 +196,7 @@
                 <!-- ===================== Playbooks ===================== -->
                 <TabViewItem Header="Playbooks">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="800" HorizontalAlignment="Left">
+                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="1200" HorizontalAlignment="Stretch">
                             <Border Style="{StaticResource CardStyle}">
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="Scenario" Style="{StaticResource FieldLabelTextStyle}"/>
@@ -217,7 +223,7 @@
                 <!-- ===================== Topology ===================== -->
                 <TabViewItem Header="Topology">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="880" HorizontalAlignment="Left">
+                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="1200" HorizontalAlignment="Stretch">
                             <Border Style="{StaticResource CardStyle}">
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="Device configs" Style="{StaticResource FieldLabelTextStyle}"/>
@@ -241,7 +247,7 @@
                 <!-- ===================== Translator ===================== -->
                 <TabViewItem Header="Translator">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="800" HorizontalAlignment="Left">
+                        <StackPanel Padding="16,12" Spacing="16" MaxWidth="1200" HorizontalAlignment="Stretch">
                             <Border Style="{StaticResource CardStyle}">
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="Direction" Style="{StaticResource FieldLabelTextStyle}"/>

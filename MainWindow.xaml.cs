@@ -16,7 +16,7 @@ namespace networker
     {
         public static MainWindow? Instance { get; private set; }
 
-        // Dashboard right rail (348) + two-column nav content + padding at 1280x800 target.
+        // Minimum effective workspace for the dense shell and editor surfaces.
         private const int MinWindowWidth = 1000;
         private const int MinWindowHeight = 640;
 
@@ -31,8 +31,9 @@ namespace networker
                 if (args.DidSizeChange)
                 {
                     var size = this.AppWindow.Size;
-                    var width = Math.Max(size.Width, MinWindowWidth);
-                    var height = Math.Max(size.Height, MinWindowHeight);
+                    var scale = Root.XamlRoot?.RasterizationScale ?? 1d;
+                    var width = Math.Max(size.Width, (int)Math.Ceiling(MinWindowWidth * scale));
+                    var height = Math.Max(size.Height, (int)Math.Ceiling(MinWindowHeight * scale));
                     if (width != size.Width || height != size.Height)
                     {
                         this.AppWindow.Resize(new SizeInt32(width, height));

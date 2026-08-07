@@ -1024,7 +1024,18 @@ resize, navigation, large datasets, virtualization, no gratuitous animation).
 - Keyboard review, focus visuals, high-contrast sanity, contrast check, virtualization check on
   lists, resize behavior, startup path review. Full suite + release build + README update.
 
-**Status:** Phases 1–6 complete (design tokens, shell/nav/status bar, dashboard + Assistant page +
-shared recent-activity log, toolkit restyle with severity pills, Network Config tabs restyle, Settings
-page restyle). Phase 7 in progress (accessibility/perf pass — on-accent contrast tokens, status-dot
-automation names, keyboard/focus/high-contrast review; then release build + full suite + README).
+### Responsive layout audit
+- Shell: compact-pane-safe product identity, shrink-safe provider/model status, and DPI-aware minimum
+  window sizing.
+- Overview: adaptive main/right-rail breakpoint, responsive quick-action columns with natural card
+  height, and bounded ultrawide content.
+- Assistant, Toolkit, Network Config, and Settings: wrapping action surfaces, relative form grids,
+  natural-width scrollable tab headers, consistent bounded content widths, and explicit horizontal
+  access for dense table-like interface/ACL/BGP editors.
+- Typography: shared text styles now follow platform line metrics so large accessibility text scales
+  do not collide with fixed line heights.
+
+**Status:** Phases 1–7 and the comprehensive responsive layout audit are complete. The redesign now
+includes shared design tokens, shell/navigation/status, dashboard and Assistant workspaces, all
+Toolkit and Network Config surfaces, Settings, contrast/focus/automation accessibility, adaptive
+layout behavior, and Debug/Release build and 253-test verification.

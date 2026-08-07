@@ -146,14 +146,14 @@ namespace networker
             AppSettings.GlobalSystemPrompt = SystemPromptTextBox.Text ?? "";
             AppSettings.GlobalCustomInstructions = CustomInstructionsTextBox.Text ?? "";
             PromptStatusText.Text = "Saved";
-            PromptStatusText.Foreground = new SolidColorBrush(Colors.Green);
+            PromptStatusText.Foreground = Brush("AppSuccessBrush");
         }
 
         private async System.Threading.Tasks.Task FetchModelsAsync()
         {
             SetLoadingState(true);
             ConnectionStatusText.Text = "Connecting...";
-            ConnectionStatusText.Foreground = new SolidColorBrush(Colors.Gray);
+            ConnectionStatusText.Foreground = Brush("AppTextSecondaryBrush");
 
             try
             {
@@ -179,7 +179,7 @@ namespace networker
                 if (modelIds.Count == 0)
                 {
                     ConnectionStatusText.Text = "Connected, but no models found.";
-                    ConnectionStatusText.Foreground = new SolidColorBrush(Colors.OrangeRed);
+                    ConnectionStatusText.Foreground = Brush("AppWarningBrush");
                     ModelComboBox.ItemsSource = null;
                     ModelComboBox.IsEnabled = false;
                     AppSettings.SelectedModel = "";
@@ -187,7 +187,7 @@ namespace networker
                 else
                 {
                     ConnectionStatusText.Text = $"Connected ({AppSettings.SelectedProvider})";
-                    ConnectionStatusText.Foreground = new SolidColorBrush(Colors.Green);
+                    ConnectionStatusText.Foreground = Brush("AppSuccessBrush");
                     ModelComboBox.IsEnabled = true;
 
                     _isInitializing = true;
@@ -211,12 +211,22 @@ namespace networker
             catch (Exception ex)
             {
                 ConnectionStatusText.Text = $"Unable to connect: {ex.Message}";
-                ConnectionStatusText.Foreground = new SolidColorBrush(Colors.Red);
+                ConnectionStatusText.Foreground = Brush("AppDangerBrush");
                 ModelComboBox.ItemsSource = null;
                 ModelComboBox.IsEnabled = false;
                 AppSettings.SelectedModel = "";
             }
             finally { SetLoadingState(false); }
+        }
+
+        private static SolidColorBrush Brush(string key)
+        {
+            if (Application.Current.Resources.TryGetValue(key, out object value) && value is SolidColorBrush brush)
+            {
+                return brush;
+            }
+
+            return new SolidColorBrush(Colors.Gray);
         }
 
         private void SetLoadingState(bool isLoading)

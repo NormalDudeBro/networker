@@ -953,3 +953,75 @@ The migration is feature-complete. Remaining follow-ups are optional:
 - **The `,` belongs to the join or the template line, not the field string** (PRIORITY double-comma bug).
 - **A trailing remark entry is not "skipped for output" — it still controls `loop.last`.**
 - Every change to a renderer or filter must be followed by the full golden test run.
+
+---
+
+## 15. UI Redesign Roadmap (Active)
+
+**Mission:** Transform the current UI (treated as a prototype) into a polished,
+professional, enterprise-grade network engineering tool. Modern, minimalist, dark-first with
+excellent light theme, information-dense, keyboard-first, accessible. Functionality must be
+maintained or improved; every screen must communicate its purpose.
+
+**Design brief (authoritative):** modern/professional/minimalist/dark-first; fast + keyboard-first;
+high data density; flat design with subtle depth; thin dividers; sparing rounded corners;
+consistent spacing system; purposeful whitespace; monospace for IPs/MACs/commands/logs/configs;
+color for meaning only (success/warning/error/info/online/offline/disabled/selected/active);
+cohesive icon set; feedback without interrupting workflows; accessibility as a core feature
+(keyboard, screen reader, high contrast, focus indicators, 4.5:1 contrast, scalable text);
+WinUI 3 guidance — prefer built-in controls; MVVM + clean separation; reusable components, shared
+styles, design tokens, theme-aware resources; reduce XAML duplication; performance (startup,
+resize, navigation, large datasets, virtualization, no gratuitous animation).
+
+**Guardrails (non-negotiable):**
+- Pure C#, **no new NuGet dependencies** (unchanged from project rules).
+- Debug build must stay at 0 errors; full test suite must stay green after every phase.
+- The six AI tool buttons/views (`ToolsPage` `RunAiAsync` + handlers) must keep working.
+- Scoped `Ctrl+Enter` accelerators on Generate/Import/Diff tabs must keep working.
+- All named controls referenced in code-behind must survive restyle (rename = update both sides).
+- Commit after every phase; update this roadmap section per phase.
+- PowerShell has no `&&` (use `;`); `Glob`/`grep` need explicit paths; WinUI XamlCompiler rejects
+  `x:Array` for combo options (use static `x:Bind` properties or inline `<x:String>`).
+
+### Phase 1 — Design tokens & component style system (`Styles/Colors.xaml`, `Styles/Fonts.xaml`, `Styles/Styles.xaml`)
+- Extend color tokens: add `AppInfoColor`, `AppOnlineColor`, `AppOfflineColor`, hover/selected/active
+  surface tokens, disabled-text token; keep every existing key working (no breaking renames).
+- Typography: add H1/H2/H3 + micro-label scale, line-height values; keep `AppFontFamily`/`CodeFontFamily`.
+- Component styles: page header/subtitle, section label (uppercase micro-label), metric value/label,
+  table header/row, status dot, ghost/secondary button variants, elevated card, refined badges.
+- Implicit control polish updated for density (30-32px control height, radius 4-6) + focus visuals.
+
+### Phase 2 — Shell & navigation (`MainWindow.xaml/.cs`, `Controls/CommandPalette.*`, new status bar)
+- NavigationView restyled: `PaneDisplayMode="LeftCompact"` (collapsible rail), dense item container
+  style, selected-state accent indicator, refined pane footer (version + theme toggle).
+- New global status bar (bottom of window): provider · model · connection health dot · refresh
+  (Ctrl+F5) · palette hint (Ctrl+K) · theme toggle. Health state driven by a new single source of
+  truth (`Services/LlmSession.cs`) consumed by both the status bar and the Assistant page.
+- Nav adds a dedicated **Assistant** item; Home becomes the dashboard (see Phase 3).
+
+### Phase 3 — Dashboard (`Views/DashboardPage.xaml/.cs` new; Home nav target)
+- Overview screen: provider/connection health card (real state), quick-action grid that launches
+  Tools/Network Config workflows, keyboard-shortcut card, recent activity feed (moved from the
+  Assistant's tool-activity panel into a shared `Services/RecentActivity.cs` log).
+- Chat surface moves wholesale to the **Assistant** page (`MainPage` restyled: full-width message
+  area, collapsible history side panel, provider/model selection retained).
+
+### Phase 4 — Tools page (`ToolsPage.xaml/.cs`)
+- Restyle all 8 tools with the shared component system; unify form → actions → result structure;
+  findings rendered as styled severity lists; keep all six AI buttons + `RunAiAsync` intact.
+
+### Phase 5 — Network Config (`NetworkConfig/Views/NetworkConfigPage.xaml` + `Tabs/*`)
+- Restyle the five tabs: Generate (denser field grid, progressive disclosure for routing protocols,
+  inline validation, mono values), Import (styled parse results), Diff (colored output), Vault
+  (status + credentials/variables tables), Templates (list + preview). Keep the `TemplateFormData`
+  form model and DI services untouched.
+
+### Phase 6 — Settings (`SettingsPg.xaml/.cs`)
+- Section-card layout with consistent status feedback; provider/connection section rebuilt on the
+  shared status state; appearance section with light/dark/system.
+
+### Phase 7 — Accessibility & performance pass; final build/test/commit
+- Keyboard review, focus visuals, high-contrast sanity, contrast check, virtualization check on
+  lists, resize behavior, startup path review. Full suite + release build + README update.
+
+**Status:** Phase 1 in progress.

@@ -105,7 +105,7 @@ namespace networker
             {
                 "critical" or "error" or "danger" => Brush("AppDangerBrush"),
                 "warning" => Brush("AppWarningBrush"),
-                _ => Brush("AppBorderBrush"),
+                _ => Brush("AppTextSecondaryBrush"),
             };
         }
 
@@ -133,6 +133,18 @@ namespace networker
             {
                 Toaster.Show(caption);
             }
+        }
+
+        private static void LogActivity(string title, string detail, string glyph = "\uE774")
+        {
+            string text = (detail ?? "").Trim();
+            RecentActivity.Add(new ActivityItem
+            {
+                Title = title,
+                Detail = text.Length <= 200 ? text : text[..200] + "…",
+                Timestamp = DateTime.Now,
+                Glyph = glyph
+            });
         }
 
         // ===================== AI-assisted tools =====================
@@ -222,7 +234,9 @@ namespace networker
                     sb.AppendLine($"Notes          {s.Description}");
                 }
 
-                ShowCode(IpResult, "Subnet Information", sb.ToString().TrimEnd());
+                var text = sb.ToString().TrimEnd();
+                ShowCode(IpResult, "Subnet Information", text);
+                LogActivity("Subnet Calculator", text, "\uE774");
             }
             catch (Exception ex)
             {
@@ -259,6 +273,7 @@ namespace networker
             var platform = (ConfigPlatform)GeneratorPlatform.SelectedIndex;
             var config = ConfigGenerator.Generate(platform, spec);
             ShowCode(GeneratorResult, $"{platform} Configuration", config);
+            LogActivity($"{platform} Config Generator", config, "\uE943");
         }
 
         // ===================== Config Audit =====================
@@ -274,6 +289,7 @@ namespace networker
                 Description = f.Title,
                 SeverityBrush = SeverityBrush(f.Severity.ToString()),
             }));
+            LogActivity("Config Audit", $"{findings.Count} finding(s)", "\uE8FD");
         }
 
         private async void AuditAi_Click(object sender, RoutedEventArgs e)
@@ -311,6 +327,7 @@ namespace networker
 
             var diff = TextDiff.ToUnified(TextDiff.DiffLines(oldText, newText));
             ShowCode(DiffResult, "Configuration Diff", diff);
+            LogActivity("Config Diff", diff, "\uE8C8");
         }
 
         private async void DiffAi_Click(object sender, RoutedEventArgs e)
@@ -350,6 +367,7 @@ namespace networker
                 Description = f.Description,
                 SeverityBrush = SeverityBrush(f.Severity.ToString()),
             }));
+            LogActivity("Log Analysis", $"{analysis.Findings.Count} finding(s) in {analysis.Entries.Count} lines", "\uE721");
         }
 
         private async void LogAi_Click(object sender, RoutedEventArgs e)
@@ -393,7 +411,9 @@ namespace networker
         {
             var scenario = ScenarioKey(PlaybookScenario.SelectedIndex);
             var playbook = PlaybookGenerator.Generate(scenario);
-            ShowCode(PlaybookResult, $"{scenario} playbook", PlaybookGenerator.RenderPlain(playbook));
+            var rendered = PlaybookGenerator.RenderPlain(playbook);
+            ShowCode(PlaybookResult, $"{scenario} playbook", rendered);
+            LogActivity($"{scenario} Playbook", rendered, "\uE8A5");
         }
 
         private async void PlaybookAi_Click(object sender, RoutedEventArgs e)
@@ -435,6 +455,7 @@ namespace networker
             TopologySummary.Text = $"{nodes - external} devices, {external} external peers, {topology.Links.Count} links (rendered as Mermaid, e.g. in mermaid.live).";
             TopologySummary.Visibility = Visibility.Visible;
             ShowCode(TopologyResult, "Topology (Mermaid)", mermaid);
+            LogActivity("Topology", TopologySummary.Text, "\uE703");
         }
 
         private async void TopologyAi_Click(object sender, RoutedEventArgs e)
@@ -488,6 +509,7 @@ namespace networker
                 : ConfigTranslator.JunosToIos(input);
 
             ShowCode(TranslateResult, iosToJunos ? "Juniper Junos (set)" : "Cisco IOS-XE", output);
+            LogActivity("Config Translation", output, "\uE8D4");
         }
 
         private async void TranslateAi_Click(object sender, RoutedEventArgs e)

@@ -14,6 +14,18 @@ A modern WinUI 3 desktop app for network engineers — deterministic tools + AI-
 - **Topology** — graph from subnets/BGP/static routes → Mermaid diagram
 - **Translator** — Cisco IOS-XE ↔ Juniper Junos
 
+### Network Config (migrated from NetworkConfigPro)
+- **Generate** — device form for 6 vendors (Cisco IOS, Cisco NX-OS, Arista EOS, Juniper Junos,
+  SONiC, Fortinet FortiGate) with interfaces, VLANs, ACLs, OSPF/BGP/EIGRP, STP, and predefined
+  templates; output validated against the ported rule set
+- **Import / Analyze** — paste a Cisco IOS / Juniper Junos / SONiC config (or a syslog file) for
+  auto-detected parsing, structured results, and validation issues
+- **Diff** — unified config comparison (additions/deletions stats)
+- **Vault** — password-protected credential and variable store (PBKDF2-SHA256 + AES-256-GCM,
+  `%LOCALAPPDATA%\Networker\vault.dat`)
+- **Templates** — built-in template gallery with preview; custom templates are deletable and persist
+  to `%LOCALAPPDATA%\Networker\custom_templates.json`
+
 ### AI Chat
 - Provider abstraction: **Ollama** (local), **Grok** (x.ai), **Gemini** (Google)
 - Fallback chain, retry with exponential backoff, streaming tokens
@@ -30,7 +42,8 @@ networker/                 # WinUI 3 app (net8.0-windows10.0.19041)
 ├── Styles/                # Colors, Fonts, Styles (design tokens, theme switching)
 ├── MainPage.xaml          # Chat workspace, sidebar, input
 ├── ToolsPage.xaml         # 8-tab deterministic toolkit
-├── SettingsPg.xaml        # Provider/model/prompt/theme
+├── SettingsPg.xaml        # Provider/model/prompt/theme, Network Config defaults
+├── NetworkConfig/         # Network Config feature (5 tabs, ported from NetworkConfigPro)
 └── App.xaml               # DI container, theme at Application level
 
 Networker.Core/               # Deterministic net logic (net8.0, no UI deps)
@@ -42,7 +55,9 @@ Networker.Core/               # Deterministic net logic (net8.0, no UI deps)
 │   ├── Logs/              # LogAnalyzer
 │   ├── Playbooks/         # PlaybookGenerator
 │   └── Topology/          # TopologyBuilder
-└── Tests/                 # 112 xUnit tests (Stubs, no external deps)
+├── Models/NetworkConfig/  # Device + feature models (Vendor, Interface, VLAN, ACL, routing, STP)
+├── Services/NetworkConfig/# Generator dispatcher, parser factory, validator, vault, template library
+└── Tests/                 # 240 xUnit tests (no external deps)
 ```
 
 ## Getting Started
@@ -75,7 +90,7 @@ Or configure in-app via **Settings → Provider**.
 
 ```powershell
 dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj
-# 112 tests passing
+# 240 tests passing (239 unit + golden-parity tests, 1 performance smoke test)
 ```
 
 ## Key Design Decisions

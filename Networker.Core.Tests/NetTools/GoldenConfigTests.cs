@@ -61,6 +61,38 @@ public class GoldenConfigTests
         Assert.Contains(Vendor.FortinetFortigate, generator.GetSupportedVendors());
     }
 
+    /// <summary>
+    /// Performance smoke test: generating one config per vendor must stay well
+    /// under the plan's 500ms budget (typical wall time is a few milliseconds).
+    /// A generous bound guards against pathological regressions without being
+    /// flaky on slow CI machines.
+    /// </summary>
+    [Fact]
+    public void Generate_AllVendors_CompletesWithinTimeBudget()
+    {
+        var generator = new NetworkConfigGenerator();
+        var vendors = new[]
+        {
+            Vendor.CiscoIos,
+            Vendor.CiscoNxos,
+            Vendor.AristaEos,
+            Vendor.JuniperJunos,
+            Vendor.Sonic,
+            Vendor.FortinetFortigate,
+        };
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        foreach (var vendor in vendors)
+        {
+            generator.Generate(BuildSampleConfig() with { Vendor = vendor });
+        }
+        stopwatch.Stop();
+
+        Assert.True(
+            stopwatch.ElapsedMilliseconds < 500,
+            $"All-vendor generation took {stopwatch.ElapsedMilliseconds}ms (budget is 500ms).");
+    }
+
     private static NetworkDeviceConfig BuildSampleConfig() => new()
     {
         Hostname = "core-router-01",

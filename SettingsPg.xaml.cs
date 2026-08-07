@@ -4,6 +4,7 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using networker.NetworkConfig.Views.Tabs;
 using networker.Services;
 
 namespace networker
@@ -37,6 +38,14 @@ namespace networker
             ApiKeyPasswordBox.Password = AppSettings.OllamaApiKey;
             SystemPromptTextBox.Text = AppSettings.GlobalSystemPrompt;
             CustomInstructionsTextBox.Text = AppSettings.GlobalCustomInstructions;
+
+            VendorComboBox.Items.Clear();
+            foreach (var displayName in GenerateTab.VendorDisplayNames)
+            {
+                VendorComboBox.Items.Add(displayName);
+            }
+            VendorComboBox.SelectedItem = AppSettings.DefaultVendor;
+            NetworkConfigDirTextBox.Text = AppSettings.NetworkConfigDirectory;
 
             _isInitializing = false;
 
@@ -89,6 +98,25 @@ namespace networker
             AppSettings.ThemeMode = theme;
 
             MainWindow.Instance?.ApplyThemeToFramePublic();
+        }
+
+        private void VendorComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || VendorComboBox.SelectedItem is not string vendor) return;
+            AppSettings.DefaultVendor = vendor;
+        }
+
+        private void NetworkConfigDirTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (_isInitializing) return;
+            string directory = (NetworkConfigDirTextBox.Text ?? "").Trim();
+            if (directory.Length == 0 || directory == AppSettings.NetworkConfigDirectory) return;
+
+            AppSettings.NetworkConfigDirectory = directory;
+            Toaster.Show(
+                "Network Config data folder updated. Restart the app for it to take effect.",
+                InfoBarSeverity.Informational,
+                "Network Config");
         }
 
         private void SystemPromptTextBox_LostFocus(object sender, RoutedEventArgs e)

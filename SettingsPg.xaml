@@ -58,6 +58,18 @@
                 <TextBlock x:Name="PromptStatusText" FontSize="14" VerticalAlignment="Center"/>
             </StackPanel>
 
+            <TextBlock Text="Network Config" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,10,0,0"/>
+            <TextBlock Style="{StaticResource CaptionTextStyle}"
+                       Text="Default vendor preselected in the Network Config Generate tab. The vault (vault.dat) and custom templates (custom_templates.json) live in the data folder below; changing it applies after restart."/>
+            <StackPanel Spacing="5">
+                <TextBlock Text="Default vendor" FontWeight="SemiBold"/>
+                <ComboBox x:Name="VendorComboBox" SelectionChanged="VendorComboBox_SelectionChanged" HorizontalAlignment="Stretch"/>
+            </StackPanel>
+            <StackPanel Spacing="5">
+                <TextBlock Text="Data folder" FontWeight="SemiBold"/>
+                <TextBox x:Name="NetworkConfigDirTextBox" LostFocus="NetworkConfigDirTextBox_LostFocus"/>
+            </StackPanel>
+
             <TextBlock Text="Appearance" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,10,0,0"/>
             <StackPanel Spacing="5">
                 <TextBlock Text="Theme" FontWeight="SemiBold"/>

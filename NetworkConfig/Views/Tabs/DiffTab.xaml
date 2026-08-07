@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <UserControl
     x:Class="networker.NetworkConfig.Views.Tabs.DiffTab"
+    x:Name="DiffRoot"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
@@ -23,7 +24,11 @@
                                  Height="260" PlaceholderText="Configuration B (New/Modified)"/>
                     </Grid>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Content="Compare" Click="Compare_Click"/>
+                        <Button Content="Compare" Click="Compare_Click">
+                            <Button.KeyboardAccelerators>
+                                <KeyboardAccelerator Key="Enter" Modifiers="Control" ScopeOwner="{x:Bind DiffRoot}"/>
+                            </Button.KeyboardAccelerators>
+                        </Button>
                         <Button Content="Clear" Click="Clear_Click" Style="{StaticResource ChipButtonStyle}"/>
                         <TextBlock x:Name="DiffStatsText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>
                         <TextBlock x:Name="StatusText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>

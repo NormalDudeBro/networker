@@ -30,6 +30,13 @@ namespace networker.NetworkConfig.Views.Tabs
             ("Fortinet FortiGate", Vendor.FortinetFortigate),
         };
 
+        /// <summary>
+        /// Canonical vendor display names — the single source of truth for the
+        /// vendor ComboBox and the <see cref="AppSettings.DefaultVendor"/> setting.
+        /// </summary>
+        public static IReadOnlyList<string> VendorDisplayNames { get; } =
+            VendorOptions.Select(v => v.DisplayName).ToArray();
+
         // Option lists for the combo boxes. Values must match TemplateFormData
         // defaults / TemplateFormConverter keys exactly (e.g. "VLAN",
         // "Port-Channel", "rapid-pvst").
@@ -76,8 +83,11 @@ namespace networker.NetworkConfig.Views.Tabs
             _templates = services.GetService<ITemplateLibrary>()
                 ?? throw new InvalidOperationException("ITemplateLibrary is not registered in the DI container.");
 
-            VendorSelector.ItemsSource = VendorOptions.Select(v => new VendorOption(v.DisplayName, v.Vendor)).ToList();
-            VendorSelector.SelectedIndex = 0;
+            var vendorOptions = VendorOptions.Select(v => new VendorOption(v.DisplayName, v.Vendor)).ToList();
+            VendorSelector.ItemsSource = vendorOptions;
+
+            var defaultVendor = vendorOptions.FirstOrDefault(v => v.DisplayName == AppSettings.DefaultVendor);
+            VendorSelector.SelectedIndex = defaultVendor is null ? 0 : vendorOptions.IndexOf(defaultVendor);
 
             InterfaceRows.ItemsSource = _interfaces;
             AclEntryRows.ItemsSource = _aclEntries;
@@ -134,6 +144,7 @@ namespace networker.NetworkConfig.Views.Tabs
 
             ShowValidation(_validator.Validate(config));
             StatusText.Text = $"Generated configuration for {form.Basic.Hostname.Trim()}";
+            AppSettings.DefaultVendor = form.Basic.Vendor;
         }
 
         private TemplateFormData CollectFormData() => new()

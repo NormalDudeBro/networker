@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using networker.Services;
@@ -50,8 +51,10 @@ public App()
             services.AddSingleton<IConfigGenerator, NetworkConfigGenerator>();
             services.AddSingleton<IConfigValidator, ConfigValidator>();
             services.AddSingleton<IConfigParserFactory, ConfigParserFactory>();
-            services.AddSingleton<IVaultService, VaultService>();
-            services.AddSingleton<ITemplateLibrary, TemplateLibrary>();
+            services.AddSingleton<IVaultService>(_ => new VaultService(
+                Path.Combine(AppSettings.NetworkConfigDirectory, "vault.dat")));
+            services.AddSingleton<ITemplateLibrary>(_ => new TemplateLibrary(
+                Path.Combine(AppSettings.NetworkConfigDirectory, "custom_templates.json")));
             return services.BuildServiceProvider();
         }
 

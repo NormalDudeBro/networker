@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Windows.Storage;
 
 namespace networker
@@ -35,6 +36,28 @@ namespace networker
         {
             get => (LocalSettings.Values["SelectedProvider"] as string) ?? "ollama";
             set => LocalSettings.Values["SelectedProvider"] = value;
+        }
+
+        /// <summary>
+        /// Folder holding the Network Config vault (<c>vault.dat</c>) and custom
+        /// templates (<c>custom_templates.json</c>). Read once at startup when
+        /// the DI singletons are constructed — changes apply after restart.
+        /// </summary>
+        public static string NetworkConfigDirectory
+        {
+            get => (LocalSettings.Values["NetworkConfigDirectory"] as string)
+                ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Networker");
+            set => LocalSettings.Values["NetworkConfigDirectory"] = value;
+        }
+
+        /// <summary>
+        /// Vendor preselected in the Network Config Generate tab. Values are the
+        /// GenerateTab vendor display names (see <c>GenerateTab.VendorDisplayNames</c>).
+        /// </summary>
+        public static string DefaultVendor
+        {
+            get => (LocalSettings.Values["DefaultVendor"] as string) ?? "Cisco IOS/IOS-XE";
+            set => LocalSettings.Values["DefaultVendor"] = value;
         }
 
         public static string GlobalSystemPrompt

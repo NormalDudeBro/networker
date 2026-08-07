@@ -1,0 +1,162 @@
+{
+  "templates": [
+    {
+      "name": "Basic Router",
+      "description": "Cisco IOS/IOS-XE basic edge router with WAN uplink, LAN access, and loopback.",
+      "data": {
+        "basic": {
+          "vendor": "Cisco IOS/IOS-XE",
+          "hostname": "router",
+          "domain": "example.com",
+          "enable_secret": "",
+          "dns_servers": "8.8.8.8, 8.8.4.4",
+          "ntp_servers": "pool.ntp.org"
+        },
+        "interfaces": [
+          { "type": "GigabitEthernet", "number": "0/0", "description": "WAN Uplink", "ip": "", "mask": "" },
+          { "type": "GigabitEthernet", "number": "0/1", "description": "LAN", "ip": "", "mask": "" },
+          { "type": "Loopback", "number": "0", "description": "Router ID", "ip": "", "mask": "255.255.255.255" }
+        ],
+        "vlans": "",
+        "acl": { "name": "", "type": "Extended", "entries": [] },
+        "static_routes": "",
+        "ospf": { "process_id": "1", "router_id": "", "ref_bandwidth": "1000", "networks": "", "passive_interfaces": "" },
+        "bgp": { "local_as": "", "router_id": "", "neighbors": [], "networks": "" }
+      }
+    },
+    {
+      "name": "L3 Switch",
+      "description": "Cisco IOS/IOS-XE layer-3 switch with management/data/voice VLANs and native VLAN.",
+      "data": {
+        "basic": {
+          "vendor": "Cisco IOS/IOS-XE",
+          "hostname": "switch",
+          "domain": "example.com",
+          "enable_secret": "",
+          "dns_servers": "8.8.8.8, 8.8.4.4",
+          "ntp_servers": "pool.ntp.org"
+        },
+        "interfaces": [
+          { "type": "GigabitEthernet", "number": "0/1", "description": "Uplink to Core", "ip": "", "mask": "" },
+          { "type": "VLAN", "number": "10", "description": "Management VLAN", "ip": "", "mask": "" },
+          { "type": "VLAN", "number": "20", "description": "Data VLAN", "ip": "", "mask": "" },
+          { "type": "VLAN", "number": "30", "description": "Voice VLAN", "ip": "", "mask": "" }
+        ],
+        "vlans": "10,MANAGEMENT\n20,DATA\n30,VOICE\n99,NATIVE",
+        "acl": { "name": "", "type": "Extended", "entries": [] },
+        "static_routes": "",
+        "ospf": { "process_id": "", "router_id": "", "ref_bandwidth": "", "networks": "", "passive_interfaces": "" },
+        "bgp": { "local_as": "", "router_id": "", "neighbors": [], "networks": "" }
+      }
+    },
+    {
+      "name": "Edge Router with BGP",
+      "description": "Cisco IOS/IOS-XE edge router with inbound ACL, OSPF, and BGP.",
+      "data": {
+        "basic": {
+          "vendor": "Cisco IOS/IOS-XE",
+          "hostname": "edge-router",
+          "domain": "example.com",
+          "enable_secret": "",
+          "dns_servers": "8.8.8.8, 1.1.1.1",
+          "ntp_servers": "pool.ntp.org"
+        },
+        "interfaces": [
+          { "type": "GigabitEthernet", "number": "0/0", "description": "ISP Uplink", "ip": "", "mask": "255.255.255.252" },
+          { "type": "GigabitEthernet", "number": "0/1", "description": "Internal Network", "ip": "", "mask": "" },
+          { "type": "Loopback", "number": "0", "description": "Router ID", "ip": "", "mask": "255.255.255.255" }
+        ],
+        "vlans": "",
+        "acl": {
+          "name": "INBOUND-FILTER",
+          "type": "Extended",
+          "entries": [
+            { "seq": "10", "action": "deny", "protocol": "ip", "source": "10.0.0.0", "src_wildcard": "0.255.255.255", "destination": "any", "dst_wildcard": "", "dst_port": "", "log": "" },
+            { "seq": "20", "action": "deny", "protocol": "ip", "source": "172.16.0.0", "src_wildcard": "0.15.255.255", "destination": "any", "dst_wildcard": "", "dst_port": "", "log": "" },
+            { "seq": "30", "action": "deny", "protocol": "ip", "source": "192.168.0.0", "src_wildcard": "0.0.255.255", "destination": "any", "dst_wildcard": "", "dst_port": "", "log": "" },
+            { "seq": "1000", "action": "permit", "protocol": "ip", "source": "any", "src_wildcard": "", "destination": "any", "dst_wildcard": "", "dst_port": "", "log": "" }
+          ]
+        },
+        "static_routes": "",
+        "ospf": { "process_id": "1", "router_id": "", "ref_bandwidth": "10000", "networks": "", "passive_interfaces": "GigabitEthernet0/0" },
+        "bgp": { "local_as": "65000", "router_id": "", "neighbors": [], "networks": "" }
+      }
+    },
+    {
+      "name": "Juniper Edge Router",
+      "description": "Juniper Junos edge router with OSPF and BGP.",
+      "data": {
+        "basic": {
+          "vendor": "Juniper Junos",
+          "hostname": "junos-router",
+          "domain": "example.com",
+          "enable_secret": "",
+          "dns_servers": "8.8.8.8, 8.8.4.4",
+          "ntp_servers": "pool.ntp.org"
+        },
+        "interfaces": [
+          { "type": "GigabitEthernet", "number": "0/0/0", "description": "WAN Uplink", "ip": "", "mask": "255.255.255.252" },
+          { "type": "GigabitEthernet", "number": "0/0/1", "description": "LAN", "ip": "", "mask": "" },
+          { "type": "Loopback", "number": "0", "description": "Router ID", "ip": "", "mask": "255.255.255.255" }
+        ],
+        "vlans": "",
+        "acl": { "name": "", "type": "Extended", "entries": [] },
+        "static_routes": "",
+        "ospf": { "process_id": "0", "router_id": "", "ref_bandwidth": "100000", "networks": "", "passive_interfaces": "" },
+        "bgp": { "local_as": "65000", "router_id": "", "neighbors": [], "networks": "" }
+      }
+    },
+    {
+      "name": "Data Center Spine",
+      "description": "Arista EOS data-center spine with four leaf uplinks, OSPF, and BGP.",
+      "data": {
+        "basic": {
+          "vendor": "Arista EOS",
+          "hostname": "spine",
+          "domain": "dc.example.com",
+          "enable_secret": "",
+          "dns_servers": "8.8.8.8",
+          "ntp_servers": "pool.ntp.org"
+        },
+        "interfaces": [
+          { "type": "Ethernet", "number": "1", "description": "Leaf-1", "ip": "", "mask": "255.255.255.252" },
+          { "type": "Ethernet", "number": "2", "description": "Leaf-2", "ip": "", "mask": "255.255.255.252" },
+          { "type": "Ethernet", "number": "3", "description": "Leaf-3", "ip": "", "mask": "255.255.255.252" },
+          { "type": "Ethernet", "number": "4", "description": "Leaf-4", "ip": "", "mask": "255.255.255.252" },
+          { "type": "Loopback", "number": "0", "description": "Router ID", "ip": "", "mask": "255.255.255.255" }
+        ],
+        "vlans": "",
+        "acl": { "name": "", "type": "Extended", "entries": [] },
+        "static_routes": "",
+        "ospf": { "process_id": "1", "router_id": "", "ref_bandwidth": "100000", "networks": "", "passive_interfaces": "" },
+        "bgp": { "local_as": "65000", "router_id": "", "neighbors": [], "networks": "" }
+      }
+    },
+    {
+      "name": "SONiC ToR Switch",
+      "description": "SONiC top-of-rack switch with server uplinks, VLANs, and BGP.",
+      "data": {
+        "basic": {
+          "vendor": "SONiC",
+          "hostname": "sonic-tor",
+          "domain": "dc.example.com",
+          "enable_secret": "",
+          "dns_servers": "8.8.8.8, 8.8.4.4",
+          "ntp_servers": "pool.ntp.org"
+        },
+        "interfaces": [
+          { "type": "Ethernet", "number": "0", "description": "Uplink-1", "ip": "", "mask": "255.255.255.252" },
+          { "type": "Ethernet", "number": "4", "description": "Uplink-2", "ip": "", "mask": "255.255.255.252" },
+          { "type": "Ethernet", "number": "8", "description": "Server-1", "ip": "", "mask": "" },
+          { "type": "Ethernet", "number": "12", "description": "Server-2", "ip": "", "mask": "" },
+          { "type": "Loopback", "number": "0", "description": "Router ID", "ip": "", "mask": "255.255.255.255" }
+        ],
+        "vlans": "1000,SERVERS\n2000,MANAGEMENT",
+        "acl": { "name": "", "type": "Extended", "entries": [] },
+        "static_routes": "",
+        "ospf": { "process_id": "", "router_id": "", "ref_bandwidth": "", "networks": "", "passive_interfaces": "" },
+        "bgp": { "local_as": "65100", "router_id": "", "neighbors": [], "networks": "" }
+      }
+    }
+  ]
+}

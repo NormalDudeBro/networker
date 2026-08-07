@@ -49,5 +49,13 @@ public sealed record TemplateDetail
     public required string Description { get; init; }
     public required Vendor Vendor { get; init; }
     public required NetworkDeviceConfig Config { get; init; }
+
+    /// <summary>
+    /// Raw form preset the template was defined from (optional). Present for
+    /// built-in templates; lets the Generate tab repopulate the form from a
+    /// template, mirroring the Python GUI's <c>_apply_template</c>.
+    /// </summary>
+    public TemplateFormData? FormData { get; init; }
+
     public bool IsBuiltIn { get; init; }
 }

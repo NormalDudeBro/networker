@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -12,6 +13,7 @@ using Networker.Core.NetTools.Ip;
 using Networker.Core.NetTools.Logs;
 using Networker.Core.NetTools.Playbooks;
 using Networker.Core.NetTools.Topology;
+using Networker.Core.Prompting;
 using networker.Controls;
 using networker.Models;
 using networker.Services;
@@ -112,6 +114,59 @@ namespace networker
             }
         }
 
+        // ===================== AI-assisted tools =====================
+
+        /// <summary>
+        /// Runs a tool-specific AI request against the selected model and streams
+        /// the response into the given code view. Guards on a selected model,
+        /// disables the invoking button while streaming, and surfaces failures
+        /// via toast. Returns false when the request never reached a model.
+        /// </summary>
+        private async Task<bool> RunAiAsync(Button button, CodeBlockView view, string title, string systemPrompt, string content)
+        {
+            if (!ChatService.IsModelSelected)
+            {
+                Toaster.Show("No model selected. Refresh models in the Assistant panel or Settings.", InfoBarSeverity.Warning, "Model required");
+                return false;
+            }
+
+            var message = new ChatMessage
+            {
+                IsCode = true,
+                CodeTitle = title,
+                Text = "",
+                IsStreaming = true,
+                Provider = AppSettings.SelectedProvider,
+                Model = AppSettings.SelectedModel,
+            };
+            view.DataContext = message;
+            view.Visibility = Visibility.Visible;
+
+            button.IsEnabled = false;
+            try
+            {
+                await foreach (var token in ChatService.StreamAsync(content, systemPrompt))
+                {
+                    message.Text += token;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                message.Text = string.IsNullOrWhiteSpace(message.Text)
+                    ? ex.Message
+                    : message.Text + "\n\n" + ex.Message;
+                Toaster.Show(ex.Message, InfoBarSeverity.Error, "AI request failed");
+                return false;
+            }
+            finally
+            {
+                message.IsStreaming = false;
+                button.IsEnabled = true;
+            }
+        }
+
         // ===================== IP Calculator =====================
 
         private void IpCalculate_Click(object sender, RoutedEventArgs e)
@@ -200,6 +255,26 @@ namespace networker
             }));
         }
 
+        private async void AuditAi_Click(object sender, RoutedEventArgs e)
+        {
+            var text = AuditInput.Text ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                Toaster.Show("Paste a configuration to analyze.", InfoBarSeverity.Warning);
+                return;
+            }
+
+            var findings = ConfigAuditor.Audit(text);
+            var sb = new StringBuilder();
+            foreach (var f in findings)
+            {
+                sb.AppendLine($"[{f.Severity}] line {f.LineNumber} {f.RuleId}: {f.Title}");
+            }
+
+            var content = $"Configuration:\n{text}\n\nRule-based findings:\n{(findings.Count == 0 ? "none" : sb.ToString().TrimEnd())}";
+            await RunAiAsync(AuditAiButton, AuditAiResult, "AI Audit Assessment", ToolPrompts.ConfigAudit, content);
+        }
+
         // ===================== Diff =====================
 
         private void DiffRun_Click(object sender, RoutedEventArgs e)
@@ -215,6 +290,22 @@ namespace networker
 
             var diff = TextDiff.ToUnified(TextDiff.DiffLines(oldText, newText));
             ShowCode(DiffResult, "Configuration Diff", diff);
+        }
+
+        private async void DiffAi_Click(object sender, RoutedEventArgs e)
+        {
+            var oldText = DiffOldInput.Text ?? string.Empty;
+            var newText = DiffNewInput.Text ?? string.Empty;
+
+            if (oldText.Length == 0 && newText.Length == 0)
+            {
+                Toaster.Show("Paste two configurations to analyze.", InfoBarSeverity.Warning);
+                return;
+            }
+
+            var diff = TextDiff.ToUnified(TextDiff.DiffLines(oldText, newText));
+            var content = $"Baseline configuration:\n{oldText}\n\nCandidate configuration:\n{newText}\n\nUnified diff:\n{diff}";
+            await RunAiAsync(DiffAiButton, DiffAiResult, "AI Diff Analysis", ToolPrompts.ConfigDiff, content);
         }
 
         // ===================== Log Analyzer =====================
@@ -240,6 +331,26 @@ namespace networker
             }));
         }
 
+        private async void LogAi_Click(object sender, RoutedEventArgs e)
+        {
+            var text = LogInput.Text ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                Toaster.Show("Paste log lines to analyze.", InfoBarSeverity.Warning);
+                return;
+            }
+
+            var analysis = LogAnalyzer.Analyze(text.Split('\n'));
+            var sb = new StringBuilder();
+            foreach (var f in analysis.Findings)
+            {
+                sb.AppendLine($"[{f.Severity}] line {f.LineNumber} {f.RuleId}: {f.Description}");
+            }
+
+            var content = $"Log lines:\n{text}\n\nRule-based findings:\n{(analysis.Findings.Count == 0 ? "none" : sb.ToString().TrimEnd())}";
+            await RunAiAsync(LogAiButton, LogAiResult, "AI Log Analysis", ToolPrompts.LogAnalysis, content);
+        }
+
         // ===================== Playbooks =====================
 
         private void PlaybookScenario_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -261,7 +372,15 @@ namespace networker
         {
             var scenario = ScenarioKey(PlaybookScenario.SelectedIndex);
             var playbook = PlaybookGenerator.Generate(scenario);
-            ShowCode(PlaybookResult, $"{scenario} playbook", PlaybookGenerator.RenderMarkdown(playbook));
+            ShowCode(PlaybookResult, $"{scenario} playbook", PlaybookGenerator.RenderPlain(playbook));
+        }
+
+        private async void PlaybookAi_Click(object sender, RoutedEventArgs e)
+        {
+            var scenario = ScenarioKey(PlaybookScenario.SelectedIndex);
+            var display = (PlaybookScenario.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? scenario;
+            var content = $"Scenario: {scenario} ({display}).\n\nWrite a step-by-step playbook for this scenario.";
+            await RunAiAsync(PlaybookAiButton, PlaybookAiResult, $"{scenario} playbook (AI)", ToolPrompts.Playbook, content);
         }
 
         private static string ScenarioKey(int index) => index switch
@@ -295,6 +414,23 @@ namespace networker
             TopologySummary.Text = $"{nodes - external} devices, {external} external peers, {topology.Links.Count} links (rendered as Mermaid, e.g. in mermaid.live).";
             TopologySummary.Visibility = Visibility.Visible;
             ShowCode(TopologyResult, "Topology (Mermaid)", mermaid);
+        }
+
+        private async void TopologyAi_Click(object sender, RoutedEventArgs e)
+        {
+            var text = TopologyInput.Text ?? string.Empty;
+            var configs = ParseDeviceConfigs(text);
+
+            if (configs.Count == 0)
+            {
+                Toaster.Show("Paste device configurations to analyze.", InfoBarSeverity.Warning);
+                return;
+            }
+
+            var topology = TopologyBuilder.Build(configs);
+            var mermaid = TopologyBuilder.RenderMermaid(topology);
+            var content = $"Device configurations:\n{text}\n\nInferred topology (Mermaid):\n{mermaid}";
+            await RunAiAsync(TopologyAiButton, TopologyAiResult, "AI Topology Overview", ToolPrompts.Topology, content);
         }
 
         private static List<DeviceConfig> ParseDeviceConfigs(string text)
@@ -331,6 +467,21 @@ namespace networker
                 : ConfigTranslator.JunosToIos(input);
 
             ShowCode(TranslateResult, iosToJunos ? "Juniper Junos (set)" : "Cisco IOS-XE", output);
+        }
+
+        private async void TranslateAi_Click(object sender, RoutedEventArgs e)
+        {
+            var input = TranslateInput.Text ?? string.Empty;
+            if (input.Length == 0)
+            {
+                Toaster.Show("Paste a configuration to translate.", InfoBarSeverity.Warning);
+                return;
+            }
+
+            var iosToJunos = TranslateDirection.SelectedIndex == 0;
+            var target = iosToJunos ? "Juniper Junos (set format)" : "Cisco IOS-XE";
+            var content = $"Translate the following configuration to {target}:\n\n{input}";
+            await RunAiAsync(TranslateAiButton, TranslateAiResult, $"AI Translation ({target})", ToolPrompts.Translation, content);
         }
     }
 }

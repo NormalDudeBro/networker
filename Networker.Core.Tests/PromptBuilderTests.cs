@@ -51,5 +51,35 @@ public class PromptBuilderTests
         string result = PromptBuilder.BuildUserMessage("P", "P", "P");
         Assert.Equal("P\n\nP\n\nP", result);
     }
+
+    [Fact]
+    public void JoinNonEmpty_MergesSectionsInOrder()
+    {
+        string result = PromptBuilder.JoinNonEmpty("Tool prompt.", "Global prompt.", "Custom instructions.");
+        Assert.Equal("Tool prompt.\n\nGlobal prompt.\n\nCustom instructions.", result);
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", "  ")]
+    [InlineData("   ", null)]
+    public void JoinNonEmpty_AllEmpty_ReturnsEmpty(string? a, string? b)
+    {
+        Assert.Equal("", PromptBuilder.JoinNonEmpty(a, b));
+    }
+
+    [Fact]
+    public void JoinNonEmpty_OmitsEmptyMiddleSection()
+    {
+        string result = PromptBuilder.JoinNonEmpty("First", "   ", "Last");
+        Assert.Equal("First\n\nLast", result);
+    }
+
+    [Fact]
+    public void JoinNonEmpty_TrimsEachSection()
+    {
+        string result = PromptBuilder.JoinNonEmpty("  First  ", "\nSecond\n");
+        Assert.Equal("First\n\nSecond", result);
+    }
 }
 

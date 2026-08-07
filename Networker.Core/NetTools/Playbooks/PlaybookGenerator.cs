@@ -65,6 +65,33 @@ public static class PlaybookGenerator
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Renders the playbook as plain structured text (no markdown syntax) so it
+    /// reads cleanly in text/code surfaces that do not render markdown. Mirrors
+    /// the format the AI playbook prompt (<c>ToolPrompts.Playbook</c>) asks the
+    /// model to emit, so both paths render identically.
+    /// </summary>
+    public static string RenderPlain(Playbook playbook)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"{playbook.Name} — {playbook.Description}");
+        sb.AppendLine();
+
+        for (var i = 0; i < playbook.Steps.Count; i++)
+        {
+            var step = playbook.Steps[i];
+            sb.AppendLine($"Step {i + 1}: {step.Title}");
+            sb.AppendLine();
+            sb.AppendLine(step.Command);
+            sb.AppendLine();
+            sb.AppendLine($"Expected: {step.Expected}");
+            sb.AppendLine($"Why:      {step.Reasoning}");
+            sb.AppendLine();
+        }
+
+        return sb.ToString().TrimEnd();
+    }
+
     private static string Describe(string scenario) => scenario switch
     {
         "new-switch" => "Day-0 deployment steps to bring a new access switch online with management access and baseline hardening.",

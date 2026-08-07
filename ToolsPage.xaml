@@ -12,7 +12,7 @@
                        Text="Deterministic tools that run locally: IP math, config generation and audit, diffs, log analysis, playbooks, topology diagrams, and vendor translation."/>
         </StackPanel>
 
-        <TabView Grid.Row="1" Margin="0,14,0,0" IsAddTabButtonVisible="False" TabWidthMode="Compact" VerticalAlignment="Stretch">
+        <TabView Grid.Row="1" Margin="0,14,0,0" IsAddTabButtonVisible="False" VerticalAlignment="Stretch">
             <TabView.TabItems>
 
                 <!-- ===================== IP Calculator ===================== -->
@@ -66,7 +66,10 @@
                                 <TextBox x:Name="AuditInput" AcceptsReturn="True" TextWrapping="NoWrap" Height="240"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto" FontFamily="{ThemeResource CodeFontFamily}"/>
                             </StackPanel>
-                            <Button Content="Audit Configuration" Click="AuditRun_Click" HorizontalAlignment="Left"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="Audit Configuration" Click="AuditRun_Click"/>
+                                <Button x:Name="AuditAiButton" Content="Analyze with AI" Click="AuditAi_Click" Style="{StaticResource ChipButtonStyle}"/>
+                            </StackPanel>
                             <ListView x:Name="AuditFindings" Visibility="Collapsed">
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
@@ -81,6 +84,7 @@
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
                             </ListView>
+                            <controls:CodeBlockView x:Name="AuditAiResult" Visibility="Collapsed"/>
                         </StackPanel>
                     </ScrollViewer>
                 </TabViewItem>
@@ -101,8 +105,12 @@
                                              ScrollViewer.VerticalScrollBarVisibility="Auto" FontFamily="{ThemeResource CodeFontFamily}"/>
                                 </StackPanel>
                             </Grid>
-                            <Button Content="Compare" Click="DiffRun_Click" HorizontalAlignment="Left"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="Compare" Click="DiffRun_Click"/>
+                                <Button x:Name="DiffAiButton" Content="Explain with AI" Click="DiffAi_Click" Style="{StaticResource ChipButtonStyle}"/>
+                            </StackPanel>
                             <controls:CodeBlockView x:Name="DiffResult" Visibility="Collapsed"/>
+                            <controls:CodeBlockView x:Name="DiffAiResult" Visibility="Collapsed"/>
                         </StackPanel>
                     </ScrollViewer>
                 </TabViewItem>
@@ -118,7 +126,10 @@
                                 <TextBox x:Name="LogInput" AcceptsReturn="True" TextWrapping="NoWrap" Height="220"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto" FontFamily="{ThemeResource CodeFontFamily}"/>
                             </StackPanel>
-                            <Button Content="Analyze Logs" Click="LogAnalyze_Click" HorizontalAlignment="Left"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="Analyze Logs" Click="LogAnalyze_Click"/>
+                                <Button x:Name="LogAiButton" Content="Analyze with AI" Click="LogAi_Click" Style="{StaticResource ChipButtonStyle}"/>
+                            </StackPanel>
                             <ListView x:Name="LogFindings" Visibility="Collapsed">
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
@@ -133,6 +144,7 @@
                                     </DataTemplate>
                                 </ListView.ItemTemplate>
                             </ListView>
+                            <controls:CodeBlockView x:Name="LogAiResult" Visibility="Collapsed"/>
                         </StackPanel>
                     </ScrollViewer>
                 </TabViewItem>
@@ -152,8 +164,12 @@
                                     <ComboBoxItem Content="Security hardening"/>
                                 </ComboBox>
                             </StackPanel>
-                            <Button Content="Generate Playbook" Click="PlaybookGenerate_Click" HorizontalAlignment="Left"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="Generate Playbook" Click="PlaybookGenerate_Click"/>
+                                <Button x:Name="PlaybookAiButton" Content="Generate with AI" Click="PlaybookAi_Click" Style="{StaticResource ChipButtonStyle}"/>
+                            </StackPanel>
                             <controls:CodeBlockView x:Name="PlaybookResult" Visibility="Collapsed"/>
+                            <controls:CodeBlockView x:Name="PlaybookAiResult" Visibility="Collapsed"/>
                         </StackPanel>
                     </ScrollViewer>
                 </TabViewItem>
@@ -169,9 +185,13 @@
                                 <TextBox x:Name="TopologyInput" AcceptsReturn="True" TextWrapping="NoWrap" Height="260"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto" FontFamily="{ThemeResource CodeFontFamily}"/>
                             </StackPanel>
-                            <Button Content="Build Topology" Click="TopologyBuild_Click" HorizontalAlignment="Left"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="Build Topology" Click="TopologyBuild_Click"/>
+                                <Button x:Name="TopologyAiButton" Content="Describe with AI" Click="TopologyAi_Click" Style="{StaticResource ChipButtonStyle}"/>
+                            </StackPanel>
                             <TextBlock x:Name="TopologySummary" Style="{StaticResource CaptionTextStyle}" Visibility="Collapsed"/>
                             <controls:CodeBlockView x:Name="TopologyResult" Visibility="Collapsed"/>
+                            <controls:CodeBlockView x:Name="TopologyAiResult" Visibility="Collapsed"/>
                         </StackPanel>
                     </ScrollViewer>
                 </TabViewItem>
@@ -192,8 +212,12 @@
                                 <TextBox x:Name="TranslateInput" AcceptsReturn="True" TextWrapping="NoWrap" Height="240"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto" FontFamily="{ThemeResource CodeFontFamily}"/>
                             </StackPanel>
-                            <Button Content="Translate" Click="TranslateRun_Click" HorizontalAlignment="Left"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="Translate" Click="TranslateRun_Click"/>
+                                <Button x:Name="TranslateAiButton" Content="Translate with AI" Click="TranslateAi_Click" Style="{StaticResource ChipButtonStyle}"/>
+                            </StackPanel>
                             <controls:CodeBlockView x:Name="TranslateResult" Visibility="Collapsed"/>
+                            <controls:CodeBlockView x:Name="TranslateAiResult" Visibility="Collapsed"/>
                         </StackPanel>
                     </ScrollViewer>
                 </TabViewItem>

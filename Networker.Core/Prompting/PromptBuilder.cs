@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Networker.Core.Prompting
 {
@@ -15,14 +16,18 @@ namespace Networker.Core.Prompting
         /// multi-turn conversation history is sent to the model.
         /// </summary>
         public static string BuildSystemPrompt(string? systemPrompt, string? customInstructions)
-        {
-            var sections = new List<string>(2);
+            => JoinNonEmpty(systemPrompt, customInstructions);
 
-            AddIfPresent(sections, systemPrompt);
-            AddIfPresent(sections, customInstructions);
-
-            return string.Join("\n\n", sections);
-        }
+        /// <summary>
+        /// Joins any number of optional prompt sections with blank-line separators,
+        /// trimming each and omitting empty/whitespace-only sections. Used to merge
+        /// a tool-specific system prompt with the global prompt and custom
+        /// instructions into a single system message.
+        /// </summary>
+        public static string JoinNonEmpty(params string?[] sections)
+            => string.Join(
+                "\n\n",
+                sections.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!.Trim()));
 
         /// <summary>
         /// Composes a user message from the configured global prompt parts.

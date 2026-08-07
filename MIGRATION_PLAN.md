@@ -480,6 +480,24 @@ migration plan (built over `ITemplateLibrary`).
 - `dotnet build networker.sln -c Release` → **0 errors**.
 - `dotnet test Networker.Core.Tests -c Debug` → **240/240 passed** (239 + perf smoke test).
 
+### Post-migration follow-up: AI-assisted tools (ToolsPage)
+- **Feature:** each ToolsPage tab (Config Audit, Config Diff, Log Analyzer, Playbooks, Topology,
+  Translator) gained an AI button next to its deterministic action that streams the tool's inputs
+  (config, findings, diff, logs, topology, scenario) to the selected model and renders the response
+  in a dedicated code view.
+- **Plumbing:** `ChatService.CompleteAsync`/`StreamAsync` gained optional `systemPrompt` overloads
+  that merge the tool prompt ahead of the global system prompt + custom instructions via the new
+  `PromptBuilder.JoinNonEmpty`. Per-tool system prompts live in `Networker.Core.Prompting.ToolPrompts`
+  (tested). The shared `ToolsPage.RunAiAsync` helper guards on a selected model, disables the button
+  while streaming, and surfaces failures via toast.
+- **Playbooks "inoperable" note:** the generator was verified working (all scenario tests pass); the
+  tab's output looked broken because it rendered raw markdown (`#`, `**`, code fences). Added
+  `PlaybookGenerator.RenderPlain` (clean structured text) for the tab, and the AI playbook prompt
+  (`ToolPrompts.Playbook`) asks the model to emit the same format so both paths render identically.
+- **Tests:** 253/253 (added 6 `JoinNonEmpty`, 6 `ToolPrompts`, 1 `RenderPlain`).
+- **Not covered by automation:** live LLM calls (no network in unit tests) — verified via build +
+  prompt/format tests only; manual smoke needed against a configured provider.
+
 ---
 
 ## 7. Remaining Work (Prioritized Backlog)

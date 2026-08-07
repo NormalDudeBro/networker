@@ -45,6 +45,20 @@ public class PlaybookGeneratorTests
     }
 
     [Fact]
+    public void RenderPlain_StructuredTextWithoutMarkdownSyntax()
+    {
+        var playbook = PlaybookGenerator.Generate("bgp-flap");
+        var plain = PlaybookGenerator.RenderPlain(playbook);
+
+        Assert.Contains("bgp-flap —", plain);
+        Assert.Contains("Step 1:", plain);
+        Assert.Contains("Expected:", plain);
+        Assert.Contains("Why:", plain);
+        Assert.DoesNotContain("```", plain);
+        Assert.DoesNotContain("**", plain);
+    }
+
+    [Fact]
     public void KnownScenarios_ListsAllSupported()
     {
         Assert.Contains("high-cpu", PlaybookGenerator.KnownScenarios);

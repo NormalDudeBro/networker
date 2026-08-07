@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using networker.Services;
 using Networker.Core.Services.NetworkConfig;
+using Networker.Core.Services.NetworkConfig.Parsers;
 using Windows.ApplicationModel.Activation;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -47,6 +48,10 @@ public App()
             var services = new ServiceCollection();
             services.AddSingleton(LlmRuntime.Router);
             services.AddSingleton<IConfigGenerator, NetworkConfigGenerator>();
+            services.AddSingleton<IConfigValidator, ConfigValidator>();
+            services.AddSingleton<IConfigParserFactory, ConfigParserFactory>();
+            services.AddSingleton<IVaultService, VaultService>();
+            services.AddSingleton<ITemplateLibrary, TemplateLibrary>();
             return services.BuildServiceProvider();
         }
 

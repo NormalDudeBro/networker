@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 
 namespace networker.NetworkConfig.Views
 {
@@ -11,6 +12,27 @@ namespace networker.NetworkConfig.Views
         public NetworkConfigPage()
         {
             this.InitializeComponent();
+        }
+
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+            if (e.Parameter is string header && !string.IsNullOrWhiteSpace(header))
+            {
+                SelectTab(header);
+            }
+        }
+
+        private void SelectTab(string header)
+        {
+            for (int i = 0; i < ConfigTabs.TabItems.Count; i++)
+            {
+                if (ConfigTabs.TabItems[i] is TabViewItem { Header: string h } && h == header)
+                {
+                    ConfigTabs.SelectedIndex = i;
+                    return;
+                }
+            }
         }
     }
 }

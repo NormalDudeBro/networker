@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using networker.Controls;
 using networker.Services;
+using networker.Views;
 
 namespace networker
 {
@@ -30,7 +31,8 @@ namespace networker
             LlmSession.Changed += LlmSession_Changed;
             UpdateStatusBar();
 
-            ContentFrame.Navigate(typeof(MainPage));
+            ContentFrame.Navigate(typeof(DashboardPage));
+            SelectNavItem("home");
             _ = LlmSession.RefreshAsync();
         }
 
@@ -64,27 +66,55 @@ namespace networker
         {
             Palette.SetCommands(new[]
             {
-                new PaletteCommand("Go to Home", "Open the assistant workspace", "\uE80F", () => NavigateTo("home"), "chat", "home"),
+                new PaletteCommand("Go to Overview", "Open the workspace dashboard", "\uE80F", () => NavigateTo("home"), "home", "dashboard", "overview", "start"),
+                new PaletteCommand("Go to Assistant", "Chat with your AI provider", "\uE8BD", () => NavigateTo("assistant"), "chat", "assistant", "ask"),
                 new PaletteCommand("Go to Tools", "Open the network toolkit", "\uE774", () => NavigateTo("tools"), "ip", "config", "tools", "subnet", "audit"),
                 new PaletteCommand("Go to Network Config", "Generate, import, and validate device configs", "\uE943", () => NavigateTo("networkconfig"), "config", "generate", "vault", "network"),
                 new PaletteCommand("Go to Settings", "Provider and application settings", "\uE713", () => NavigateTo("settings"), "settings", "provider", "theme"),
                 new PaletteCommand("Toggle theme", "Switch light / dark / system", "\uE790", ToggleTheme, "theme", "dark", "light"),
-                new PaletteCommand("New chat", "Start a fresh conversation", "\uE8BD", () => MainPage.Current?.NewChat(), "new", "chat", "clear"),
+                new PaletteCommand("New chat", "Start a fresh conversation", "\uE8BD", OpenAssistantNewChat, "new", "chat", "clear"),
                 new PaletteCommand("Clear history", "Remove all conversation messages", "\uE74D", () => MainPage.Current?.ClearHistory(), "history", "clear", "delete"),
             });
         }
 
-        private void NavigateTo(string tag)
+        public void NavigateTo(string tag)
         {
             switch (tag)
             {
-                case "home": ContentFrame.Navigate(typeof(MainPage)); break;
+                case "home": ContentFrame.Navigate(typeof(DashboardPage)); break;
+                case "assistant": ContentFrame.Navigate(typeof(MainPage)); break;
                 case "tools": ContentFrame.Navigate(typeof(ToolsPage)); break;
                 case "networkconfig": ContentFrame.Navigate(typeof(NetworkConfig.Views.NetworkConfigPage)); break;
                 case "settings": ContentFrame.Navigate(typeof(SettingsPg)); break;
             }
 
             SelectNavItem(tag);
+        }
+
+        /// <summary>
+        /// Navigates to the page identified by <paramref name="pageTag"/> ("tools" or
+        /// "config") and selects the tab whose header matches <paramref name="tabHeader"/>.
+        /// </summary>
+        public void NavigateToTab(string pageTag, string tabHeader)
+        {
+            switch (pageTag)
+            {
+                case "tools":
+                    ContentFrame.Navigate(typeof(ToolsPage), tabHeader);
+                    SelectNavItem("tools");
+                    break;
+                case "config":
+                    ContentFrame.Navigate(typeof(NetworkConfig.Views.NetworkConfigPage), tabHeader);
+                    SelectNavItem("networkconfig");
+                    break;
+            }
+        }
+
+        /// <summary>Navigates to the Assistant page and starts a fresh conversation.</summary>
+        public void OpenAssistantNewChat()
+        {
+            NavigateTo("assistant");
+            MainPage.Current?.NewChat();
         }
 
         private void SelectNavItem(string tag)
@@ -125,9 +155,10 @@ namespace networker
             string? tag = sender.Key switch
             {
                 Windows.System.VirtualKey.Number1 => "home",
-                Windows.System.VirtualKey.Number2 => "tools",
-                Windows.System.VirtualKey.Number3 => "networkconfig",
-                Windows.System.VirtualKey.Number4 => "settings",
+                Windows.System.VirtualKey.Number2 => "assistant",
+                Windows.System.VirtualKey.Number3 => "tools",
+                Windows.System.VirtualKey.Number4 => "networkconfig",
+                Windows.System.VirtualKey.Number5 => "settings",
                 _ => null,
             };
             if (tag is not null)

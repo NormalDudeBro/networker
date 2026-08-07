@@ -69,6 +69,27 @@ namespace networker
             PlaybookScenario.SelectedIndex = 0;
         }
 
+        protected override void OnNavigatedTo(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+            if (e.Parameter is string header && !string.IsNullOrWhiteSpace(header))
+            {
+                SelectTab(header);
+            }
+        }
+
+        private void SelectTab(string header)
+        {
+            for (int i = 0; i < ToolsTabs.TabItems.Count; i++)
+            {
+                if (ToolsTabs.TabItems[i] is TabViewItem { Header: string h } && h == header)
+                {
+                    ToolsTabs.SelectedIndex = i;
+                    return;
+                }
+            }
+        }
+
         private sealed class FindingItem
         {
             public required int Line { get; init; }

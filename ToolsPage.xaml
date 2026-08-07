@@ -12,7 +12,7 @@
                        Text="Deterministic tools that run locally: IP math, config generation and audit, diffs, log analysis, playbooks, topology diagrams, and vendor translation."/>
         </StackPanel>
 
-        <TabView Grid.Row="1" Margin="0,14,0,0" IsAddTabButtonVisible="False" VerticalAlignment="Stretch">
+        <TabView x:Name="ToolsTabs" Grid.Row="1" Margin="0,14,0,0" IsAddTabButtonVisible="False" VerticalAlignment="Stretch">
             <TabView.TabItems>
 
                 <!-- ===================== IP Calculator ===================== -->

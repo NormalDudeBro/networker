@@ -42,9 +42,14 @@
                         <KeyboardAccelerator Key="Number1" Modifiers="Control" Invoked="NavAccelerator_Invoked"/>
                     </NavigationViewItem.KeyboardAccelerators>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Tools" Tag="tools" Icon="World">
+                <NavigationViewItem Content="Assistant" Tag="assistant" Icon="Message">
                     <NavigationViewItem.KeyboardAccelerators>
                         <KeyboardAccelerator Key="Number2" Modifiers="Control" Invoked="NavAccelerator_Invoked"/>
+                    </NavigationViewItem.KeyboardAccelerators>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Tools" Tag="tools" Icon="World">
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="Number3" Modifiers="Control" Invoked="NavAccelerator_Invoked"/>
                     </NavigationViewItem.KeyboardAccelerators>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Network Config" Tag="networkconfig">
@@ -52,12 +57,12 @@
                         <FontIcon Glyph="&#xE943;"/>
                     </NavigationViewItem.Icon>
                     <NavigationViewItem.KeyboardAccelerators>
-                        <KeyboardAccelerator Key="Number3" Modifiers="Control" Invoked="NavAccelerator_Invoked"/>
+                        <KeyboardAccelerator Key="Number4" Modifiers="Control" Invoked="NavAccelerator_Invoked"/>
                     </NavigationViewItem.KeyboardAccelerators>
                 </NavigationViewItem>
                 <NavigationViewItem Content="Settings" Tag="settings" Icon="Setting">
                     <NavigationViewItem.KeyboardAccelerators>
-                        <KeyboardAccelerator Key="Number4" Modifiers="Control" Invoked="NavAccelerator_Invoked"/>
+                        <KeyboardAccelerator Key="Number5" Modifiers="Control" Invoked="NavAccelerator_Invoked"/>
                     </NavigationViewItem.KeyboardAccelerators>
                 </NavigationViewItem>
             </NavigationView.MenuItems>

@@ -51,7 +51,6 @@ namespace networker
                 }
             }
 
-            UpdateProviderLabel();
             _ = LlmSession.RefreshAsync();
         }
 
@@ -396,30 +395,19 @@ namespace networker
             return result;
         }
 
-        private void AddToolActivity(ChatMessage message)
+        private static void AddToolActivity(ChatMessage message)
         {
-            ToolActivityPlaceholder.Visibility = Visibility.Collapsed;
-            var card = new Border
+            string text = (message.Text ?? "").Trim();
+            RecentActivity.Add(new ActivityItem
             {
-                Style = (Style)Application.Current.Resources["CardStyle"],
-                Child = new StackPanel
-                {
-                    Spacing = 4,
-                    Children =
-                    {
-                        new TextBlock { Text = message.CodeTitle ?? "Tool Result", Style = (Style)Application.Current.Resources["CardHeaderStyle"] },
-                        new networker.Controls.CodeBlockView { DataContext = message }
-                    }
-                }
-            };
-            ToolActivityList.Children.Insert(0, card);
+                Title = message.CodeTitle ?? "Tool Result",
+                Detail = text.Length <= 200 ? text : text[..200] + "…",
+                Timestamp = DateTime.Now,
+                Glyph = "\uE774"
+            });
         }
 
         // ============================ Header / panel ============================
-
-        private void PaletteButton_Click(object sender, RoutedEventArgs e) => MainWindow.Instance?.OpenPalette();
-
-        private void ThemeButton_Click(object sender, RoutedEventArgs e) => MainWindow.Instance?.ToggleTheme();
 
         private void PanelToggleButton_Click(object sender, RoutedEventArgs e)
         {
@@ -469,29 +457,17 @@ namespace networker
 
         // ============================ Provider / models / health ============================
 
-        private void UpdateProviderLabel()
-        {
-            ProviderText.Text = LlmSession.Provider;
-            ModelText.Text = string.IsNullOrWhiteSpace(LlmSession.Model) ? "no model" : LlmSession.Model;
-        }
-
         private async void HealthCheckButton_Click(object sender, RoutedEventArgs e) => await LlmSession.RefreshAsync();
 
         private void LlmSession_Changed() => DispatcherQueue.TryEnqueue(UpdateAssistantPanel);
 
         private void UpdateAssistantPanel()
         {
-            UpdateProviderLabel();
-
             string dotKey = LlmSession.IsChecking ? "AppTextDisabledBrush"
                 : LlmSession.IsConnected ? "AppOnlineBrush"
                 : "AppOfflineBrush";
-            var dotBrush = (SolidColorBrush)Application.Current.Resources[dotKey];
-            PanelHealthDot.Fill = dotBrush;
-            HealthDot.Fill = dotBrush;
-
+            PanelHealthDot.Fill = (SolidColorBrush)Application.Current.Resources[dotKey];
             PanelHealthText.Text = LlmSession.StatusMessage;
-            HealthText.Text = LlmSession.StatusMessage;
 
             ModelLoadingRing.IsActive = LlmSession.IsChecking;
             ModelComboBox.IsEnabled = LlmSession.HasModels;

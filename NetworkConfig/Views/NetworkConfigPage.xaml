@@ -20,6 +20,26 @@
                     <tabs:GenerateTab/>
                 </TabViewItem>
 
+                <!-- ===================== Import / Analyze ===================== -->
+                <TabViewItem Header="Import / Analyze">
+                    <tabs:ImportTab/>
+                </TabViewItem>
+
+                <!-- ===================== Diff ===================== -->
+                <TabViewItem Header="Diff">
+                    <tabs:DiffTab/>
+                </TabViewItem>
+
+                <!-- ===================== Vault ===================== -->
+                <TabViewItem Header="Vault">
+                    <tabs:VaultTab/>
+                </TabViewItem>
+
+                <!-- ===================== Templates ===================== -->
+                <TabViewItem Header="Templates">
+                    <tabs:TemplatesTab/>
+                </TabViewItem>
+
             </TabView.TabItems>
         </TabView>
     </Grid>

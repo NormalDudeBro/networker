@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="networker.NetworkConfig.Views.Tabs.ImportTab"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Padding="16,12" Spacing="12" MaxWidth="1100" HorizontalAlignment="Stretch">
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Import Configuration" Style="{StaticResource SectionHeaderTextStyle}"/>
+                    <TextBox x:Name="ImportText" AcceptsReturn="True" TextWrapping="NoWrap" Height="240"
+                             PlaceholderText="Paste a configuration here... (Cisco IOS, Juniper Junos, or SONiC)"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Parse Configuration" Click="Parse_Click"/>
+                        <Button Content="Import Syslog File" Click="ImportSyslogFile_Click" Style="{StaticResource ChipButtonStyle}"/>
+                        <Button Content="Clear" Click="Clear_Click" Style="{StaticResource ChipButtonStyle}"/>
+                        <TextBlock x:Name="StatusText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Parse Results" Style="{StaticResource SectionHeaderTextStyle}"/>
+                    <TextBox x:Name="ResultsText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                             Height="360"
+                             FontFamily="{ThemeResource CodeFontFamily}" FontSize="{ThemeResource FontSizeCode}"
+                             Foreground="{ThemeResource AppTextPrimaryBrush}"/>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

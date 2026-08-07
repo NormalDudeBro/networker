@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="networker.NetworkConfig.Views.Tabs.DiffTab"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Padding="16,12" Spacing="12" MaxWidth="1100" HorizontalAlignment="Stretch">
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Compare Configurations" Style="{StaticResource SectionHeaderTextStyle}"/>
+                    <TextBlock Style="{StaticResource CaptionTextStyle}"
+                               Text="Paste two configurations and compare them. Added lines are prefixed with '+', removed with '-'."/>
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="DiffLeftText" Grid.Column="0" AcceptsReturn="True" TextWrapping="NoWrap"
+                                 Height="260" PlaceholderText="Configuration A (Original)"/>
+                        <TextBox x:Name="DiffRightText" Grid.Column="1" AcceptsReturn="True" TextWrapping="NoWrap"
+                                 Height="260" PlaceholderText="Configuration B (New/Modified)"/>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Compare" Click="Compare_Click"/>
+                        <Button Content="Clear" Click="Clear_Click" Style="{StaticResource ChipButtonStyle}"/>
+                        <TextBlock x:Name="DiffStatsText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>
+                        <TextBlock x:Name="StatusText" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Differences" Style="{StaticResource SectionHeaderTextStyle}"/>
+                    <TextBox x:Name="DiffResultsText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                             Height="320"
+                             FontFamily="{ThemeResource CodeFontFamily}" FontSize="{ThemeResource FontSizeCode}"
+                             Foreground="{ThemeResource AppTextPrimaryBrush}"/>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

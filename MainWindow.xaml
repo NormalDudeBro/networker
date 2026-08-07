@@ -27,7 +27,11 @@
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Home" Tag="home" Icon="Home"/>
                 <NavigationViewItem Content="Tools" Tag="tools" Icon="World"/>
-                <NavigationViewItem Content="Network Config" Tag="networkconfig" Icon="Code"/>
+                <NavigationViewItem Content="Network Config" Tag="networkconfig">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE943;"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="Settings" Tag="settings" Icon="Setting"/>
             </NavigationView.MenuItems>
 

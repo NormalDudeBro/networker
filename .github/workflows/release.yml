@@ -105,14 +105,16 @@ jobs:
           $cerPath = Join-Path $env:RUNNER_TEMP 'Networker.cer'
           [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
           [IO.File]::WriteAllBytes($cerPath, $cerBytes)
-          $securePassword = ConvertTo-SecureString $env:NETWORKER_SIGNING_CERTIFICATE_PASSWORD -AsPlainText -Force
-          $privateCertificate = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
-          $publicCertificate = Import-Certificate -FilePath $cerPath -CertStoreLocation Cert:\CurrentUser\Root
-          if ($privateCertificate.Thumbprint -ne $publicCertificate.Thumbprint) {
-            throw 'The private and public signing certificate secrets do not match.'
-          }
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "thumbprint=$($privateCertificate.Thumbprint)"
-          Write-Host "Imported the ephemeral signing identity and trusted public certificate ($($privateCertificate.Thumbprint))."
+          $publicCertificate = [Security.Cryptography.X509Certificates.X509Certificate2]::new($cerPath)
+          $thumbprint = $publicCertificate.Thumbprint
+          & certutil.exe -user -f -p $env:NETWORKER_SIGNING_CERTIFICATE_PASSWORD -importPFX My $pfxPath NoRoot | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw "certutil could not import the signing PFX (exit $LASTEXITCODE)." }
+          & certutil.exe -user -f -addstore Root $cerPath | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw "certutil could not trust the public certificate (exit $LASTEXITCODE)." }
+          $privateCertificate = Get-Item "Cert:\CurrentUser\My\$thumbprint"
+          if (-not $privateCertificate.HasPrivateKey) { throw 'The imported signing certificate has no private key.' }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "thumbprint=$thumbprint"
+          Write-Host "Imported the ephemeral signing identity and trusted public certificate ($thumbprint)."
 
       - name: Prepare release (validate tag, patch manifest, derive publisher)
         if: steps.signing.outputs.available == 'true'

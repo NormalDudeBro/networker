@@ -1,14 +1,15 @@
 name: Release
 
-# Publishes a signed production release. Triggered only by versioned tags
+# Publishes a release. Triggered only by versioned tags
 # (vMAJOR.MINOR.PATCH for stable, vMAJOR.MINOR.PATCH-preview.N for prereleases).
 #
-# Produces and uploads exactly three assets for the tag:
+# With signing secrets, produces and uploads exactly four assets:
 #   Networker-<semver>-win-x64.msix          - trusted-certificate-signed MSIX
 #   Networker-<semver>-win-x64.msix.sha256   - checksum sidecar (see Networker.Core/Updates/UpdateChecksum.cs)
 #   Networker-x64.appinstaller               - App Installer manifest, no UpdateSettings
+#   Networker.cer                            - public certificate for one-time trust installation
 #
-# The release is created as a DRAFT, all three assets are uploaded, and only
+# The release is created as a DRAFT, all four assets are uploaded, and only
 # then is it published. Any step failure leaves the draft invisible to the
 # updater. Stable releases become latest; preview releases stay prereleases.
 # Existing tags/releases/assets are never overwritten.
@@ -19,12 +20,13 @@ name: Release
 # that any prior non-draft release used the same package name/publisher.
 #
 # Requires repository (or production-release environment) secrets:
-#   NETWORKER_SIGNING_CERTIFICATE_BASE64 - the trusted code-signing PFX, base64-encoded
-#   NETWORKER_SIGNING_CERTIFICATE_PASSWORD - its password
-# The workflow fails fast when those secrets are missing: a release without the
-# trusted certificate would ship unsigned and be rejected by the OS, so it must
-# never be published. The certificate is decoded only into $RUNNER_TEMP and is
-# removed after the build.
+#   NETWORKER_SIGNING_CERTIFICATE_BASE64     - the code-signing PFX, base64-encoded
+#   NETWORKER_SIGNING_CERTIFICATE_PASSWORD   - its password
+#   NETWORKER_SIGNING_CERTIFICATE_CER_BASE64 - matching public certificate, base64-encoded
+# Without those secrets, the workflow publishes a clearly marked source-only
+# release using GitHub's generated source archives. It never emits an unsigned
+# package, and the in-app updater ignores the release because no MSIX assets exist.
+# The certificate is decoded only into $RUNNER_TEMP and removed after the build.
 
 on:
   push:
@@ -63,31 +65,68 @@ jobs:
       - name: Run Core tests
         run: dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj -c Debug --no-restore
 
-      - name: Materialize trusted certificate
+      - name: Validate release tag
+        shell: pwsh
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: ./scripts/Prepare-Release.ps1 -Tag $env:TAG
+
+      - name: Detect signed package capability
+        id: signing
         shell: pwsh
         env:
           NETWORKER_SIGNING_CERTIFICATE_BASE64: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_BASE64 }}
           NETWORKER_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_PASSWORD }}
+          NETWORKER_SIGNING_CERTIFICATE_CER_BASE64: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_CER_BASE64 }}
         run: |
-          if ([string]::IsNullOrEmpty($env:NETWORKER_SIGNING_CERTIFICATE_BASE64) -or [string]::IsNullOrEmpty($env:NETWORKER_SIGNING_CERTIFICATE_PASSWORD)) {
-            throw 'Signing certificate secrets (NETWORKER_SIGNING_CERTIFICATE_BASE64 / NETWORKER_SIGNING_CERTIFICATE_PASSWORD) are not configured. No signed public release can be produced without them.'
+          $available = -not [string]::IsNullOrEmpty($env:NETWORKER_SIGNING_CERTIFICATE_BASE64) -and
+            -not [string]::IsNullOrEmpty($env:NETWORKER_SIGNING_CERTIFICATE_PASSWORD) -and
+            -not [string]::IsNullOrEmpty($env:NETWORKER_SIGNING_CERTIFICATE_CER_BASE64)
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "available=$($available.ToString().ToLowerInvariant())"
+          if ($available) {
+            Write-Host 'Trusted signing configuration is available; producing the signed x64 MSIX release.'
           }
-          $bytes = [Convert]::FromBase64String($env:NETWORKER_SIGNING_CERTIFICATE_BASE64)
-          $path = Join-Path $env:RUNNER_TEMP 'trusted-certificate.pfx'
-          [IO.File]::WriteAllBytes($path, $bytes)
-          Write-Host "Wrote trusted certificate ($($bytes.Length) bytes); certificate data is not printed."
+          else {
+            Write-Host 'Trusted signing configuration is unavailable; producing a source-only release.'
+          }
+
+      - name: Materialize signing certificate
+        if: steps.signing.outputs.available == 'true'
+        id: certificate
+        shell: pwsh
+        env:
+          NETWORKER_SIGNING_CERTIFICATE_BASE64: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_BASE64 }}
+          NETWORKER_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_PASSWORD }}
+          NETWORKER_SIGNING_CERTIFICATE_CER_BASE64: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_CER_BASE64 }}
+        run: |
+          $pfxBytes = [Convert]::FromBase64String($env:NETWORKER_SIGNING_CERTIFICATE_BASE64)
+          $cerBytes = [Convert]::FromBase64String($env:NETWORKER_SIGNING_CERTIFICATE_CER_BASE64)
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'networker-signing.pfx'
+          $cerPath = Join-Path $env:RUNNER_TEMP 'Networker.cer'
+          [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+          [IO.File]::WriteAllBytes($cerPath, $cerBytes)
+          $securePassword = ConvertTo-SecureString $env:NETWORKER_SIGNING_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $privateCertificate = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
+          $publicCertificate = Import-Certificate -FilePath $cerPath -CertStoreLocation Cert:\CurrentUser\Root
+          if ($privateCertificate.Thumbprint -ne $publicCertificate.Thumbprint) {
+            throw 'The private and public signing certificate secrets do not match.'
+          }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "thumbprint=$($privateCertificate.Thumbprint)"
+          Write-Host "Imported the ephemeral signing identity and trusted public certificate ($($privateCertificate.Thumbprint))."
 
       - name: Prepare release (validate tag, patch manifest, derive publisher)
+        if: steps.signing.outputs.available == 'true'
         id: prepare
         shell: pwsh
         env:
           TAG: ${{ steps.tag.outputs.tag }}
           PFX_PASSWORD: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_PASSWORD }}
         run: |
-          $pfx = Join-Path $env:RUNNER_TEMP 'trusted-certificate.pfx'
+          $pfx = Join-Path $env:RUNNER_TEMP 'networker-signing.pfx'
           & ./scripts/Prepare-Release.ps1 -Tag $env:TAG -ManifestPath Package.appxmanifest -CertificatePath $pfx -CertificatePassword $env:PFX_PASSWORD
 
       - name: Verify package identity against prior releases
+        if: steps.signing.outputs.available == 'true'
         shell: pwsh
         env:
           TAG: ${{ steps.tag.outputs.tag }}
@@ -138,23 +177,31 @@ jobs:
           }
 
       - name: Build signed MSIX
+        if: steps.signing.outputs.available == 'true'
         shell: pwsh
         env:
-          PFX_PASSWORD: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_PASSWORD }}
+          CERTIFICATE_THUMBPRINT: ${{ steps.certificate.outputs.thumbprint }}
         run: |
-          $pfx = Join-Path $env:RUNNER_TEMP 'trusted-certificate.pfx'
           dotnet build networker.csproj -c Release -p:Platform=x64 --no-restore `
+            -p:WindowsPackageType=MSIX `
             -p:GenerateAppxPackageOnBuild=true `
             -p:AppxPackageSigningEnabled=true `
-            -p:PackageCertificateKeyFile=$pfx `
-            -p:PackageCertificatePassword=$env:PFX_PASSWORD
+            -p:PackageCertificateThumbprint=$env:CERTIFICATE_THUMBPRINT `
+            -p:AppxPackageIncludePrivateSymbols=false
 
-      - name: Remove temporary certificate
+      - name: Remove temporary private signing material
+        if: always() && steps.signing.outputs.available == 'true'
         shell: pwsh
+        env:
+          CERTIFICATE_THUMBPRINT: ${{ steps.certificate.outputs.thumbprint }}
         run: |
-          Remove-Item -Path (Join-Path $env:RUNNER_TEMP 'trusted-certificate.pfx') -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path (Join-Path $env:RUNNER_TEMP 'networker-signing.pfx') -Force -ErrorAction SilentlyContinue
+          if ($env:CERTIFICATE_THUMBPRINT) {
+            Remove-Item -Path "Cert:\CurrentUser\My\$env:CERTIFICATE_THUMBPRINT" -Force -ErrorAction SilentlyContinue
+          }
 
       - name: Cross-check release mapping against built Core assembly
+        if: steps.signing.outputs.available == 'true'
         shell: pwsh
         env:
           TAG: ${{ steps.tag.outputs.tag }}
@@ -169,6 +216,7 @@ jobs:
           Write-Host 'Cross-check passed; script and Core policy agree.'
 
       - name: Verify signed MSIX and prepare release assets
+        if: steps.signing.outputs.available == 'true'
         id: assets
         shell: pwsh
         env:
@@ -226,10 +274,8 @@ jobs:
           }
           Write-Host "Verified signature artifacts and manifest in $($msix.Name)."
 
-          # Chain verification: the signature must validate against the
-          # runner's trusted root store. This requires a real code-signing
-          # certificate whose PFX contains its full chain; self-signed test
-          # certificates fail here by design.
+          # Trust verification: the matching public certificate was imported
+          # into the ephemeral runner's root store before package verification.
           $signtool = Get-ChildItem -Path 'C:\Program Files (x86)\Windows Kits\10\bin' -Filter 'signtool.exe' -Recurse -ErrorAction SilentlyContinue |
             Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
             Sort-Object FullName -Descending | Select-Object -First 1
@@ -238,7 +284,7 @@ jobs:
           & $signtool.FullName verify /pa /v $msix.FullName *> $verifyLog
           if ($LASTEXITCODE -ne 0) {
             Write-Host (Get-Content $verifyLog -ErrorAction SilentlyContinue | Select-Object -Last 15)
-            throw "signtool verify failed (exit $LASTEXITCODE). The certificate must be trusted by the runner and the PFX must contain its full chain."
+            throw "signtool verify failed (exit $LASTEXITCODE). The signing certificate must match the published public certificate."
           }
           Write-Host 'signtool verify passed.'
 
@@ -253,11 +299,16 @@ jobs:
           $appinstallerPath = Join-Path $env:RUNNER_TEMP 'Networker-x64.appinstaller'
           & ./scripts/New-AppInstaller.ps1 -Tag $env:TAG -PackageName $env:PACKAGE_NAME -Publisher $env:PUBLISHER -MsixVersion $env:MSIX_VERSION -MsixAssetName $env:ASSET_NAME -OutputPath $appinstallerPath
 
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'Networker.cer'
+          if (-not (Test-Path $certificatePath)) { throw 'The public signing certificate was not materialized.' }
+
           Add-Content -Path $env:GITHUB_OUTPUT -Value "msix_path=$msixPath"
           Add-Content -Path $env:GITHUB_OUTPUT -Value "sidecar_path=$sidecarPath"
           Add-Content -Path $env:GITHUB_OUTPUT -Value "appinstaller_path=$appinstallerPath"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "certificate_path=$certificatePath"
 
       - name: Publish GitHub release (draft, upload assets, then publish)
+        if: steps.signing.outputs.available == 'true'
         shell: pwsh
         env:
           TAG: ${{ steps.tag.outputs.tag }}
@@ -265,8 +316,46 @@ jobs:
           MSIX_PATH: ${{ steps.assets.outputs.msix_path }}
           SIDECAR_PATH: ${{ steps.assets.outputs.sidecar_path }}
           APPINSTALLER_PATH: ${{ steps.assets.outputs.appinstaller_path }}
+          CERTIFICATE_PATH: ${{ steps.assets.outputs.certificate_path }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create $env:TAG --repo NormalDudeBro/networker --title $env:TAG --draft
-          gh release upload $env:TAG $env:MSIX_PATH $env:SIDECAR_PATH $env:APPINSTALLER_PATH --repo NormalDudeBro/networker
+          $notesPath = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          @'
+          ## Install
+
+          Networker is signed with the project's dedicated self-signed code-signing certificate. Trust the public certificate once from an elevated PowerShell window, then open the App Installer manifest:
+
+          ```powershell
+          Import-Certificate -FilePath .\Networker.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+          Start-Process .\Networker-x64.appinstaller
+          ```
+
+          The private signing key is stored only as an encrypted GitHub Actions secret. Verify the downloaded MSIX against its `.sha256` sidecar before installation.
+          '@ | Set-Content -Path $notesPath -Encoding utf8
+          gh release create $env:TAG --repo NormalDudeBro/networker --title "Networker $env:TAG" --notes-file $notesPath --draft
+          gh release upload $env:TAG $env:MSIX_PATH $env:SIDECAR_PATH $env:APPINSTALLER_PATH $env:CERTIFICATE_PATH --repo NormalDudeBro/networker
           gh release edit $env:TAG --repo NormalDudeBro/networker --draft=false --prerelease=$env:PRERELEASE
+
+      - name: Publish source-only GitHub release
+        if: steps.signing.outputs.available != 'true'
+        shell: pwsh
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $notesPath = Join-Path $env:RUNNER_TEMP 'source-release-notes.md'
+          @'
+          ## Source release
+
+          This release contains GitHub's generated source archives only. A trusted Windows code-signing certificate was not configured, so no MSIX or App Installer asset was produced. Networker never publishes unsigned installable packages, and the in-app updater will ignore this release.
+
+          Build and test from source with .NET 8 on Windows:
+
+          ```powershell
+          dotnet restore networker.sln
+          dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj -c Debug --no-restore
+          dotnet build networker.csproj -c Debug -p:Platform=x64 --no-restore
+          ```
+          '@ | Set-Content -Path $notesPath -Encoding utf8
+          $prerelease = $env:TAG.Contains('-').ToString().ToLowerInvariant()
+          gh release create $env:TAG --repo NormalDudeBro/networker --title "Networker $env:TAG" --notes-file $notesPath --prerelease=$prerelease

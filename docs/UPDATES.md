@@ -6,23 +6,30 @@ implementation details live in `Networker.Core/Updates/` and `scripts/`.
 
 ## 1. Distribution contract
 
-Networker ships as a **single, trusted-certificate-signed, self-contained x64 MSIX**.
+Networker's installable distribution is a **single, trusted-certificate-signed,
+self-contained x64 MSIX**.
 There is no portable ZIP, EXE installer, MSIX bundle, x86, or ARM64 artifact, and there
 is no custom updater executable. GitHub Releases provide discovery and transport; the
 MSIX signing certificate and Windows package identity are the execution trust root.
 
-Every release must contain **exactly these three updater assets** (SemVer without the
-leading `v`):
+Every installable release must contain **exactly these four assets** (SemVer
+without the leading `v`):
 
 ```text
 Networker-{semver}-win-x64.msix
 Networker-{semver}-win-x64.msix.sha256
 Networker-x64.appinstaller
+Networker.cer
 ```
 
 `Networker-x64.appinstaller` is the App Installer manifest for first install and manual
 recovery. It deliberately contains **no `UpdateSettings`**: the OS-level App Installer
 updater would be a second updater. Networker's in-app scheduler owns all update checks.
+
+`Networker.cer` is the public half of Networker's dedicated self-signed code-signing
+identity. Before first installation, an administrator imports it into the local machine's
+Trusted People store. The encrypted PFX and its generated password exist only as GitHub
+Actions secrets and are never release assets.
 
 The checksum sidecar is a single ASCII line, LF-terminated, no BOM:
 
@@ -31,6 +38,12 @@ The checksum sidecar is a single ASCII line, LF-terminated, no BOM:
 ```
 
 (two spaces between the hash and the filename; enforced by `UpdateChecksum.cs`).
+
+If trusted signing secrets are unavailable, the tag workflow publishes a clearly marked
+source-only GitHub release containing only GitHub's generated source archives. It never
+builds or uploads an unsigned package. Source-only releases are not an updater channel:
+asset selection ignores them because the required MSIX, checksum, and App Installer assets
+are absent.
 
 ## 2. Version contract
 
@@ -91,17 +104,18 @@ workflow enforces this before building by downloading the prior non-draft releas
 Required secrets (repository or environment level):
 
 ```text
-NETWORKER_SIGNING_CERTIFICATE_BASE64   # base64-encoded trusted code-signing PFX
-NETWORKER_SIGNING_CERTIFICATE_PASSWORD # PFX password
+NETWORKER_SIGNING_CERTIFICATE_BASE64     # base64-encoded code-signing PFX
+NETWORKER_SIGNING_CERTIFICATE_PASSWORD   # generated PFX password
+NETWORKER_SIGNING_CERTIFICATE_CER_BASE64 # matching public certificate
 ```
 
 `GITHUB_TOKEN` is automatic with `contents: write` and is used for the release-API
 identity check and `gh` publishing.
 
-The workflow **fails fast** if the certificate secrets are missing — a release without
-the trusted certificate would ship unsigned and be rejected by Windows, so it must
-never be published. The PFX is decoded only into `$RUNNER_TEMP` and is deleted right
-after the signed build. Never commit a PFX; `*.pfx` is gitignored.
+If the certificate secrets are missing, the workflow publishes a source-only release.
+It never creates an unsigned installable package. The PFX is decoded only into
+`$RUNNER_TEMP` and is deleted immediately after the signed build. Never commit a PFX;
+`*.pfx` is gitignored.
 
 ## 5. What the release workflow does
 
@@ -109,8 +123,9 @@ On a `v*` tag push:
 
 1. Checkout the tag (ephemeral copy; the repository tree is never modified).
 2. Set up .NET 8; `dotnet restore`; run the full Core test suite.
-3. Materialize the trusted certificate from secrets into `$RUNNER_TEMP` (throws if
-   secrets are missing).
+3. Detect signing secrets. If absent, publish a source-only release and stop the package
+   path. If present, materialize the PFX and public certificate into `$RUNNER_TEMP` and
+   trust the public certificate on the ephemeral runner.
 4. `Prepare-Release.ps1` — validates the strict tag grammar, derives the Publisher
    subject from the PFX, patches `Package.appxmanifest` (Version + Publisher only),
    and emits the exact asset names and mapping.
@@ -118,8 +133,9 @@ On a `v*` tag push:
    - if the tag already has any release (draft or not), fail — releases are immutable;
    - if a prior non-draft release exists, download its `Networker-x64.appinstaller`
      and require identical `MainPackage` name/publisher, else fail.
-6. Build the signed MSIX (`GenerateAppxPackageOnBuild`, `AppxPackageSigningEnabled`,
-   `PackageCertificateKeyFile`/`PackageCertificatePassword`). Remove the temp PFX.
+6. Import the PFX into the ephemeral runner's current-user certificate store, build the
+   signed MSIX by certificate thumbprint (`GenerateAppxPackageOnBuild`,
+   `AppxPackageSigningEnabled`), then remove the private certificate and temporary PFX.
 7. Cross-check `Prepare-Release.ps1 -SelfTest` against the built `Networker.Core`
    assembly so script and policy cannot drift.
 8. Verify the produced package:
@@ -127,11 +143,12 @@ On a `v*` tag push:
      `AppxBlockMap.xml` present;
    - packaged-manifest identity: embedded `AppxManifest.xml` must declare exactly the
      prepared name/publisher/`x64`/mapped version;
-   - signature chain: `signtool verify /pa /v` must pass (requires the full trusted
-     chain; self-signed test certificates fail here by design).
-9. Prepare the three assets: copy the MSIX under its exact asset name, write the
-   SHA-256 sidecar (byte-exact format from §1), generate `Networker-x64.appinstaller`.
-10. `gh release create` (draft) → upload all three assets → `gh release edit
+   - signature trust: `signtool verify /pa /v` must pass after the matching public
+     certificate is imported into the runner trust store.
+9. Prepare the four assets: copy the MSIX under its exact asset name, write the
+   SHA-256 sidecar (byte-exact format from §1), generate `Networker-x64.appinstaller`,
+   and include `Networker.cer` for one-time client trust.
+10. `gh release create` (draft) → upload all four assets → `gh release edit
     --draft=false --prerelease=<bool>`. Stable releases become latest; previews remain
     prereleases. Any failure before this point leaves nothing public; a failure during
     publishing leaves an invisible draft that never reaches the updater.
@@ -188,8 +205,9 @@ Existing tags, releases, and assets are never overwritten.
 ## 8. Certificate rotation
 
 The Publisher subject (the PFX's subject DN) is frozen by the first published release
-and must never change. Renewal is fine: **obtain the new certificate with the same
-subject**, upload its PFX to the secrets, and the workflow's identity check passes.
+and must never change. Renewal is fine: generate the replacement certificate with the
+same subject, upload its PFX/password/public certificate to the secrets, and publish the
+new public certificate with the release.
 A certificate whose subject differs will fail the release workflow before anything is
 published, and Windows would reject a package from a different publisher anyway.
 

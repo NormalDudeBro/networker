@@ -3,6 +3,9 @@
 ###############################################################################
 * text=auto
 
+# Golden configuration output has a byte-level LF contract on every platform.
+Networker.Core.Tests/NetTools/Golden/*.txt text eol=lf
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

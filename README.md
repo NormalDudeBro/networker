@@ -127,9 +127,11 @@ Or configure in-app via **Settings → Provider**.
 
 ## Distribution & Updates
 
-Networker is distributed as a **trusted-certificate-signed x64 MSIX** through GitHub
-Releases — no portable ZIP or EXE installer. Each release ships the MSIX, its SHA-256
-checksum sidecar, and an App Installer manifest for first install and manual recovery.
+Production packages are distributed as a **trusted-certificate-signed x64 MSIX** through
+GitHub Releases. When trusted signing is not configured, a release contains source archives
+only; Networker never publishes an unsigned installable package. Signed package releases
+ship the MSIX, its SHA-256 checksum sidecar, an App Installer manifest, and the public
+certificate required for one-time trust installation.
 See [docs/UPDATES.md](docs/UPDATES.md) for the full version, asset, and release contract.
 
 In-app, **Settings → APPLICATION UPDATES** shows the installed version and provides the

@@ -24,8 +24,9 @@ public class GoldenConfigTests
         var config = BuildSampleConfig() with { Vendor = vendor };
 
         var actual = generator.Generate(config);
-        var expected = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "NetTools", "Golden", goldenFile));
+        var expected = ReadGoldenOutput(goldenFile);
 
+        Assert.DoesNotContain('\r', actual);
         Assert.Equal(expected, actual);
     }
 
@@ -42,8 +43,9 @@ public class GoldenConfigTests
         var dict = BuildSampleDict();
 
         var actual = generator.GenerateFromDict(vendor, dict);
-        var expected = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "NetTools", "Golden", goldenFile));
+        var expected = ReadGoldenOutput(goldenFile);
 
+        Assert.DoesNotContain('\r', actual);
         Assert.Equal(expected, actual);
     }
 
@@ -60,6 +62,10 @@ public class GoldenConfigTests
         Assert.Contains(Vendor.Sonic, generator.GetSupportedVendors());
         Assert.Contains(Vendor.FortinetFortigate, generator.GetSupportedVendors());
     }
+
+    private static string ReadGoldenOutput(string goldenFile)
+        => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "NetTools", "Golden", goldenFile))
+            .Replace("\r\n", "\n", StringComparison.Ordinal);
 
     /// <summary>
     /// Performance smoke test: generating one config per vendor must stay well

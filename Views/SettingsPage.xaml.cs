@@ -19,6 +19,7 @@ namespace networker.Views
         private bool _isInitializing = false;
         private TroubleshootingSession? _troubleshootingSession;
         private readonly LauncherStateStore _launcherState = new();
+        private readonly ChatGptWebSession? _chatGptSession;
 
         private static IServiceProvider Services => ((App)Application.Current).Services;
 
@@ -28,6 +29,7 @@ namespace networker.Views
             this.Loaded += SettingsPage_Loaded;
             this.Unloaded += SettingsPage_Unloaded;
             _troubleshootingSession = Services.GetService<TroubleshootingSession>();
+            _chatGptSession = Services.GetService<ChatGptWebSession>();
         }
 
         private async void SettingsPage_Loaded(object sender, RoutedEventArgs e)
@@ -38,6 +40,7 @@ namespace networker.Views
             ProviderComboBox.Items.Add("ollama");
             ProviderComboBox.Items.Add("grok");
             ProviderComboBox.Items.Add("gemini");
+            ProviderComboBox.Items.Add("chatgpt");
             ProviderComboBox.SelectedItem = AppSettings.SelectedProvider;
 
             ThemeComboBox.Items.Clear();
@@ -68,6 +71,7 @@ namespace networker.Views
             SetStatus(UpdateStatusText, "Updates are applied by the independent launcher before Networker starts.", "InlineStatusTextStyle");
 
             _isInitializing = false;
+            UpdateProviderPanels();
 
             await FetchModelsAsync(applyConnection: false);
         }
@@ -91,8 +95,9 @@ namespace networker.Views
             if (_isInitializing || ProviderComboBox.SelectedItem is not string provider) return;
             LlmSession.SetProvider(provider);
             LlmRuntime.ApplyProviderSelection(provider, AppSettings.SelectedModel);
+            UpdateProviderPanels();
 
-            if (provider != "ollama")
+            if (provider is "grok" or "gemini")
             {
                 Toaster.Show(
                     $"Provider '{provider}' requires environment configuration (XAI_API_KEY / GEMINI_API_KEY). See .env.example.",
@@ -110,6 +115,66 @@ namespace networker.Views
             AppSettings.ThemeMode = theme;
 
             MainWindow.Instance?.ApplyThemeToFramePublic();
+        }
+
+        private void UpdateProviderPanels()
+        {
+            bool chatGpt = string.Equals(LlmSession.Provider, "chatgpt", StringComparison.OrdinalIgnoreCase);
+            ChatGptConnectionPanel.Visibility = chatGpt ? Visibility.Visible : Visibility.Collapsed;
+            EndpointTextBox.IsEnabled = !chatGpt;
+            ApiKeyPasswordBox.IsEnabled = !chatGpt;
+            RefreshButton.Content = chatGpt ? "Refresh status" : "Apply & refresh";
+        }
+
+        private async void ChatGptSignInButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_chatGptSession is null) return;
+            if (!AppSettings.ChatGptDisclosureAccepted)
+            {
+                var dialog = new ContentDialog
+                {
+                    Title = "Use experimental ChatGPT integration?",
+                    Content = "Networker sends your prompts and selected conversation context to ChatGPT through a dedicated browser profile. Sign-in credentials remain browser-owned. ChatGPT may change this web interface at any time.",
+                    PrimaryButtonText = "Continue",
+                    CloseButtonText = "Cancel",
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = XamlRoot,
+                };
+                if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+                AppSettings.ChatGptDisclosureAccepted = true;
+            }
+
+            try
+            {
+                await _chatGptSession.ShowLoginAsync();
+                ChatGptStatusText.Text = "Complete sign-in in the browser, then close it and refresh status.";
+            }
+            catch (Exception ex) { ChatGptStatusText.Text = ex.Message; }
+        }
+
+        private async void ChatGptCloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_chatGptSession is null) return;
+            await _chatGptSession.HideLoginAsync();
+            await FetchModelsAsync(applyConnection: false);
+        }
+
+        private async void ChatGptDeleteProfileButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_chatGptSession is null) return;
+            var dialog = new ContentDialog
+            {
+                Title = "Delete ChatGPT browser profile?",
+                Content = "This removes cookies and local browser data from Networker's dedicated ChatGPT profile. Your normal browsers are unaffected.",
+                PrimaryButtonText = "Delete profile",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = XamlRoot,
+            };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+            await _chatGptSession.SignOutAndDeleteProfileAsync();
+            ChatGptStatusText.Text = "Dedicated ChatGPT browser profile cleared.";
+            await FetchModelsAsync(applyConnection: false);
         }
 
         private void VendorComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -170,7 +235,8 @@ namespace networker.Views
         {
             string endpoint = (EndpointTextBox.Text ?? "").Trim();
             string apiKey = ApiKeyPasswordBox.Password ?? "";
-            if (applyConnection && string.IsNullOrWhiteSpace(endpoint))
+            bool chatGpt = string.Equals(LlmSession.Provider, "chatgpt", StringComparison.OrdinalIgnoreCase);
+            if (applyConnection && !chatGpt && string.IsNullOrWhiteSpace(endpoint))
             {
                 SetConnectionStatus("Enter an API endpoint before refreshing.", "AppDangerBrush");
                 EndpointTextBox.Focus(FocusState.Programmatic);
@@ -182,7 +248,7 @@ namespace networker.Views
 
             try
             {
-                if (applyConnection)
+                if (applyConnection && !chatGpt)
                 {
                     bool connectionChanged = endpoint != AppSettings.OllamaEndpoint || apiKey != AppSettings.OllamaApiKey;
                     AppSettings.OllamaEndpoint = endpoint;
@@ -197,6 +263,15 @@ namespace networker.Views
                 LlmRuntime.ApplyProviderSelection(LlmSession.Provider, LlmSession.Model);
                 await LlmSession.RefreshAsync();
                 var modelIds = LlmSession.Models.ToList();
+
+                if (chatGpt && _chatGptSession is not null)
+                {
+                    var browserStatus = await _chatGptSession.GetStatusAsync();
+                    string capabilities = browserStatus.Capabilities == Networker.Core.Llm.LlmProviderCapabilities.None
+                        ? "No optional capabilities detected."
+                        : $"Detected: {browserStatus.Capabilities}.";
+                    ChatGptStatusText.Text = $"{browserStatus.Message} {capabilities}";
+                }
 
                 if (modelIds.Count == 0)
                 {

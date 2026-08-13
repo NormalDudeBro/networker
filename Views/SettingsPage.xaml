@@ -120,6 +120,21 @@
                                 </StackPanel>
                             </Border>
 
+                            <Border x:Name="ChatGptConnectionPanel" Style="{StaticResource InsetPanelStyle}" Visibility="Collapsed">
+                                <StackPanel Spacing="10">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="ChatGPT Plus / Pro" Style="{StaticResource CardTitleTextStyle}"/>
+                                        <TextBlock Text="Experimental browser integration. Sign-in data stays in a dedicated WebView2 profile and is never copied into Networker settings or prompts." Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <Button Content="Sign in" Click="ChatGptSignInButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                                        <Button Content="Close sign-in" Click="ChatGptCloseButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                                        <Button Content="Sign out &amp; delete profile" Click="ChatGptDeleteProfileButton_Click" Style="{StaticResource DangerButtonStyle}"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="ChatGptStatusText" Style="{StaticResource InlineStatusTextStyle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+                                </StackPanel>
+                            </Border>
+
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                                 <Ellipse x:Name="ConnectionStatusDot" Style="{StaticResource StatusDotStyle}" Fill="{ThemeResource AppTextDisabledBrush}" AutomationProperties.Name="AI connection status"/>
                                 <TextBlock x:Name="ConnectionStatusText" Grid.Column="1" Style="{StaticResource InlineStatusTextStyle}" AutomationProperties.LiveSetting="Polite"/>

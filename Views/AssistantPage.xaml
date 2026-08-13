@@ -205,8 +205,13 @@
 
         <!-- ======================= Input ======================= -->
         <Grid Grid.Row="2" Grid.Column="0" Padding="20,8,20,16" RowDefinitions="Auto,Auto" RowSpacing="6">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <CheckBox x:Name="IncludeEvidenceCheckBox" Content="Include workspace evidence" VerticalAlignment="Center"/>
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
+                <ToggleSwitch x:Name="AgentModeToggle" Header="Mode" OffContent="Chat" OnContent="Agent" Toggled="AgentModeToggle_Toggled"/>
+                <Button x:Name="WorkspaceButton" Grid.Column="1" Content="Choose workspace" Click="WorkspaceButton_Click" Style="{StaticResource SecondaryButtonStyle}" Visibility="Collapsed"/>
+                <TextBlock x:Name="WorkspacePathText" Grid.Column="2" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="Collapsed"/>
+                <CheckBox x:Name="IncludeEvidenceCheckBox" Grid.Column="3" Content="Include workspace evidence" VerticalAlignment="Center"/>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
                 <TextBlock x:Name="EvidenceSummaryText" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             </StackPanel>
             <Border

@@ -62,6 +62,24 @@ namespace networker
             set => LocalSettings.Values["DefaultVendor"] = value;
         }
 
+        public static bool ChatGptDisclosureAccepted
+        {
+            get => LocalSettings.Values["ChatGptDisclosureAccepted"] is bool value && value;
+            set => LocalSettings.Values["ChatGptDisclosureAccepted"] = value;
+        }
+
+        public static string LastAgentWorkspacePath
+        {
+            get => (LocalSettings.Values["LastAgentWorkspacePath"] as string) ?? string.Empty;
+            set => LocalSettings.Values["LastAgentWorkspacePath"] = value;
+        }
+
+        public static bool AgentDisclosureAccepted
+        {
+            get => LocalSettings.Values["AgentDisclosureAccepted"] is bool value && value;
+            set => LocalSettings.Values["AgentDisclosureAccepted"] = value;
+        }
+
         public static string SelectedToolKey
         {
             get => (LocalSettings.Values["SelectedToolKey"] as string) ?? string.Empty;

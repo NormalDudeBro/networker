@@ -5,9 +5,11 @@ namespace Networker.Core.Workflow;
 
 public sealed class TroubleshootingWorkspace
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     public const int MaximumAssistantEvidenceItems = 50;
     public const int MaximumAssistantEvidenceLength = 16_384;
+    public const int MaximumChatMessages = 200;
+    public const int MaximumChatMessageLength = 32_768;
 
     public int Version { get; set; } = CurrentVersion;
     public Guid IncidentId { get; set; } = Guid.NewGuid();
@@ -150,6 +152,17 @@ public sealed class WorkspaceChatMessage
     public string Role { get; set; } = string.Empty;
     public string Text { get; set; } = string.Empty;
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
+    public WorkspaceChatMessageKind Kind { get; set; } = WorkspaceChatMessageKind.Conversation;
+    public string? Provider { get; set; }
+    public string? Model { get; set; }
+}
+
+public enum WorkspaceChatMessageKind
+{
+    Conversation,
+    Tool,
+    Error,
+    AgentActivity,
 }
 
 public sealed class WorkspaceActivity

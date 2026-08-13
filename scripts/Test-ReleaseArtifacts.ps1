@@ -30,6 +30,9 @@ $archive = [IO.Compression.ZipFile]::OpenRead($package)
 $authenticodeDirectory = $null
 try {
     $names = @($archive.Entries | ForEach-Object FullName)
+    foreach ($forbidden in @('ChatGptWebView', 'agent-journal', 'troubleshooting-workspace.json', 'settings.json', '.env')) {
+        if ($names | Where-Object { $_ -like "*$forbidden*" }) { throw "Release ZIP contains local runtime state: $forbidden" }
+    }
     foreach ($required in @('networker.exe', 'Networker.Launcher.exe', 'Networker.UpdateHost.exe', 'version.txt')) {
         if ($names -notcontains $required) { throw "Release ZIP is missing $required." }
     }

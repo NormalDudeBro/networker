@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Networker.Core.Llm;
+using Networker.Core.Llm.ChatGpt;
 using Windows.Storage;
 
 namespace networker.Services
@@ -15,10 +16,19 @@ namespace networker.Services
     public static class LlmRuntime
     {
         private static LlmRouter? _router;
+        private static IChatGptTransport? _chatGptTransport;
+
+        public static event Action<LlmRouter>? RouterChanged;
 
         public static LlmRouter Router => _router ??= CreateRouter();
 
         public static LlmConfig Config => Router.Config;
+
+        public static void ConfigureChatGptTransport(IChatGptTransport transport)
+        {
+            _chatGptTransport = transport;
+            Reset();
+        }
 
         /// <summary>
         /// Rebuilds the router from current environment + app settings. Call when
@@ -27,8 +37,9 @@ namespace networker.Services
         public static void Reset()
         {
             _router = null;
-            _ = Router;
+            LlmRouter router = Router;
             ApplyProviderSelection(AppSettings.SelectedProvider, AppSettings.SelectedModel);
+            RouterChanged?.Invoke(router);
         }
 
         public static void ApplyProviderSelection(string providerName, string? model)
@@ -44,7 +55,13 @@ namespace networker.Services
         }
 
         public static async Task<IReadOnlyList<LlmModelInfo>> GetModelsAsync()
-            => await Router.ListModelsAsync();
+        {
+            LlmProviderKind selected = LlmConfig.ParseProvider(AppSettings.SelectedProvider);
+            ILlmProvider? provider = Router.Providers.FirstOrDefault(candidate => candidate.Kind == selected);
+            return provider is null
+                ? Array.Empty<LlmModelInfo>()
+                : await provider.ListModelsAsync();
+        }
 
         public static async Task<LlmProviderStatus> GetSelectedProviderHealthAsync(string providerName)
         {
@@ -70,8 +87,20 @@ namespace networker.Services
             };
 
             var config = LlmConfigLoader.Load(overrides, LocalDataDirectory());
+            config.ChatGptModel = AppSettings.SelectedModel;
             var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(180) };
-            var router = new LlmRouter(config, http);
+            var providers = new List<ILlmProvider>
+            {
+                new OllamaProvider(config, http),
+                new GrokProvider(config, http),
+                new GeminiProvider(config, http),
+            };
+            if (_chatGptTransport is not null)
+            {
+                providers.Add(new ChatGptProvider(config, _chatGptTransport));
+            }
+
+            var router = new LlmRouter(config, providers);
             router.SetPrimary(LlmConfig.ParseProvider(AppSettings.SelectedProvider));
             return router;
         }

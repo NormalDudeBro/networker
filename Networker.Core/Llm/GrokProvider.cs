@@ -22,6 +22,7 @@ public sealed class GrokProvider : ILlmProvider
 
     public LlmProviderKind Kind => LlmProviderKind.Grok;
     public string Name => "Grok (xAI)";
+    public LlmProviderCapabilities Capabilities => LlmProviderCapabilities.Streaming | LlmProviderCapabilities.Models;
     public bool SupportsStreaming => true;
     public bool SupportsTools => false;
 

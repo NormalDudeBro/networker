@@ -22,6 +22,7 @@ public sealed class GeminiProvider : ILlmProvider
 
     public LlmProviderKind Kind => LlmProviderKind.Gemini;
     public string Name => "Gemini";
+    public LlmProviderCapabilities Capabilities => LlmProviderCapabilities.Streaming | LlmProviderCapabilities.Models;
     public bool SupportsStreaming => true;
     public bool SupportsTools => false;
 

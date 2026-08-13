@@ -27,6 +27,7 @@ namespace networker
         private bool _enforcingMinimumSize;
         private bool _selectingTab;
         private TroubleshootingSession? _session;
+        private ChatGptWebSession? _chatGptSession;
 
         public static MainWindow? Instance { get; private set; }
         public ObservableCollection<WorkflowTabItem> WorkflowItems { get; } = new();
@@ -46,6 +47,16 @@ namespace networker
 
             ApplyThemeToRoot();
             Toaster.Initialize(ToastHost, DispatcherQueue);
+            try
+            {
+                _chatGptSession = ((App)Application.Current).Services.GetRequiredService<ChatGptWebSession>();
+                _chatGptSession.Attach(ChatGptWebView, ShowChatGptBrowser, HideChatGptBrowser);
+                LlmRuntime.ConfigureChatGptTransport(_chatGptSession);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ChatGPT browser initialization unavailable: {ex.Message}");
+            }
             LlmSession.Initialize();
             LlmSession.Changed += LlmSession_Changed;
 
@@ -294,6 +305,33 @@ namespace networker
 
         private void StatusRefreshButton_Click(object sender, RoutedEventArgs e) => _ = LlmSession.RefreshAsync();
         private void ThemeButton_Click(object sender, RoutedEventArgs e) => ToggleTheme();
+        private async void CloseChatGptBrowser_Click(object sender, RoutedEventArgs e)
+        {
+            if (_chatGptSession is not null) await _chatGptSession.HideLoginAsync();
+            else HideChatGptBrowser();
+        }
+
+        public void ShowChatGptBrowser()
+        {
+            ChatGptBrowserLayer.IsHitTestVisible = true;
+            ChatGptBrowserLayer.Background = (Brush)Application.Current.Resources["AppBackgroundBrush"];
+            ChatGptBrowserPanel.Width = double.NaN;
+            ChatGptBrowserPanel.Height = double.NaN;
+            ChatGptBrowserPanel.HorizontalAlignment = HorizontalAlignment.Stretch;
+            ChatGptBrowserPanel.VerticalAlignment = VerticalAlignment.Stretch;
+            ChatGptBrowserPanel.Opacity = 1;
+        }
+
+        public void HideChatGptBrowser()
+        {
+            ChatGptBrowserLayer.IsHitTestVisible = false;
+            ChatGptBrowserLayer.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            ChatGptBrowserPanel.Width = 1;
+            ChatGptBrowserPanel.Height = 1;
+            ChatGptBrowserPanel.HorizontalAlignment = HorizontalAlignment.Left;
+            ChatGptBrowserPanel.VerticalAlignment = VerticalAlignment.Bottom;
+            ChatGptBrowserPanel.Opacity = 0;
+        }
         private void PaletteAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) { args.Handled = true; Palette.Open(); }
         private void RefreshHealthAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) { args.Handled = true; _ = LlmSession.RefreshAsync(); }
 
@@ -325,6 +363,8 @@ namespace networker
             _session?.SaveNow();
             if (_session is not null) _session.Changed -= Session_Changed;
             LlmSession.Changed -= LlmSession_Changed;
+            try { ((App)Application.Current).Services.GetRequiredService<AgentService>().Stop(); } catch { }
+            _chatGptSession?.Dispose();
             try { ((App)Application.Current).Services.GetRequiredService<LaunchHealthService>().Dispose(); } catch { }
         }
     }

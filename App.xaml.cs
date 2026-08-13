@@ -62,7 +62,8 @@ namespace networker
         private static ServiceProvider BuildServiceProvider()
         {
             var services = new ServiceCollection();
-            services.AddSingleton(LlmRuntime.Router);
+            services.AddSingleton<ChatGptWebSession>();
+            services.AddSingleton<AgentService>();
             services.AddSingleton<IConfigGenerator, NetworkConfigGenerator>();
             services.AddSingleton<IConfigValidator, ConfigValidator>();
             services.AddSingleton<IConfigParserFactory, ConfigParserFactory>();

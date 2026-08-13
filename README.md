@@ -53,7 +53,12 @@ operations run locally; selected workflows can optionally ask the configured mod
   to `%LOCALAPPDATA%\Networker\custom_templates.json`
 
 ### AI Chat
-- Provider abstraction: **Ollama** (local), **Grok** (x.ai), **Gemini** (Google)
+- Provider abstraction: **Ollama** (local), **Grok** (x.ai), **Gemini** (Google), and experimental **ChatGPT Plus / Pro** browser integration
+- ChatGPT sign-in happens visibly in a dedicated WebView2 profile. Networker never copies browser cookies or tokens into settings, prompts, diagnostics, or update artifacts.
+- Conversation context is provider-neutral and bounded to the latest 20 conversational messages and 32 KiB. Errors, deterministic tool cards, and Agent activity are not sent as chat history.
+- ChatGPT Temporary Chat is preferred when the current web UI exposes it. If it is unavailable, the Settings status explains that ChatGPT account history may be used.
+- Search, upload, and image support are detected from the current ChatGPT UI and remain unavailable when compatibility cannot be established.
+- Experimental Agent mode operates only after explicit activation and workspace selection. Typed file tools use Windows handle/reparse validation to stay within that workspace. Approved development commands are unsandboxed current-user processes: they can use the machine and network, but start suspended inside a kill-on-close Job Object with a minimal environment, bounded output, and timeout/Stop handling.
 - Fallback chain, retry with exponential backoff, streaming tokens
 - Credential scrubbing before send
 - Tool cards: deterministic results render inline (CodeBlockView) + Assistant panel history

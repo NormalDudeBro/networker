@@ -153,6 +153,26 @@ public sealed class TroubleshootingWorkspaceStore
         workspace.Chat ??= new List<WorkspaceChatMessage>();
         workspace.Activity ??= new List<WorkspaceActivity>();
         workspace.AssistantEvidence ??= new List<AssistantEvidence>();
+        foreach (WorkspaceChatMessage message in workspace.Chat)
+        {
+            message.Role ??= string.Empty;
+            message.Text ??= string.Empty;
+            if (message.Kind == WorkspaceChatMessageKind.Conversation &&
+                message.Role.Equals("Error", StringComparison.OrdinalIgnoreCase))
+            {
+                message.Kind = WorkspaceChatMessageKind.Error;
+            }
+
+            if (message.Text.Length > TroubleshootingWorkspace.MaximumChatMessageLength)
+            {
+                message.Text = message.Text[..TroubleshootingWorkspace.MaximumChatMessageLength];
+            }
+        }
+
+        if (workspace.Chat.Count > TroubleshootingWorkspace.MaximumChatMessages)
+        {
+            workspace.Chat.RemoveRange(0, workspace.Chat.Count - TroubleshootingWorkspace.MaximumChatMessages);
+        }
         foreach (WorkflowStage stage in WorkflowStages.All)
         {
             workspace.StateFor(stage);

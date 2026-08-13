@@ -5,6 +5,7 @@ public interface ILlmProvider
     LlmProviderKind Kind { get; }
     string Name { get; }
     string Model { get; set; }
+    LlmProviderCapabilities Capabilities { get; }
     bool SupportsStreaming { get; }
     bool SupportsTools { get; }
 

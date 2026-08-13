@@ -124,5 +124,33 @@ public class LlmRouterTests
 
         Assert.Equal(new[] { "grok-3" }, models.Select(m => m.Id));
     }
+
+    [Fact]
+    public async Task Complete_DoesNotFallbackAfterPossibleSubmission()
+    {
+        var first = new FakeProvider(LlmProviderKind.ChatGpt, () => throw new LlmException("observation failed") { MayHaveSubmittedRequest = true });
+        var second = new FakeProvider(LlmProviderKind.Ollama, () => new LlmResponse { Provider = "Ollama", Model = "test", Content = "duplicate" });
+        var router = new LlmRouter(Config(), new ILlmProvider[] { first, second });
+
+        LlmException error = await Assert.ThrowsAsync<LlmException>(() => router.CompleteAsync(new[] { LlmMessage.User("hi") }));
+
+        Assert.True(error.MayHaveSubmittedRequest);
+        Assert.Equal(0, second.Calls);
+    }
+
+    private sealed class FakeProvider(LlmProviderKind kind, Func<LlmResponse> response) : ILlmProvider
+    {
+        public int Calls { get; private set; }
+        public LlmProviderKind Kind => kind;
+        public string Name => kind.ToString();
+        public string Model { get; set; } = "test";
+        public LlmProviderCapabilities Capabilities => LlmProviderCapabilities.Streaming;
+        public bool SupportsStreaming => true;
+        public bool SupportsTools => false;
+        public Task<LlmResponse> CompleteAsync(IReadOnlyList<LlmMessage> messages, CancellationToken cancellationToken = default) { Calls++; return Task.FromResult(response()); }
+        public async IAsyncEnumerable<string> StreamAsync(IReadOnlyList<LlmMessage> messages, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default) { await Task.CompletedTask; yield break; }
+        public Task<IReadOnlyList<LlmModelInfo>> ListModelsAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<LlmModelInfo>>(Array.Empty<LlmModelInfo>());
+        public Task<bool> HealthCheckAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
+    }
 }
 

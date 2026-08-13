@@ -23,6 +23,7 @@ public sealed class OllamaProvider : ILlmProvider
 
     public LlmProviderKind Kind => LlmProviderKind.Ollama;
     public string Name => "Ollama";
+    public LlmProviderCapabilities Capabilities => LlmProviderCapabilities.Streaming | LlmProviderCapabilities.Models;
     public bool SupportsStreaming => true;
     public bool SupportsTools => false;
 

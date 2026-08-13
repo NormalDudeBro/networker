@@ -53,6 +53,10 @@ public static class RetryPolicy
             }
             catch (Exception ex)
             {
+                if (ex is LlmException { MayHaveSubmittedRequest: true })
+                {
+                    throw;
+                }
                 lastError = ex;
             }
         }
@@ -62,6 +66,7 @@ public static class RetryPolicy
             throw new LlmException(lastError.Message, lastError)
             {
                 Provider = lastError is LlmException llm ? llm.Provider : null,
+                MayHaveSubmittedRequest = lastError is LlmException submitted && submitted.MayHaveSubmittedRequest,
             };
         }
 

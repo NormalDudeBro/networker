@@ -16,6 +16,7 @@ namespace networker.Services
     public static class LlmSession
     {
         private static readonly IReadOnlyList<string> EmptyModels = Array.Empty<string>();
+        private static LlmRouter? _observedRouter;
 
         public static string Provider { get; private set; } = AppSettings.SelectedProvider;
         public static string Model { get; private set; } = AppSettings.SelectedModel;
@@ -35,14 +36,23 @@ namespace networker.Services
         /// </summary>
         public static void Initialize()
         {
-            LlmRuntime.Router.StatusChanged += (_, e) =>
-            {
-                if (e.IsError)
-                {
-                    StatusMessage = $"Error: {e.Message}";
-                }
-                Changed?.Invoke();
-            };
+            Observe(LlmRuntime.Router);
+            LlmRuntime.RouterChanged -= Observe;
+            LlmRuntime.RouterChanged += Observe;
+        }
+
+        private static void Observe(LlmRouter router)
+        {
+            if (ReferenceEquals(_observedRouter, router)) return;
+            if (_observedRouter is not null) _observedRouter.StatusChanged -= Router_StatusChanged;
+            _observedRouter = router;
+            router.StatusChanged += Router_StatusChanged;
+        }
+
+        private static void Router_StatusChanged(object? sender, LlmRouterStatusChangedEventArgs e)
+        {
+            if (e.IsError) StatusMessage = $"Error: {e.Message}";
+            Changed?.Invoke();
         }
 
         public static void SetProvider(string provider)

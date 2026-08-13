@@ -27,6 +27,18 @@ public sealed class LlmRouter
         _chain = order.Select(kind => LlmProviderFactory.Create(kind, config, http)).ToList();
     }
 
+    public LlmRouter(LlmConfig config, IReadOnlyList<ILlmProvider> providers)
+    {
+        _config = config;
+        ArgumentNullException.ThrowIfNull(providers);
+        if (providers.Count == 0)
+        {
+            throw new ArgumentException("At least one LLM provider is required.", nameof(providers));
+        }
+
+        _chain = providers.ToList();
+    }
+
     public LlmConfig Config => _config;
 
     public event EventHandler<LlmRouterStatusChangedEventArgs>? StatusChanged;
@@ -68,8 +80,18 @@ public sealed class LlmRouter
 
     public IAsyncEnumerable<string> StreamAsync(IReadOnlyList<LlmMessage> messages, CancellationToken cancellationToken = default)
     {
-        var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _globalCancel.Token);
-        return StreamCoreAsync(messages, linked.Token);
+        return StreamWithCancellationAsync(messages, cancellationToken);
+    }
+
+    private async IAsyncEnumerable<string> StreamWithCancellationAsync(
+        IReadOnlyList<LlmMessage> messages,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _globalCancel.Token);
+        await foreach (string delta in StreamCoreAsync(messages, linked.Token).ConfigureAwait(false))
+        {
+            yield return delta;
+        }
     }
 
     public async Task<IReadOnlyList<LlmModelInfo>> ListModelsAsync(CancellationToken cancellationToken = default)
@@ -154,6 +176,10 @@ public sealed class LlmRouter
             {
                 lastError = ex;
                 Emit(provider.Name, ex.Message, isError: true);
+                if (ex is LlmException { MayHaveSubmittedRequest: true })
+                {
+                    throw;
+                }
             }
         }
 
@@ -188,6 +214,10 @@ public sealed class LlmRouter
                 {
                     lastError = ex;
                     Emit(provider.Name, ex.Message, isError: true);
+                    if (ex is LlmException { MayHaveSubmittedRequest: true })
+                    {
+                        throw;
+                    }
                     break;
                 }
 

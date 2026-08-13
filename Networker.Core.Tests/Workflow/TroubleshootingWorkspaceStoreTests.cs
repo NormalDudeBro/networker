@@ -106,6 +106,22 @@ public sealed class TroubleshootingWorkspaceStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Chat_IsBoundedAndMigratesErrorKind()
+    {
+        var store = Store();
+        var workspace = new TroubleshootingWorkspace();
+        for (int i = 0; i < 210; i++) workspace.Chat.Add(new WorkspaceChatMessage { Role = "user", Text = i.ToString() });
+        workspace.Chat.Add(new WorkspaceChatMessage { Role = "Error", Text = new string('x', 40_000) });
+
+        await store.SaveAsync(workspace);
+        TroubleshootingWorkspace loaded = (await store.LoadAsync()).Workspace;
+
+        Assert.Equal(TroubleshootingWorkspace.MaximumChatMessages, loaded.Chat.Count);
+        Assert.Equal(WorkspaceChatMessageKind.Error, loaded.Chat[^1].Kind);
+        Assert.Equal(TroubleshootingWorkspace.MaximumChatMessageLength, loaded.Chat[^1].Text.Length);
+    }
+
+    [Fact]
     public async Task Load_CorruptFileReturnsFreshWorkspaceWithWarning()
     {
         TroubleshootingWorkspaceStore store = Store();

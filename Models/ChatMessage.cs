@@ -11,6 +11,14 @@ namespace networker.Models
         Error
     }
 
+    public enum ChatMessageKind
+    {
+        Conversation,
+        Tool,
+        Error,
+        AgentActivity,
+    }
+
     /// <summary>
     /// A single message rendered in the chat workspace. Notifies the UI of
     /// streaming text updates so the bound template redraws incrementally.
@@ -20,6 +28,7 @@ namespace networker.Models
         public string Id { get; } = Guid.NewGuid().ToString("N");
 
         public ChatRole Role { get; init; }
+        public ChatMessageKind Kind { get; init; } = ChatMessageKind.Conversation;
 
         public DateTime Timestamp { get; init; } = DateTime.Now;
 

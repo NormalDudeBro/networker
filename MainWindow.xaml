@@ -133,6 +133,30 @@
             </Border>
         </Grid>
 
+        <Grid x:Name="ChatGptBrowserLayer" Background="Transparent" IsHitTestVisible="False">
+            <Border
+                x:Name="ChatGptBrowserPanel"
+                Width="1"
+                Height="1"
+                Opacity="0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                Background="{ThemeResource AppBackgroundBrush}">
+                <Grid RowDefinitions="Auto,*">
+                    <Border Padding="12,8" Background="{ThemeResource AppShellBrush}" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,0,1">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="ChatGPT sign-in" Style="{StaticResource CardTitleTextStyle}"/>
+                                <TextBlock Text="Sign in directly with ChatGPT. Networker does not read or store your credentials." Style="{StaticResource CaptionTextStyle}"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="Close" Click="CloseChatGptBrowser_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                        </Grid>
+                    </Border>
+                    <WebView2 x:Name="ChatGptWebView" Grid.Row="1"/>
+                </Grid>
+            </Border>
+        </Grid>
+
         <StackPanel x:Name="ToastHost" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,16,16,0" MaxWidth="{StaticResource ToastMaxWidth}"/>
         <controls:CommandPalette x:Name="Palette" Visibility="Collapsed"/>
     </Grid>

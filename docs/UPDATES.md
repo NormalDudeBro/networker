@@ -28,8 +28,8 @@ releases.{channel}.json.sig
 ```
 
 `channel` is `win-x64` for stable releases and `preview-win-x64` for preview releases.
-Production automation fails rather than publishing if Authenticode or feed-signing material
-is missing.
+Production automation fails rather than publishing if feed-signing material is missing or any
+manifest, signature, ZIP hash, size, or required-entry check fails.
 
 ## Version Contract
 
@@ -61,9 +61,12 @@ never stored in either application slot.
 
 ## Trust Model
 
-The installer, embedded uninstaller, bootstrap, launcher, app, UpdateHost, and Networker-owned assemblies are
-signed with a publicly trusted Authenticode code-signing certificate and RFC 3161 timestamp.
-This certificate is distinct from the update-feed key.
+Current public installers are not Authenticode-signed. Windows can therefore show **Unknown
+publisher** or a Microsoft Defender SmartScreen warning on first install. Download Setup only from
+the official HTTPS release page at `https://github.com/NormalDudeBro/networker/releases`, inspect
+the prompt, and continue only if the download came from that location. Networker does not require
+users to disable SmartScreen or antivirus. A publicly trusted Authenticode certificate can be added
+later to remove this warning, but it is not required by the current release workflow.
 
 The release manifest uses ECDSA P-256/SHA-256 over its exact UTF-8 bytes. The launcher pins
 the SubjectPublicKeyInfo and key ID through assembly metadata at production build time. An
@@ -101,11 +104,9 @@ cancelled migration leaves the old installation available and the encrypted expo
 
 ## Release Operations
 
-The protected `production-release` GitHub environment requires:
+The protected `production-release` GitHub environment requires three feed-signing secrets:
 
 ```text
-NETWORKER_SIGNING_CERTIFICATE_BASE64
-NETWORKER_SIGNING_CERTIFICATE_PASSWORD
 NETWORKER_UPDATE_FEED_PRIVATE_KEY_PEM_BASE64
 NETWORKER_UPDATE_FEED_PUBLIC_KEY_SPKI_BASE64
 NETWORKER_UPDATE_FEED_KEY_ID
@@ -114,34 +115,40 @@ NETWORKER_UPDATE_FEED_KEY_ID
 Configure or rotate them with:
 
 ```powershell
-# Generate and upload a new ECDSA feed key; preserve existing Authenticode secrets.
+# Generate and upload a new ECDSA feed key.
 ./scripts/Set-GitHubReleaseSecrets.ps1
 
-# Also replace Authenticode secrets with a publicly trusted code-signing PFX.
+# Optional future trusted-signing mode: also upload a public-trust code-signing PFX.
 ./scripts/Set-GitHubReleaseSecrets.ps1 -ReplaceAuthenticodeSecrets `
   -SigningCertificatePath C:\secure\networker-code-signing.pfx `
   -SigningCertificatePassword (Read-Host 'PFX password')
 ```
 
-The script sends values directly to `gh secret set`, never writes private key material to the
-repository, and validates the PFX private key and code-signing EKU. Configure required reviewers
-and restrict deployment branches/tags in the `production-release` environment settings before
-the first public release.
+The script sends values directly to `gh secret set` and never writes private key material to the
+repository. If the optional PFX mode is used, it validates the private key and code-signing EKU.
+Legacy `NETWORKER_SIGNING_CERTIFICATE_BASE64` and
+`NETWORKER_SIGNING_CERTIFICATE_PASSWORD` secrets are unused by the current workflow and may be
+deleted. Configure required reviewers and restrict deployment branches/tags in the
+`production-release` environment settings when repository policy requires them.
 
 The tag workflow validates the tag, restores and runs both test projects, installs pinned
-Inno Setup, materializes keys only in runner temp, embeds the feed public key, signs binaries,
-builds ZIP/manifest/Setup, signs exact manifest bytes, verifies everything, creates a draft,
-uploads all four assets, re-downloads and re-verifies them, then publishes. Any missing secret
-or verification failure leaves no public installable release.
+Inno Setup, materializes the feed private key only in runner temp, embeds the feed public key,
+builds the unsigned ZIP/manifest/Setup, signs exact manifest bytes, verifies the manifest signature
+and ZIP, creates a draft, uploads all four assets, re-downloads and re-verifies them, then publishes.
+Any missing feed secret or verification failure leaves no public installable release.
 
-Local unsigned prototype packaging is allowed only for engineering validation:
+Local packaging can exercise the same unsigned artifact shape:
 
 ```powershell
-./scripts/New-NetworkerPackage.ps1 -Version 1.2.3 -Channel win-x64
+./scripts/New-NetworkerPackage.ps1 -Version 1.2.3 -Channel win-x64 `
+  -UpdateFeedKeyId $keyId -UpdateFeedPublicKeyBase64 $publicKey -RequireFeedTrust
 ./scripts/Test-ReleaseArtifacts.ps1 -Directory artifacts/release -Version 1.2.3
 ```
 
-Unsigned output must never be uploaded as a production release.
+Unsigned public releases must clearly disclose the expected Windows warning. Feed signing remains
+mandatory: never publish a package built without an embedded feed key pin and matching detached
+manifest signature. Optional Authenticode support remains in `New-NetworkerPackage.ps1` for a future
+trusted-signing mode.
 
 ## Validation Matrix
 
@@ -156,4 +163,7 @@ Before the first production cutover, validate on clean Windows 10 22H2 and Windo
 - two failed health launches restore the prior slot;
 - MSIX migration success, cancel, corrupt source, removal failure, and retry;
 - settings, prompts, vault, templates, custom workspace, and uninstall preservation;
-- Authenticode verification for Setup and installed Networker-owned binaries.
+- expected Unknown Publisher/SmartScreen warning, deliberate continuation, and successful per-user
+  install on clean Windows;
+- exact-byte feed signature verification and authenticated ZIP size/hash checks on downloaded
+  release assets.

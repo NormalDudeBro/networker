@@ -26,22 +26,22 @@ jobs:
         shell: pwsh
         run: ./scripts/Get-ReleaseMetadata.ps1 -Tag '${{ github.ref_name }}'
 
-      - name: Require production secrets
+      - name: Require feed-signing secrets
         shell: pwsh
         env:
-          PFX: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_BASE64 }}
-          PFX_PASSWORD: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_PASSWORD }}
           FEED_PRIVATE_KEY: ${{ secrets.NETWORKER_UPDATE_FEED_PRIVATE_KEY_PEM_BASE64 }}
           FEED_PUBLIC_KEY: ${{ secrets.NETWORKER_UPDATE_FEED_PUBLIC_KEY_SPKI_BASE64 }}
           FEED_KEY_ID: ${{ secrets.NETWORKER_UPDATE_FEED_KEY_ID }}
         run: |
-          foreach ($name in @('PFX', 'PFX_PASSWORD', 'FEED_PRIVATE_KEY', 'FEED_PUBLIC_KEY', 'FEED_KEY_ID')) {
+          foreach ($name in @('FEED_PRIVATE_KEY', 'FEED_PUBLIC_KEY', 'FEED_KEY_ID')) {
             if ([string]::IsNullOrWhiteSpace((Get-Item "env:$name").Value)) { throw "Missing production secret: $name" }
           }
 
       - name: Restore and test
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           dotnet restore networker.sln
           dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj -c Debug --no-restore
           dotnet test Networker.Update.Tests\Networker.Update.Tests.csproj -c Debug --no-restore
@@ -50,20 +50,15 @@ jobs:
         shell: pwsh
         run: choco install innosetup --version=6.4.0 --allow-downgrade --yes --no-progress
 
-      - name: Materialize ephemeral signing inputs
+      - name: Materialize ephemeral feed-signing inputs
         id: keys
         shell: pwsh
         env:
-          PFX: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_BASE64 }}
-          PFX_PASSWORD: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_PASSWORD }}
           FEED_PRIVATE_KEY: ${{ secrets.NETWORKER_UPDATE_FEED_PRIVATE_KEY_PEM_BASE64 }}
           FEED_PUBLIC_KEY: ${{ secrets.NETWORKER_UPDATE_FEED_PUBLIC_KEY_SPKI_BASE64 }}
-          FEED_KEY_ID: ${{ secrets.NETWORKER_UPDATE_FEED_KEY_ID }}
         run: |
-          $pfx = Join-Path $env:RUNNER_TEMP 'networker-signing.pfx'
           $private = Join-Path $env:RUNNER_TEMP 'feed-private.pem'
           $public = Join-Path $env:RUNNER_TEMP 'feed-public.pem'
-          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PFX))
           [IO.File]::WriteAllBytes($private, [Convert]::FromBase64String($env:FEED_PRIVATE_KEY))
           $ecdsa = [Security.Cryptography.ECDsa]::Create()
           try {
@@ -73,18 +68,12 @@ jobs:
             if ($ecdsa.KeySize -ne 256) { throw 'Feed key must be ECDSA P-256.' }
             [IO.File]::WriteAllText($public, $ecdsa.ExportSubjectPublicKeyInfoPem(), [Text.UTF8Encoding]::new($false))
           } finally { $ecdsa.Dispose() }
-          $certificate = [Security.Cryptography.X509Certificates.X509Certificate2]::new(
-            $pfx, $env:PFX_PASSWORD,
-            [Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet)
-          if (-not $certificate.HasPrivateKey) { throw 'Authenticode PFX has no private key.' }
-          Add-Content $env:GITHUB_OUTPUT "pfx=$pfx"
           Add-Content $env:GITHUB_OUTPUT "private=$private"
           Add-Content $env:GITHUB_OUTPUT "public=$public"
 
-      - name: Build and sign installer/update payload
+      - name: Build unsigned installer/update payload
         shell: pwsh
         env:
-          PFX_PASSWORD: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_PASSWORD }}
           FEED_PUBLIC_KEY: ${{ secrets.NETWORKER_UPDATE_FEED_PUBLIC_KEY_SPKI_BASE64 }}
           FEED_KEY_ID: ${{ secrets.NETWORKER_UPDATE_FEED_KEY_ID }}
         run: |
@@ -94,9 +83,7 @@ jobs:
             -OutputDirectory artifacts\release `
             -UpdateFeedKeyId $env:FEED_KEY_ID `
             -UpdateFeedPublicKeyBase64 $env:FEED_PUBLIC_KEY `
-            -SigningCertificatePath '${{ steps.keys.outputs.pfx }}' `
-            -SigningCertificatePassword $env:PFX_PASSWORD `
-            -RequireProductionSigning
+            -RequireFeedTrust
 
       - name: Sign exact release manifest bytes
         shell: pwsh
@@ -118,15 +105,19 @@ jobs:
             -Version '${{ steps.release.outputs.version }}' `
             -Channel '${{ steps.release.outputs.channel }}' `
             -PublicKeyPath '${{ steps.keys.outputs.public }}' `
-            -KeyId $env:FEED_KEY_ID `
-            -RequireAuthenticode
+            -KeyId $env:FEED_KEY_ID
 
       - name: Create draft and upload immutable assets
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view '${{ github.ref_name }}' --repo '${{ github.repository }}' 2>$null) {
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          gh release view '${{ github.ref_name }}' --repo '${{ github.repository }}' 2>$null | Out-Null
+          $releaseExists = $LASTEXITCODE -eq 0
+          $PSNativeCommandUseErrorActionPreference = $true
+          if ($releaseExists) {
             throw 'This tag already has a GitHub release. Use a new tag or explicitly delete the draft.'
           }
           $notes = Join-Path $env:RUNNER_TEMP 'release-notes.md'
@@ -135,7 +126,7 @@ jobs:
 
           Download and run `Networker-Setup.exe`. Networker installs per-user, creates a Start Menu shortcut, and preserves user data across updates and uninstall.
 
-          The installer and Networker executables are Authenticode-signed. Updates use a separately signed release manifest and never install equal, older, or unauthenticated packages.
+          This release is not Authenticode-signed, so Windows may show **Unknown publisher** or a Microsoft Defender SmartScreen warning. Download Networker only from this official GitHub release. Automatic updates remain authenticated by Networker's separately signed release manifest and never install equal, older, or unauthenticated packages.
           '@ | Set-Content $notes -Encoding utf8
           gh release create '${{ github.ref_name }}' --repo '${{ github.repository }}' --title 'Networker ${{ github.ref_name }}' --notes-file $notes --draft --prerelease=${{ steps.release.outputs.prerelease }}
           gh release upload '${{ github.ref_name }}' `
@@ -151,6 +142,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           FEED_KEY_ID: ${{ secrets.NETWORKER_UPDATE_FEED_KEY_ID }}
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           $verify = Join-Path $env:RUNNER_TEMP 'verify-release'
           New-Item $verify -ItemType Directory -Force | Out-Null
           gh release download '${{ github.ref_name }}' --repo '${{ github.repository }}' --dir $verify
@@ -159,12 +152,11 @@ jobs:
             -Version '${{ steps.release.outputs.version }}' `
             -Channel '${{ steps.release.outputs.channel }}' `
             -PublicKeyPath '${{ steps.keys.outputs.public }}' `
-            -KeyId $env:FEED_KEY_ID `
-            -RequireAuthenticode
+            -KeyId $env:FEED_KEY_ID
           gh release edit '${{ github.ref_name }}' --repo '${{ github.repository }}' --draft=false --prerelease=${{ steps.release.outputs.prerelease }}
 
       - name: Remove ephemeral signing material
         if: always()
         shell: pwsh
         run: |
-          Remove-Item '${{ steps.keys.outputs.pfx }}','${{ steps.keys.outputs.private }}','${{ steps.keys.outputs.public }}' -Force -ErrorAction SilentlyContinue
+          Remove-Item '${{ steps.keys.outputs.private }}','${{ steps.keys.outputs.public }}' -Force -ErrorAction SilentlyContinue

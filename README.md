@@ -130,18 +130,21 @@ Or configure in-app via **Settings → Provider**.
 
 ## Distribution & Updates
 
-Production packages are distributed through GitHub Releases as one publicly
-trusted Authenticode-signed `Networker-Setup.exe`. Setup installs per-user without an
-administrator prompt, always creates a Start Menu shortcut, and offers an unchecked desktop
-shortcut option. The app and updater are x64, self-contained, and installed under
-`%LOCALAPPDATA%\Networker.Desktop`; user data remains under `%LOCALAPPDATA%\Networker`.
-See [docs/UPDATES.md](docs/UPDATES.md) for the full version, asset, and release contract.
+Official packages are distributed through [GitHub Releases](https://github.com/NormalDudeBro/networker/releases)
+as one `Networker-Setup.exe`. Current releases are not Authenticode-signed, so Windows may show
+**Unknown publisher** or a Microsoft Defender SmartScreen warning. Download Networker only from
+the official release page. Setup installs per-user without an administrator prompt, always creates
+a Start Menu shortcut, and offers an unchecked desktop shortcut option. The app and updater are
+x64, self-contained, and installed under `%LOCALAPPDATA%\Networker.Desktop`; user data remains
+under `%LOCALAPPDATA%\Networker`. See [docs/UPDATES.md](docs/UPDATES.md) for the full version,
+asset, trust, and release contract.
 
 Start Menu and desktop shortcuts open a small independent launcher before `networker.exe`.
 Cached launches make no network request. A due check has a hard two-second metadata budget;
 offline or failed checks always open the current app. Stable is the default channel and
-preview remains an advanced opt-in. Updates are authenticated by a separately signed release
-manifest, staged into an inactive A/B slot, and committed by an atomic slot-pointer write.
+preview remains an advanced opt-in. Automatic updates are authenticated by a pinned, separately
+signed release manifest and verified package hash, staged into an inactive A/B slot, and committed
+by an atomic slot-pointer write.
 Updates never touch settings, prompts, vault, templates, or configuration files.
 
 ## Tests

@@ -10,7 +10,7 @@ param(
     [string]$SignToolPath,
     [string]$SigningCertificatePath,
     [string]$SigningCertificatePassword,
-    [switch]$RequireProductionSigning,
+    [switch]$RequireFeedTrust,
     [switch]$NoBuild
 )
 
@@ -27,13 +27,10 @@ $slotStage = Join-Path $installerStage 'app-a'
 
 if ($Version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-preview\.[1-9][0-9]*)?$') { throw "Invalid semantic version: $Version" }
 if (($Channel -eq 'win-x64') -eq $Version.Contains('-preview.')) { throw "Version '$Version' does not match '$Channel'." }
-if ($RequireProductionSigning -and ([string]::IsNullOrWhiteSpace($UpdateFeedKeyId) -or [string]::IsNullOrWhiteSpace($UpdateFeedPublicKeyBase64))) {
-    throw 'Production packaging requires a pinned update-feed public key and key ID.'
+if ($RequireFeedTrust -and ([string]::IsNullOrWhiteSpace($UpdateFeedKeyId) -or [string]::IsNullOrWhiteSpace($UpdateFeedPublicKeyBase64))) {
+    throw 'Release packaging requires a pinned update-feed public key and key ID.'
 }
-if ($RequireProductionSigning -and ([string]::IsNullOrWhiteSpace($SigningCertificatePath) -or [string]::IsNullOrWhiteSpace($SigningCertificatePassword))) {
-    throw 'Production packaging requires an Authenticode certificate and password.'
-}
-if ($SigningCertificatePassword.Contains('"')) { throw 'The signing certificate password cannot contain a double quote.' }
+if ($SigningCertificatePassword -and $SigningCertificatePassword.Contains('"')) { throw 'The signing certificate password cannot contain a double quote.' }
 $fileVersion = "$($Version.Split('-')[0]).0"
 
 if (-not $NoBuild) {

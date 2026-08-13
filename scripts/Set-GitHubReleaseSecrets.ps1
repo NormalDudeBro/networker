@@ -58,5 +58,5 @@ finally { $key.Dispose() }
 
 Write-Host "Configured Networker release secrets for $Repository / $Environment."
 if (-not $ReplaceAuthenticodeSecrets) {
-    Write-Warning 'Existing Authenticode secrets were preserved. Replace them with a publicly trusted code-signing PFX before a production release.'
+    Write-Warning 'Authenticode secrets were preserved. They are optional and needed only to remove Windows publisher/reputation warnings in a future trusted-signing release mode.'
 }

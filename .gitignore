@@ -21,6 +21,10 @@ mono_crash.*
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+!Networker.Update.Contracts/Releases/
+!Networker.Update.Contracts/Releases/**
+!Networker.Update/Releases/
+!Networker.Update/Releases/**
 x64/
 x86/
 [Ww][Ii][Nn]32/

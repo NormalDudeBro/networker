@@ -35,6 +35,8 @@ jobs:
       - name: Build launcher boundary
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           dotnet build Networker.Launcher\Networker.Launcher.csproj -c Debug -p:Platform=x64 --no-restore
           dotnet build Networker.UpdateHost\Networker.UpdateHost.csproj -c Debug --no-restore
           dotnet build Networker.Bootstrap\Networker.Bootstrap.csproj -c Debug --no-restore

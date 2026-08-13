@@ -115,10 +115,8 @@ jobs:
           if (-not $privateCertificate.HasPrivateKey -or $privateCertificate.Thumbprint -ne $thumbprint) {
             throw 'The private and public signing certificate secrets do not match.'
           }
-          & certutil.exe -user -f -addstore Root $cerPath | Out-Host
-          if ($LASTEXITCODE -ne 0) { throw "certutil could not trust the public certificate (exit $LASTEXITCODE)." }
           Add-Content -Path $env:GITHUB_OUTPUT -Value "thumbprint=$thumbprint"
-          Write-Host "Validated the ephemeral signing identity and trusted public certificate ($thumbprint)."
+          Write-Host "Validated the ephemeral signing identity and matching public certificate ($thumbprint)."
 
       - name: Prepare release (validate tag, patch manifest, derive publisher)
         if: steps.signing.outputs.available == 'true'
@@ -239,6 +237,7 @@ jobs:
           PACKAGE_NAME: ${{ steps.prepare.outputs.package_name }}
           PUBLISHER: ${{ steps.prepare.outputs.publisher }}
           MSIX_VERSION: ${{ steps.prepare.outputs.msix_version }}
+          CERTIFICATE_THUMBPRINT: ${{ steps.certificate.outputs.thumbprint }}
         run: |
           $msix = Get-ChildItem -Path 'AppPackages' -Recurse -Filter 'networker_*_x64.msix' -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending | Select-Object -First 1
@@ -247,6 +246,7 @@ jobs:
           # Structural signing verification: the signature block and the
           # code-integrity catalog must be inside the package.
           Add-Type -AssemblyName System.IO.Compression.FileSystem
+          Add-Type -AssemblyName System.Security.Cryptography.Pkcs
           $zip = [IO.Compression.ZipFile]::OpenRead($msix.FullName)
           try {
             $entries = @($zip.Entries | ForEach-Object { $_.FullName })
@@ -281,25 +281,34 @@ jobs:
               throw "Packaged manifest identity mismatch: got '$manifestName' / '$manifestPublisher' / '$manifestArch' / '$manifestVersion'; expected '$env:PACKAGE_NAME' / '$env:PUBLISHER' / 'x64' / '$env:MSIX_VERSION'."
             }
             Write-Host "Packaged manifest identity verified: $manifestName / $manifestPublisher / $manifestArch / $manifestVersion"
+
+            # AppxSignature.p7x starts with the four-byte PKCX AppX marker,
+            # followed by a detached PKCS#7 signature. Validate the signature
+            # cryptographically and pin its signer to the published CER.
+            $signatureEntry = $zip.GetEntry('AppxSignature.p7x')
+            $signatureStream = $signatureEntry.Open()
+            $signatureBytes = New-Object IO.MemoryStream
+            try { $signatureStream.CopyTo($signatureBytes) }
+            finally { $signatureStream.Dispose() }
+            $rawSignature = $signatureBytes.ToArray()
+            $signatureBytes.Dispose()
+            if ($rawSignature.Length -le 4 -or [Text.Encoding]::ASCII.GetString($rawSignature, 0, 4) -ne 'PKCX') {
+              throw 'AppxSignature.p7x does not contain the expected PKCX header.'
+            }
+            $pkcs7 = New-Object byte[] ($rawSignature.Length - 4)
+            [Array]::Copy($rawSignature, 4, $pkcs7, 0, $pkcs7.Length)
+            $signedCms = [Security.Cryptography.Pkcs.SignedCms]::new()
+            $signedCms.Decode($pkcs7)
+            $signedCms.CheckSignature($true)
+            if ($signedCms.SignerInfos.Count -ne 1 -or $signedCms.SignerInfos[0].Certificate.Thumbprint -ne $env:CERTIFICATE_THUMBPRINT) {
+              throw 'The MSIX signer does not match the public certificate shipped with the release.'
+            }
+            Write-Host "Cryptographic package signature verified for $env:CERTIFICATE_THUMBPRINT."
           }
           finally {
             $zip.Dispose()
           }
           Write-Host "Verified signature artifacts and manifest in $($msix.Name)."
-
-          # Trust verification: the matching public certificate was imported
-          # into the ephemeral runner's root store before package verification.
-          $signtool = Get-ChildItem -Path 'C:\Program Files (x86)\Windows Kits\10\bin' -Filter 'signtool.exe' -Recurse -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
-            Sort-Object FullName -Descending | Select-Object -First 1
-          if (-not $signtool) { throw 'signtool.exe not found under the Windows Kits.' }
-          $verifyLog = Join-Path $env:RUNNER_TEMP 'signtool-verify.log'
-          & $signtool.FullName verify /pa /v $msix.FullName *> $verifyLog
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host (Get-Content $verifyLog -ErrorAction SilentlyContinue | Select-Object -Last 15)
-            throw "signtool verify failed (exit $LASTEXITCODE). The signing certificate must match the published public certificate."
-          }
-          Write-Host 'signtool verify passed.'
 
           $msixPath = Join-Path $env:RUNNER_TEMP $env:ASSET_NAME
           Copy-Item -Path $msix.FullName -Destination $msixPath

@@ -124,8 +124,8 @@ On a `v*` tag push:
 1. Checkout the tag (ephemeral copy; the repository tree is never modified).
 2. Set up .NET 8; `dotnet restore`; run the full Core test suite.
 3. Detect signing secrets. If absent, publish a source-only release and stop the package
-   path. If present, materialize the PFX and public certificate into `$RUNNER_TEMP` and
-   trust the public certificate on the ephemeral runner.
+   path. If present, materialize and cross-check the PFX and public certificate in
+   `$RUNNER_TEMP` without persisting private material.
 4. `Prepare-Release.ps1` — validates the strict tag grammar, derives the Publisher
    subject from the PFX, patches `Package.appxmanifest` (Version + Publisher only),
    and emits the exact asset names and mapping.
@@ -142,8 +142,8 @@ On a `v*` tag push:
      `AppxBlockMap.xml` present;
    - packaged-manifest identity: embedded `AppxManifest.xml` must declare exactly the
      prepared name/publisher/`x64`/mapped version;
-   - signature trust: `signtool verify /pa /v` must pass after the matching public
-     certificate is imported into the runner trust store.
+   - signature identity: decode the embedded PKCS#7 signature, verify it cryptographically,
+     and require its signer thumbprint to equal the public certificate shipped with the release.
 9. Prepare the four assets: copy the MSIX under its exact asset name, write the
    SHA-256 sidecar (byte-exact format from §1), generate `Networker-x64.appinstaller`,
    and include `Networker.cer` for one-time client trust.

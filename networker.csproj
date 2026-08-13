@@ -49,8 +49,8 @@
 
   <!-- Publish Properties -->
   <PropertyGroup>
-    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+    <!-- Keep restore/build/publish inputs identical across local and clean CI environments. -->
+    <PublishReadyToRun>False</PublishReadyToRun>
     <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
     <!-- WinUI/WinRT activation relies on metadata the .NET trimmer cannot safely infer. -->
     <PublishTrimmed>False</PublishTrimmed>

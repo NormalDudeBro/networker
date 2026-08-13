@@ -133,9 +133,8 @@ On a `v*` tag push:
    - if the tag already has any release (draft or not), fail — releases are immutable;
    - if a prior non-draft release exists, download its `Networker-x64.appinstaller`
      and require identical `MainPackage` name/publisher, else fail.
-6. Import the PFX into the ephemeral runner's current-user certificate store, build the
-   signed MSIX by certificate thumbprint (`GenerateAppxPackageOnBuild`,
-   `AppxPackageSigningEnabled`), then remove the private certificate and temporary PFX.
+6. Build the x64 MSIX with MSBuild package signing disabled, sign the completed package
+   directly with `signtool /f` using the temporary PFX, then remove the PFX.
 7. Cross-check `Prepare-Release.ps1 -SelfTest` against the built `Networker.Core`
    assembly so script and policy cannot drift.
 8. Verify the produced package:

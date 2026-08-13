@@ -105,16 +105,20 @@ jobs:
           $cerPath = Join-Path $env:RUNNER_TEMP 'Networker.cer'
           [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
           [IO.File]::WriteAllBytes($cerPath, $cerBytes)
+          $flags = [Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet
+          $privateCertificate = [Security.Cryptography.X509Certificates.X509Certificate2]::new(
+            $pfxPath,
+            $env:NETWORKER_SIGNING_CERTIFICATE_PASSWORD,
+            $flags)
           $publicCertificate = [Security.Cryptography.X509Certificates.X509Certificate2]::new($cerPath)
           $thumbprint = $publicCertificate.Thumbprint
-          & certutil.exe -user -f -p $env:NETWORKER_SIGNING_CERTIFICATE_PASSWORD -importPFX My $pfxPath NoRoot | Out-Host
-          if ($LASTEXITCODE -ne 0) { throw "certutil could not import the signing PFX (exit $LASTEXITCODE)." }
+          if (-not $privateCertificate.HasPrivateKey -or $privateCertificate.Thumbprint -ne $thumbprint) {
+            throw 'The private and public signing certificate secrets do not match.'
+          }
           & certutil.exe -user -f -addstore Root $cerPath | Out-Host
           if ($LASTEXITCODE -ne 0) { throw "certutil could not trust the public certificate (exit $LASTEXITCODE)." }
-          $privateCertificate = Get-Item "Cert:\CurrentUser\My\$thumbprint"
-          if (-not $privateCertificate.HasPrivateKey) { throw 'The imported signing certificate has no private key.' }
           Add-Content -Path $env:GITHUB_OUTPUT -Value "thumbprint=$thumbprint"
-          Write-Host "Imported the ephemeral signing identity and trusted public certificate ($thumbprint)."
+          Write-Host "Validated the ephemeral signing identity and trusted public certificate ($thumbprint)."
 
       - name: Prepare release (validate tag, patch manifest, derive publisher)
         if: steps.signing.outputs.available == 'true'
@@ -182,14 +186,24 @@ jobs:
         if: steps.signing.outputs.available == 'true'
         shell: pwsh
         env:
-          CERTIFICATE_THUMBPRINT: ${{ steps.certificate.outputs.thumbprint }}
+          PFX_PASSWORD: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_PASSWORD }}
         run: |
           dotnet build networker.csproj -c Release -p:Platform=x64 --no-restore `
             -p:WindowsPackageType=MSIX `
             -p:GenerateAppxPackageOnBuild=true `
-            -p:AppxPackageSigningEnabled=true `
-            -p:PackageCertificateThumbprint=$env:CERTIFICATE_THUMBPRINT `
+            -p:AppxPackageSigningEnabled=false `
             -p:AppxPackageIncludePrivateSymbols=false
+
+          $msix = Get-ChildItem -Path 'AppPackages' -Recurse -Filter 'networker_*_x64.msix' -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msix) { throw 'No unsigned x64 MSIX found under AppPackages.' }
+          $signtool = Get-ChildItem -Path 'C:\Program Files (x86)\Windows Kits\10\bin' -Filter 'signtool.exe' -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe not found under the Windows Kits.' }
+          $pfx = Join-Path $env:RUNNER_TEMP 'networker-signing.pfx'
+          & $signtool.FullName sign /fd SHA256 /f $pfx /p $env:PFX_PASSWORD $msix.FullName
+          if ($LASTEXITCODE -ne 0) { throw "signtool sign failed (exit $LASTEXITCODE)." }
 
       - name: Remove temporary private signing material
         if: always() && steps.signing.outputs.available == 'true'
@@ -198,9 +212,6 @@ jobs:
           CERTIFICATE_THUMBPRINT: ${{ steps.certificate.outputs.thumbprint }}
         run: |
           Remove-Item -Path (Join-Path $env:RUNNER_TEMP 'networker-signing.pfx') -Force -ErrorAction SilentlyContinue
-          if ($env:CERTIFICATE_THUMBPRINT) {
-            Remove-Item -Path "Cert:\CurrentUser\My\$env:CERTIFICATE_THUMBPRINT" -Force -ErrorAction SilentlyContinue
-          }
 
       - name: Cross-check release mapping against built Core assembly
         if: steps.signing.outputs.available == 'true'

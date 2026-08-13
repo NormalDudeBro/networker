@@ -20,7 +20,6 @@
     <x:Double x:Key="FontSizeTitle">20</x:Double>
     <x:Double x:Key="FontSizeH2">22</x:Double>
     <x:Double x:Key="FontSizeH1">26</x:Double>
-    <x:Double x:Key="FontSizeMetric">24</x:Double>
     <x:Double x:Key="FontSizeCode">13</x:Double>
 
     <!-- ===================== Line heights ===================== -->
@@ -37,6 +36,21 @@
     <x:Double x:Key="SpaceLG">16</x:Double>
     <x:Double x:Key="SpaceXL">24</x:Double>
     <x:Double x:Key="SpaceXXL">32</x:Double>
+
+    <!-- ===================== Semantic layout ===================== -->
+    <Thickness x:Key="PagePadding">20,16,20,12</Thickness>
+    <Thickness x:Key="DashboardPagePadding">20,16,20,16</Thickness>
+    <Thickness x:Key="TabContentPadding">0,12</Thickness>
+    <Thickness x:Key="SectionPanelPadding">16,14</Thickness>
+    <Thickness x:Key="WorkbenchHeaderPadding">20,14</Thickness>
+    <x:Double x:Key="SettingsMaxWidth">880</x:Double>
+    <Thickness x:Key="OverlayInset">16</Thickness>
+    <x:Double x:Key="CommandPaletteMaxWidth">580</x:Double>
+    <x:Double x:Key="CommandPaletteMaxHeight">560</x:Double>
+    <x:Double x:Key="CodeBlockMaxHeight">480</x:Double>
+    <x:Double x:Key="TechnicalEditorMinHeight">160</x:Double>
+    <x:Double x:Key="TechnicalEditorMaxHeight">360</x:Double>
+    <x:Double x:Key="ToastMaxWidth">400</x:Double>
 
     <!-- ===================== Radii ===================== -->
     <CornerRadius x:Key="RadiusXS">4</CornerRadius>

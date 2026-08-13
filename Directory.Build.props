@@ -1,0 +1,17 @@
+<Project>
+  <!--
+    Default local version source for Networker and Networker.Core.
+
+    "dev" is deliberately NOT a valid release channel label: Networker's update
+    policy rejects it, so installed developer builds never contact or install
+    production updates. The release workflow overrides Version,
+    InformationalVersion, and FileVersion from the validated tag.
+  -->
+  <PropertyGroup>
+    <NetworkerVersion>1.0.0-dev</NetworkerVersion>
+    <Version>$(NetworkerVersion)</Version>
+    <InformationalVersion>$(NetworkerVersion)</InformationalVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+</Project>

@@ -13,13 +13,6 @@ public sealed class TemplateLibrary : ITemplateLibrary
 {
     private const string BuiltInResourceName = "Networker.Core.Resources.Templates.json";
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        WriteIndented = true,
-    };
-
     private readonly string _customPath;
     private readonly IReadOnlyList<TemplateDetail> _builtIn;
     private readonly Dictionary<string, TemplateDetail> _custom;
@@ -117,7 +110,9 @@ public sealed class TemplateLibrary : ITemplateLibrary
             ?? throw new InvalidOperationException($"Embedded template resource '{BuiltInResourceName}' was not found.");
 
         using var reader = new StreamReader(stream);
-        var file = JsonSerializer.Deserialize<TemplateFile>(reader.ReadToEnd(), JsonOptions)
+        var file = JsonSerializer.Deserialize(
+            reader.ReadToEnd(),
+            NetworkConfigJsonContext.Default.TemplateFilePayload)
             ?? throw new InvalidOperationException("Embedded template resource is not valid JSON.");
 
         return file.Templates
@@ -143,7 +138,9 @@ public sealed class TemplateLibrary : ITemplateLibrary
         try
         {
             var json = File.ReadAllText(_customPath);
-            var templates = JsonSerializer.Deserialize<List<TemplateDetail>>(json, JsonOptions)
+            var templates = JsonSerializer.Deserialize(
+                json,
+                NetworkConfigJsonContext.Default.ListTemplateDetail)
                 ?? new List<TemplateDetail>();
 
             // Last-wins on duplicate names (defensive against hand-edited files).
@@ -165,26 +162,11 @@ public sealed class TemplateLibrary : ITemplateLibrary
 
     private void SaveCustom()
     {
-        var json = JsonSerializer.Serialize(_custom.Values.ToList(), JsonOptions);
+        var json = JsonSerializer.Serialize(
+            _custom.Values.ToList(),
+            NetworkConfigJsonContext.Default.ListTemplateDetail);
         Directory.CreateDirectory(Path.GetDirectoryName(_customPath)!);
         File.WriteAllText(_customPath, json);
     }
 
-    /// <summary>
-    /// JSON container mirroring the embedded Templates.json root.
-    /// </summary>
-    private sealed class TemplateFile
-    {
-        public List<TemplateFileEntry> Templates { get; set; } = new();
-    }
-
-    /// <summary>
-    /// One entry of the embedded Templates.json.
-    /// </summary>
-    private sealed class TemplateFileEntry
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public TemplateFormData Data { get; set; } = new();
-    }
 }

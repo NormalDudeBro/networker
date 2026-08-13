@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="networker.Views.WorkflowPage"
+    x:Name="WorkflowPageRoot"
+    NavigationCacheMode="Required"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:networker.Controls"
+    xmlns:configTabs="using:networker.NetworkConfig.Views.Tabs">
+
+    <Grid
+        x:Name="ToolsLayout"
+        RowDefinitions="Auto,*"
+        Background="{ThemeResource AppBackgroundBrush}"
+        >
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="ToolkitWidthStates">
+                <VisualState x:Name="NarrowToolkit">
+                    <VisualState.StateTriggers>
+                        <controls:ElementWidthTrigger Source="{x:Bind CenteredWorkflowCanvas}" MaxWidth="759.999"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="WideToolkit">
+                    <VisualState.StateTriggers>
+                        <controls:ElementWidthTrigger Source="{x:Bind CenteredWorkflowCanvas}" MinWidth="760"/>
+                    </VisualState.StateTriggers>
+                </VisualState>
+            </VisualStateGroup>
+            <VisualStateGroup x:Name="ToolkitHeightStates">
+                <VisualState x:Name="ShortToolkit">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowHeight="0"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="GeneratorSpec.Height" Value="180"/>
+                        <Setter Target="AuditInput.Height" Value="180"/>
+                        <Setter Target="LogInput.Height" Value="170"/>
+                        <Setter Target="TopologyInput.Height" Value="180"/>
+                        <Setter Target="TranslateInput.Height" Value="180"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="TallToolkit">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowHeight="700"/>
+                    </VisualState.StateTriggers>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+        <Border Grid.Row="0" Style="{StaticResource WorkspaceHeaderStyle}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel Style="{StaticResource PageHeaderStackStyle}">
+                    <TextBlock x:Name="StageEyebrow" Text="STEP 2 OF 9" Style="{StaticResource PageEyebrowTextStyle}"/>
+                    <TextBlock x:Name="StageTitle" Text="Inspect" Style="{StaticResource PageTitleTextStyle}"/>
+                    <TextBlock x:Name="StageSubtitle" Style="{StaticResource PageSubtitleTextStyle}" Text="Establish the current state from configurations and logs."/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                    <Ellipse x:Name="ToolsAiStatusDot" Style="{StaticResource StatusDotStyle}" Fill="{ThemeResource AppTextDisabledBrush}"/>
+                    <TextBlock x:Name="ToolsAiStatusText" Style="{StaticResource CaptionTextStyle}" Text="AI model unavailable" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" RowDefinitions="Auto,*">
+            <ComboBox
+                x:Name="StageToolSelector"
+                Margin="16,12,16,0"
+                Visibility="Visible"
+                DisplayMemberPath="DisplayPath"
+                SelectionChanged="StageToolSelector_SelectionChanged"
+                HorizontalAlignment="Stretch"
+                AutomationProperties.Name="Select workflow tool"/>
+
+            <Grid x:Name="WorkflowHost" Grid.Row="1">
+                <Grid
+                    x:Name="CenteredWorkflowCanvas"
+                    Width="{Binding ActualWidth, ElementName=WorkflowHost}"
+                    MaxWidth="1200"
+                    HorizontalAlignment="Center">
+
+                <!-- ===================== IP Calculator ===================== -->
+                <Grid x:Name="IpToolPanel" Visibility="Collapsed">
+                    <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+                        <StackPanel Style="{StaticResource TabContentStackStyle}">
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="CIDR input" Style="{StaticResource FieldLabelTextStyle}"/>
+                                    <TextBox x:Name="IpInput" PlaceholderText="e.g. 192.168.10.0/24 or 2001:db8::/64"/>
+                                    <Button Content="Calculate" Style="{StaticResource PrimaryButtonStyle}" Click="IpCalculate_Click" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </Border>
+                            <controls:CodeBlockView x:Name="IpResult" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- ===================== JSON Generator ===================== -->
+                <Grid x:Name="JsonGeneratorPanel" Visibility="Collapsed">
+                    <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+                        <StackPanel Style="{StaticResource TabContentStackStyle}">
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="Platform" Style="{StaticResource FieldLabelTextStyle}"/>
+                                    <ComboBox x:Name="GeneratorPlatform" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="Cisco IOS-XE"/>
+                                        <ComboBoxItem Content="Juniper Junos"/>
+                                        <ComboBoxItem Content="Arista EOS"/>
+                                        <ComboBoxItem Content="VyOS"/>
+                                    </ComboBox>
+                                    <TextBlock Text="Device specification (JSON)" Style="{StaticResource FieldLabelTextStyle}" Margin="0,6,0,0"/>
+                                    <TextBlock Style="{StaticResource CaptionTextStyle}"
+                                               Text="Use this compact JSON workflow for automation-friendly input. For guided six-vendor forms, templates, validation, and vault data, use Configuration workspace."/>
+                                    <TextBox x:Name="GeneratorSpec" AcceptsReturn="True" TextWrapping="NoWrap" Height="260"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto" FontFamily="{ThemeResource CodeFontFamily}"/>
+                                    <Button Content="Generate Configuration" Style="{StaticResource PrimaryButtonStyle}" Click="GeneratorGenerate_Click" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </Border>
+                            <controls:CodeBlockView x:Name="GeneratorResult" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- ===================== Config Audit ===================== -->
+                <Grid x:Name="AuditToolPanel" Visibility="Collapsed">
+                    <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+                        <StackPanel Style="{StaticResource TabContentStackStyle}">
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="Configuration" Style="{StaticResource FieldLabelTextStyle}"/>
+                                    <TextBox x:Name="AuditInput" AcceptsReturn="True" TextWrapping="NoWrap" Height="240"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto" FontFamily="{ThemeResource CodeFontFamily}"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button Content="Audit Configuration" Style="{StaticResource PrimaryButtonStyle}" Click="AuditRun_Click"/>
+                                        <Button x:Name="AuditAiButton" Content="Analyze with AI" Style="{StaticResource SecondaryButtonStyle}" Click="AuditAi_Click"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Findings -->
+                            <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled"
+                                          Visibility="{x:Bind AuditFindings.Visibility, Mode=OneWay}">
+                                <StackPanel Spacing="6" MinWidth="820">
+                                    <Grid ColumnDefinitions="52,120,190,*" ColumnSpacing="10">
+                                        <TextBlock Text="LINE" Style="{StaticResource TableHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="1" Text="SEVERITY" Style="{StaticResource TableHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="2" Text="RULE" Style="{StaticResource TableHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="3" Text="DESCRIPTION" Style="{StaticResource TableHeaderTextStyle}"/>
+                                    </Grid>
+                                    <ListView x:Name="AuditFindings" Visibility="Collapsed" SelectionMode="None" Background="Transparent" ItemContainerStyle="{StaticResource DenseTableItemStyle}">
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid ColumnDefinitions="52,120,190,*" ColumnSpacing="10" Padding="0,6">
+                                                    <TextBlock Text="{Binding Line}" Style="{StaticResource MonoTextStyle}" Foreground="{ThemeResource AppTextSecondaryBrush}"/>
+                                                    <Border Grid.Column="1" CornerRadius="{ThemeResource RadiusPill}" Padding="10,2" VerticalAlignment="Center">
+                                                        <Grid>
+                                                            <Border Background="{Binding SeverityBrush}" Opacity="0.16" CornerRadius="{ThemeResource RadiusPill}"/>
+                                                            <TextBlock Text="{Binding Severity}" Style="{StaticResource BadgeTextStyle}" FontWeight="SemiBold"
+                                                                       Foreground="{Binding SeverityBrush}" HorizontalAlignment="Center"/>
+                                                        </Grid>
+                                                    </Border>
+                                                    <TextBlock Grid.Column="2" Text="{Binding RuleId}" Style="{StaticResource MonoTextStyle}"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding Description}" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <controls:CodeBlockView x:Name="AuditAiResult" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- ===================== Log Analyzer ===================== -->
+                <Grid x:Name="LogAnalyzerPanel" Visibility="Collapsed">
+                    <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+                        <StackPanel Style="{StaticResource TabContentStackStyle}">
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="Syslog lines" Style="{StaticResource FieldLabelTextStyle}"/>
+                                    <TextBlock Style="{StaticResource CaptionTextStyle}"
+                                               Text="Accepts RFC 3164, RFC 5424, or bare lines. Anomalies such as BGP flaps, auth failures, and CRC errors are flagged with severity."/>
+                                    <TextBox x:Name="LogInput" AcceptsReturn="True" TextWrapping="NoWrap" Height="220"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto" FontFamily="{ThemeResource CodeFontFamily}"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button Content="Analyze Logs" Style="{StaticResource PrimaryButtonStyle}" Click="LogAnalyze_Click"/>
+                                        <Button x:Name="LogAiButton" Content="Analyze with AI" Style="{StaticResource SecondaryButtonStyle}" Click="LogAi_Click"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Findings -->
+                            <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled"
+                                          Visibility="{x:Bind LogFindings.Visibility, Mode=OneWay}">
+                                <StackPanel Spacing="6" MinWidth="780">
+                                    <Grid ColumnDefinitions="52,120,170,*" ColumnSpacing="10">
+                                        <TextBlock Text="LINE" Style="{StaticResource TableHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="1" Text="SEVERITY" Style="{StaticResource TableHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="2" Text="RULE" Style="{StaticResource TableHeaderTextStyle}"/>
+                                        <TextBlock Grid.Column="3" Text="DESCRIPTION" Style="{StaticResource TableHeaderTextStyle}"/>
+                                    </Grid>
+                                    <ListView x:Name="LogFindings" Visibility="Collapsed" SelectionMode="None" Background="Transparent" ItemContainerStyle="{StaticResource DenseTableItemStyle}">
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid ColumnDefinitions="52,120,170,*" ColumnSpacing="10" Padding="0,6">
+                                                    <TextBlock Text="{Binding Line}" Style="{StaticResource MonoTextStyle}" Foreground="{ThemeResource AppTextSecondaryBrush}"/>
+                                                    <Border Grid.Column="1" CornerRadius="{ThemeResource RadiusPill}" Padding="10,2" VerticalAlignment="Center">
+                                                        <Grid>
+                                                            <Border Background="{Binding SeverityBrush}" Opacity="0.16" CornerRadius="{ThemeResource RadiusPill}"/>
+                                                            <TextBlock Text="{Binding Severity}" Style="{StaticResource BadgeTextStyle}" FontWeight="SemiBold"
+                                                                       Foreground="{Binding SeverityBrush}" HorizontalAlignment="Center"/>
+                                                        </Grid>
+                                                    </Border>
+                                                    <TextBlock Grid.Column="2" Text="{Binding RuleId}" Style="{StaticResource MonoTextStyle}"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding Description}" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <controls:CodeBlockView x:Name="LogAiResult" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- ===================== Playbooks ===================== -->
+                <Grid x:Name="PlaybooksPanel" Visibility="Collapsed">
+                    <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+                        <StackPanel Style="{StaticResource TabContentStackStyle}">
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="Scenario" Style="{StaticResource FieldLabelTextStyle}"/>
+                                     <ComboBox x:Name="PlaybookScenario" HorizontalAlignment="Stretch">
+                                         <ComboBoxItem Content="New switch (day-0)"/>
+                                         <ComboBoxItem Content="BGP session flapping"/>
+                                         <ComboBoxItem Content="High CPU"/>
+                                         <ComboBoxItem Content="Interface down"/>
+                                         <ComboBoxItem Content="OSPF adjacency"/>
+                                         <ComboBoxItem Content="Security hardening"/>
+                                     </ComboBox>
+                                     <TextBlock Text="Custom scenario for AI" Style="{StaticResource FieldLabelTextStyle}" Margin="0,4,0,0"/>
+                                     <TextBox
+                                         x:Name="PlaybookCustomScenario"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         MinHeight="76"
+                                         MaxHeight="140"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         PlaceholderText="Describe the environment, symptoms, constraints, and desired outcome. Leave blank to use the selected scenario."/>
+                                     <StackPanel Orientation="Horizontal" Spacing="8">
+                                         <Button Content="Generate Playbook" Style="{StaticResource PrimaryButtonStyle}" Click="PlaybookGenerate_Click"/>
+                                         <Button x:Name="PlaybookAiButton" Content="Generate with AI" Style="{StaticResource SecondaryButtonStyle}" Click="PlaybookAi_Click">
+                                             <Button.KeyboardAccelerators>
+                                                 <KeyboardAccelerator Key="Enter" Modifiers="Control" ScopeOwner="{x:Bind PlaybookCustomScenario}"/>
+                                             </Button.KeyboardAccelerators>
+                                         </Button>
+                                     </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <controls:CodeBlockView x:Name="PlaybookResult" Visibility="Collapsed"/>
+                            <controls:CodeBlockView x:Name="PlaybookAiResult" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- ===================== Topology ===================== -->
+                <Grid x:Name="TopologyPanel" Visibility="Collapsed">
+                    <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+                        <StackPanel Style="{StaticResource TabContentStackStyle}">
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="Device configs" Style="{StaticResource FieldLabelTextStyle}"/>
+                                    <TextBlock Style="{StaticResource CaptionTextStyle}"
+                                               Text="Paste one or more device configurations separated by the marker line '==== device-name ===='. Links are inferred from shared /30-/31 subnets, BGP neighbors, and static-route next hops."/>
+                                    <TextBox x:Name="TopologyInput" AcceptsReturn="True" TextWrapping="NoWrap" Height="260"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto" FontFamily="{ThemeResource CodeFontFamily}"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button Content="Build Topology" Style="{StaticResource PrimaryButtonStyle}" Click="TopologyBuild_Click"/>
+                                        <Button x:Name="TopologyAiButton" Content="Describe with AI" Style="{StaticResource SecondaryButtonStyle}" Click="TopologyAi_Click"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="TopologySummary" Style="{StaticResource CaptionTextStyle}" Visibility="Collapsed"/>
+                            <controls:CodeBlockView x:Name="TopologyResult" Visibility="Collapsed"/>
+                            <controls:CodeBlockView x:Name="TopologyAiResult" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- ===================== Translator ===================== -->
+                <Grid x:Name="TranslatorPanel" Visibility="Collapsed">
+                    <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+                        <StackPanel Style="{StaticResource TabContentStackStyle}">
+                            <Border Style="{StaticResource CardStyle}">
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="Direction" Style="{StaticResource FieldLabelTextStyle}"/>
+                                    <ComboBox x:Name="TranslateDirection" HorizontalAlignment="Stretch">
+                                        <ComboBoxItem Content="Cisco IOS-XE to Juniper Junos"/>
+                                        <ComboBoxItem Content="Juniper Junos to Cisco IOS-XE"/>
+                                    </ComboBox>
+                                    <TextBlock Text="Configuration" Style="{StaticResource FieldLabelTextStyle}" Margin="0,6,0,0"/>
+                                    <TextBox x:Name="TranslateInput" AcceptsReturn="True" TextWrapping="NoWrap" Height="240"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto" FontFamily="{ThemeResource CodeFontFamily}"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button Content="Translate" Style="{StaticResource PrimaryButtonStyle}" Click="TranslateRun_Click"/>
+                                        <Button x:Name="TranslateAiButton" Content="Translate with AI" Style="{StaticResource SecondaryButtonStyle}" Click="TranslateAi_Click"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <controls:CodeBlockView x:Name="TranslateResult" Visibility="Collapsed"/>
+                            <controls:CodeBlockView x:Name="TranslateAiResult" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <Grid x:Name="ConfigGeneratePanel" Visibility="Collapsed">
+                    <configTabs:GenerateTab x:Name="ConfigGenerateControl"/>
+                </Grid>
+                <Grid x:Name="ConfigImportPanel" Visibility="Collapsed">
+                    <configTabs:ImportTab x:Name="ConfigImportControl"/>
+                </Grid>
+                <Grid x:Name="ConfigDiffPanel" Visibility="Collapsed">
+                    <configTabs:DiffTab x:Name="ConfigDiffControl"/>
+                </Grid>
+                </Grid>
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>

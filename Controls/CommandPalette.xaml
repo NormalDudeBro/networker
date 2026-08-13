@@ -1,67 +1,119 @@
 <?xml version="1.0" encoding="utf-8"?>
 <UserControl
     x:Class="networker.Controls.CommandPalette"
+    x:Name="PaletteRoot"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:networker.Controls"
     IsTabStop="False">
 
-    <Border x:Name="Scrim" Background="{ThemeResource AppScrimBrush}">
+    <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup x:Name="PaletteHeightStates">
+            <VisualState x:Name="ShortPalette">
+                <VisualState.StateTriggers>
+                    <AdaptiveTrigger MinWindowHeight="0"/>
+                </VisualState.StateTriggers>
+                <VisualState.Setters>
+                    <Setter Target="Panel.MaxHeight" Value="420"/>
+                    <Setter Target="CommandList.MaxHeight" Value="240"/>
+                </VisualState.Setters>
+            </VisualState>
+            <VisualState x:Name="TallPalette">
+                <VisualState.StateTriggers>
+                    <AdaptiveTrigger MinWindowHeight="700"/>
+                </VisualState.StateTriggers>
+            </VisualState>
+        </VisualStateGroup>
+    </VisualStateManager.VisualStateGroups>
+
+    <Border x:Name="Scrim" Background="{ThemeResource AppScrimBrush}" PointerPressed="Scrim_PointerPressed">
         <Border
             x:Name="Panel"
-            MaxWidth="580"
-            MaxHeight="560"
-            Margin="16,48,16,16"
+            MaxWidth="{StaticResource CommandPaletteMaxWidth}"
+            MaxHeight="{StaticResource CommandPaletteMaxHeight}"
+            Margin="{StaticResource OverlayInset}"
             HorizontalAlignment="Stretch"
-            VerticalAlignment="Top"
-            Style="{StaticResource CardStyle}"
+            VerticalAlignment="Center"
+            Style="{StaticResource ElevatedCardStyle}"
             Padding="0"
             KeyDown="Panel_KeyDown">
 
-            <StackPanel>
-                <Grid Padding="14,10" ColumnDefinitions="Auto,*">
-                    <FontIcon Grid.Column="0" Glyph="&#xE721;" FontSize="16" VerticalAlignment="Center" Foreground="{ThemeResource AppTextSecondaryBrush}"/>
-                    <TextBox
-                        x:Name="SearchBox"
-                        Grid.Column="1"
-                        Margin="10,0,0,0"
-                        BorderThickness="0"
+            <Grid RowDefinitions="Auto,Auto,*,Auto">
+                <StackPanel Grid.Row="0" Padding="16,12,16,10" Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="COMMAND CENTER" Style="{StaticResource PageEyebrowTextStyle}" VerticalAlignment="Center"/>
+                        <Border Grid.Column="1" Style="{StaticResource KbdStyle}">
+                            <TextBlock Text="Ctrl K" Style="{StaticResource CaptionTextStyle}"/>
+                        </Border>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" Background="{ThemeResource AppInsetBrush}" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="1" CornerRadius="{ThemeResource RadiusSM}" Padding="10,2">
+                        <FontIcon Glyph="&#xE721;" FontSize="15" VerticalAlignment="Center" Foreground="{ThemeResource AppTextSecondaryBrush}"/>
+                        <TextBox
+                            x:Name="SearchBox"
+                            Grid.Column="1"
+                            Margin="8,0,0,0"
+                            BorderThickness="0"
+                            Background="Transparent"
+                            PlaceholderText="Search pages, tools, and actions"
+                            AutomationProperties.Name="Search commands"
+                            TextChanged="SearchBox_TextChanged"
+                            KeyDown="SearchBox_KeyDown"/>
+                    </Grid>
+                </StackPanel>
+
+                <Border Grid.Row="1" Height="1" Background="{ThemeResource AppBorderBrush}"/>
+
+                <Grid Grid.Row="2" MinHeight="180">
+                    <ListView
+                        x:Name="CommandList"
+                        MaxHeight="360"
+                        SelectionMode="Single"
+                        IsItemClickEnabled="True"
+                        ItemClick="CommandList_ItemClick"
                         Background="Transparent"
-                        PlaceholderText="Type a command or search…"
-                        TextChanged="SearchBox_TextChanged"
-                        KeyDown="SearchBox_KeyDown"/>
+                        BorderThickness="0">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem" BasedOn="{StaticResource DenseNavigationListItemStyle}"/>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="local:PaletteCommand">
+                                <Grid Padding="4,2" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                    <Border Width="30" Height="30" CornerRadius="{ThemeResource RadiusSM}" Background="{ThemeResource AppAccentMutedBrush}" VerticalAlignment="Center">
+                                        <FontIcon Glyph="{x:Bind Glyph}" FontSize="14" Foreground="{ThemeResource AppAccentBrush}"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{x:Bind Category}" Style="{StaticResource PageEyebrowTextStyle}" FontSize="10" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{x:Bind Subtitle}" Style="{StaticResource CaptionTextStyle}" MaxLines="1" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="2" Style="{StaticResource KbdStyle}" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Shortcut}" Style="{StaticResource CaptionTextStyle}"/>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+
+                    <Border x:Name="EmptyResults" Style="{StaticResource EmptyStatePanelStyle}" Visibility="Collapsed" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="16">
+                        <StackPanel Spacing="5" HorizontalAlignment="Center">
+                            <FontIcon Glyph="&#xE721;" FontSize="20" Foreground="{ThemeResource AppTextSecondaryBrush}"/>
+                            <TextBlock Text="No matching commands" Style="{StaticResource SectionHeaderTextStyle}" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Try a page, workflow, or action name." Style="{StaticResource CaptionTextStyle}" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
                 </Grid>
 
-                <Border Height="1" Background="{ThemeResource AppBorderBrush}"/>
-
-                <ListView
-                    x:Name="CommandList"
-                    MaxHeight="360"
-                    SelectionMode="Single"
-                    IsItemClickEnabled="True"
-                    ItemClick="CommandList_ItemClick"
-                    Background="Transparent"
-                    BorderThickness="0">
-                    <ListView.ItemTemplate>
-                        <DataTemplate x:DataType="local:PaletteCommand">
-                            <Grid Padding="12,8" ColumnDefinitions="Auto,*,Auto">
-                                <FontIcon Grid.Column="0" Glyph="{x:Bind Glyph}" FontSize="15" Foreground="{ThemeResource AppAccentBrush}" VerticalAlignment="Center"/>
-                                <StackPanel Grid.Column="1" Margin="12,0,8,0">
-                                    <TextBlock Text="{x:Bind Title}" FontSize="{ThemeResource FontSizeBody}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{x:Bind Subtitle}" Style="{StaticResource CaptionTextStyle}"/>
-                                </StackPanel>
-                            </Grid>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
-
-                <Border Height="1" Background="{ThemeResource AppBorderBrush}"/>
-                <StackPanel Orientation="Horizontal" Spacing="16" Padding="14,8" HorizontalAlignment="Center">
-                    <TextBlock Style="{StaticResource CaptionTextStyle}">&#x2191;&#x2193; Navigate</TextBlock>
-                    <TextBlock Style="{StaticResource CaptionTextStyle}">Enter Run</TextBlock>
-                    <TextBlock Style="{StaticResource CaptionTextStyle}">Esc Close</TextBlock>
-                </StackPanel>
-            </StackPanel>
+                <Grid Grid.Row="3" Padding="14,8" ColumnDefinitions="*,Auto" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                    <TextBlock x:Name="ResultStatus" Style="{StaticResource CaptionTextStyle}" AutomationProperties.LiveSetting="Polite"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="↑↓ Navigate" Style="{StaticResource CaptionTextStyle}"/>
+                        <TextBlock Text="Enter Open" Style="{StaticResource CaptionTextStyle}"/>
+                        <TextBlock Text="Esc Close" Style="{StaticResource CaptionTextStyle}"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
         </Border>
     </Border>
 </UserControl>

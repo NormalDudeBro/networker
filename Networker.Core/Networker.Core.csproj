@@ -12,4 +12,8 @@
     <EmbeddedResource Include="Resources\Templates.json" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="NuGet.Versioning" Version="6.12.1" />
+  </ItemGroup>
+
 </Project>

@@ -11,6 +11,7 @@ namespace networker.Controls
     {
         private List<PaletteCommand> _commands = new();
         private readonly List<PaletteCommand> _filtered = new();
+        private WeakReference<FrameworkElement>? _previousFocus;
 
         public CommandPalette()
         {
@@ -28,7 +29,14 @@ namespace networker.Controls
 
         public void Open()
         {
+            if (XamlRoot is not null && FocusManager.GetFocusedElement(XamlRoot) is FrameworkElement focused)
+            {
+                _previousFocus = new WeakReference<FrameworkElement>(focused);
+            }
+
+            SearchBox.Text = string.Empty;
             Visibility = Visibility.Visible;
+            RefreshFilter();
             SearchBox.Focus(FocusState.Programmatic);
         }
 
@@ -36,6 +44,10 @@ namespace networker.Controls
         {
             Visibility = Visibility.Collapsed;
             Closed?.Invoke(this, EventArgs.Empty);
+            if (_previousFocus?.TryGetTarget(out var previous) == true)
+            {
+                previous.Focus(FocusState.Programmatic);
+            }
         }
 
         public void SetCommands(IEnumerable<PaletteCommand> commands)
@@ -57,6 +69,13 @@ namespace networker.Controls
             {
                 CommandList.SelectedIndex = 0;
             }
+            else
+            {
+                CommandList.SelectedIndex = -1;
+            }
+
+            EmptyResults.Visibility = _filtered.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            ResultStatus.Text = _filtered.Count == 1 ? "1 command" : $"{_filtered.Count} commands";
         }
 
         private void RunSelected()
@@ -82,6 +101,7 @@ namespace networker.Controls
                     if (_filtered.Count > 0 && CommandList.SelectedIndex < _filtered.Count - 1)
                     {
                         CommandList.SelectedIndex++;
+                        CommandList.ScrollIntoView(CommandList.SelectedItem);
                     }
                     e.Handled = true;
                     break;
@@ -89,6 +109,7 @@ namespace networker.Controls
                     if (CommandList.SelectedIndex > 0)
                     {
                         CommandList.SelectedIndex--;
+                        CommandList.ScrollIntoView(CommandList.SelectedItem);
                     }
                     e.Handled = true;
                     break;
@@ -114,6 +135,15 @@ namespace networker.Controls
             {
                 Close();
                 command.Action();
+            }
+        }
+
+        private void Scrim_PointerPressed(object sender, PointerRoutedEventArgs e)
+        {
+            if (ReferenceEquals(e.OriginalSource, Scrim))
+            {
+                e.Handled = true;
+                Close();
             }
         }
     }

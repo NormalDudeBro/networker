@@ -3,7 +3,6 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using networker.Models;
 using networker.Services;
 using Networker.Core.Models.NetworkConfig;
@@ -55,10 +54,7 @@ namespace networker.NetworkConfig.Views.Tabs
         {
             if (TemplateList.SelectedItem is not TemplateListItem item)
             {
-                DetailTitle.Text = "No template selected";
-                DetailMeta.Text = string.Empty;
-                DetailPreview.Visibility = Visibility.Collapsed;
-                DeleteButton.Visibility = Visibility.Collapsed;
+                ShowEmptyDetail();
                 return;
             }
 
@@ -68,7 +64,8 @@ namespace networker.NetworkConfig.Views.Tabs
             var detail = _templates.GetTemplate(item.Info.Name);
             if (detail is null)
             {
-                DetailPreview.Visibility = Visibility.Collapsed;
+                ShowEmptyDetail();
+                SetStatus($"Template '{item.Name}' is unavailable.", error: true);
             }
             else
             {
@@ -79,30 +76,87 @@ namespace networker.NetworkConfig.Views.Tabs
                     CodeTitle = $"{detail.Name} — {item.VendorLabel}",
                     Text = output,
                 };
-                DetailPreview.Visibility = Visibility.Visible;
+                EmptyDetailPanel.Visibility = Visibility.Collapsed;
+                TemplateDetailPanel.Visibility = Visibility.Visible;
+                DeleteButton.Visibility = item.Info.IsBuiltIn ? Visibility.Collapsed : Visibility.Visible;
+                SetStatus(string.Empty);
             }
-
-            DeleteButton.Visibility = item.Info.IsBuiltIn ? Visibility.Collapsed : Visibility.Visible;
         }
 
-        private void Delete_Click(object sender, RoutedEventArgs e)
+        private async void Delete_Click(object sender, RoutedEventArgs e)
         {
             if (TemplateList.SelectedItem is not TemplateListItem item || item.Info.IsBuiltIn)
             {
                 return;
             }
 
-            if (_templates.DeleteCustomTemplate(item.Info.Name))
+            int deletedIndex = TemplateList.SelectedIndex;
+            var dialog = new ContentDialog
             {
-                SetStatus($"Template '{item.Info.Name}' deleted");
-                LogActivity("Template Deleted", $"'{item.Info.Name}' removed from custom templates", "\uE8A5");
-                LoadTemplates();
-                TemplateList.SelectedItem = null;
-            }
-            else
+                Title = "Delete custom template?",
+                Content = $"Delete '{item.Name}'? This cannot be undone.",
+                PrimaryButtonText = "Delete",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = XamlRoot,
+            };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+
+            try
             {
-                SetStatus($"Could not delete template '{item.Info.Name}'", error: true);
+                if (_templates.DeleteCustomTemplate(item.Info.Name))
+                {
+                    SetStatus($"Template '{item.Info.Name}' deleted");
+                    LogActivity("Template Deleted", $"'{item.Info.Name}' removed from custom templates", "\uE8A5");
+                    LoadTemplates();
+                    FocusNearestTemplate(deletedIndex);
+                }
+                else
+                {
+                    SetStatus($"Could not delete template '{item.Info.Name}'", error: true);
+                    DeleteButton.Focus(FocusState.Programmatic);
+                }
             }
+            catch (Exception ex)
+            {
+                SetStatus($"Could not delete template '{item.Info.Name}': {ex.Message}", error: true);
+                DeleteButton.Focus(FocusState.Programmatic);
+            }
+        }
+
+        private void ShowEmptyDetail()
+        {
+            EmptyDetailPanel.Visibility = Visibility.Visible;
+            TemplateDetailPanel.Visibility = Visibility.Collapsed;
+            DetailTitle.Text = string.Empty;
+            DetailMeta.Text = string.Empty;
+            DetailPreview.DataContext = null;
+            DeleteButton.Visibility = Visibility.Collapsed;
+        }
+
+        private void FocusNearestTemplate(int previousIndex)
+        {
+            if (TemplateList.Items.Count == 0)
+            {
+                ShowEmptyDetail();
+                TemplateList.Focus(FocusState.Programmatic);
+                return;
+            }
+
+            int nextIndex = Math.Min(previousIndex, TemplateList.Items.Count - 1);
+            TemplateList.SelectedIndex = nextIndex;
+            TemplateList.ScrollIntoView(TemplateList.SelectedItem);
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (TemplateList.ContainerFromIndex(nextIndex) is Control container)
+                {
+                    container.Focus(FocusState.Programmatic);
+                }
+                else
+                {
+                    TemplateList.Focus(FocusState.Programmatic);
+                }
+            });
         }
 
         private static string VendorLabel(Vendor vendor) => vendor switch
@@ -119,9 +173,8 @@ namespace networker.NetworkConfig.Views.Tabs
         private void SetStatus(string message, bool error = false)
         {
             StatusText.Text = message;
-            StatusText.Foreground = error
-                ? (Brush)Application.Current.Resources["AppDangerBrush"]
-                : (Brush)Application.Current.Resources["AppTextSecondaryBrush"];
+            StatusText.Style = (Style)Application.Current.Resources[
+                error ? "InlineErrorTextStyle" : "InlineStatusTextStyle"];
         }
 
         private static void LogActivity(string title, string detail, string glyph = "\uE774")

@@ -9,29 +9,40 @@
          ==================================================================== -->
 
     <!-- ===================== Implicit control polish ===================== -->
-    <Style TargetType="Button">
+    <Style x:Key="BaseButtonStyle" TargetType="Button">
         <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
         <Setter Property="MinHeight" Value="32" />
         <Setter Property="Padding" Value="14,6" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
         <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
     </Style>
 
-    <Style TargetType="TextBox">
+    <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}" />
+
+    <Style x:Key="BaseTextBoxStyle" TargetType="TextBox">
         <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
         <Setter Property="MinHeight" Value="32" />
         <Setter Property="Padding" Value="10,5" />
+        <Setter Property="Background" Value="{ThemeResource AppInsetBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
         <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}" />
         <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
     </Style>
+
+    <Style TargetType="TextBox" BasedOn="{StaticResource BaseTextBoxStyle}" />
 
     <Style TargetType="PasswordBox">
         <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
         <Setter Property="MinHeight" Value="32" />
         <Setter Property="Padding" Value="10,5" />
+        <Setter Property="Background" Value="{ThemeResource AppInsetBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
         <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
     </Style>
 
     <Style TargetType="ComboBox">
@@ -39,6 +50,7 @@
         <Setter Property="MinHeight" Value="32" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
         <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
     </Style>
 
     <Style TargetType="ListView">
@@ -49,12 +61,60 @@
         <Setter Property="MinHeight" Value="30" />
         <Setter Property="Padding" Value="10,5" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
     </Style>
 
     <Style TargetType="CheckBox">
         <Setter Property="MinHeight" Value="30" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
         <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+    </Style>
+
+    <Style TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
+        <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
+    </Style>
+
+    <!-- ===================== Page composition ===================== -->
+    <Style x:Key="PageHeaderStackStyle" TargetType="StackPanel">
+        <Setter Property="Spacing" Value="4" />
+    </Style>
+
+    <Style x:Key="WorkspaceHeaderStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource AppSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="{StaticResource WorkbenchHeaderPadding}" />
+    </Style>
+
+    <Style x:Key="TabContentStackStyle" TargetType="StackPanel">
+        <Setter Property="Padding" Value="{StaticResource TabContentPadding}" />
+        <Setter Property="Spacing" Value="16" />
+        <Setter Property="MaxWidth" Value="1200" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+
+    <Style x:Key="DenseTabContentStackStyle" TargetType="StackPanel" BasedOn="{StaticResource TabContentStackStyle}">
+        <Setter Property="Spacing" Value="12" />
+    </Style>
+
+    <Style x:Key="WorkflowScrollViewerStyle" TargetType="ScrollViewer">
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+
+    <Style x:Key="DenseTableItemStyle" TargetType="ListViewItem">
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+
+    <Style x:Key="DenseNavigationListItemStyle" TargetType="ListViewItem" BasedOn="{StaticResource DenseTableItemStyle}">
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
     </Style>
 
     <!-- ===================== Typography ===================== -->
@@ -63,6 +123,20 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
+    </Style>
+
+    <Style x:Key="PageEyebrowTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{ThemeResource FontSizeMicro}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{ThemeResource AppAccentBrush}" />
+        <Setter Property="CharacterSpacing" Value="80" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <Style x:Key="WorkspaceTitleTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{ThemeResource FontSizeTitle}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
     </Style>
 
     <Style x:Key="PageSubtitleTextStyle" TargetType="TextBlock">
@@ -92,6 +166,7 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
     <Style x:Key="CaptionTextStyle" TargetType="TextBlock">
@@ -109,13 +184,59 @@
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
+    <Style x:Key="InlineStatusTextStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="InlineSuccessTextStyle" TargetType="TextBlock" BasedOn="{StaticResource InlineStatusTextStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource AppSuccessBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="InlineWarningTextStyle" TargetType="TextBlock" BasedOn="{StaticResource InlineStatusTextStyle}">
+        <Setter Property="Foreground" Value="{ThemeResource AppWarningBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
     <!-- ===================== Cards ===================== -->
     <Style x:Key="CardStyle" TargetType="Border">
         <Setter Property="Background" Value="{ThemeResource AppCardBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{ThemeResource RadiusMD}" />
+        <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
         <Setter Property="Padding" Value="{ThemeResource SpaceLG}" />
+    </Style>
+
+    <Style x:Key="SectionPanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Padding" Value="{StaticResource SectionPanelPadding}" />
+    </Style>
+
+    <Style x:Key="InsetPanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource AppInsetBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
+        <Setter Property="Padding" Value="{StaticResource SectionPanelPadding}" />
+    </Style>
+
+    <Style x:Key="ToolInputPanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource AppSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
+        <Setter Property="Padding" Value="{StaticResource SectionPanelPadding}" />
+    </Style>
+
+    <Style x:Key="EmptyStatePanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource AppInsetBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{ThemeResource RadiusMD}" />
+        <Setter Property="Padding" Value="24" />
+        <Setter Property="MaxWidth" Value="620" />
     </Style>
 
     <Style x:Key="ElevatedCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
@@ -126,31 +247,10 @@
         </Setter>
     </Style>
 
-    <Style x:Key="CardHeaderStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="{ThemeResource FontSizeSection}" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
-        <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
-    </Style>
-
     <Style x:Key="CardTitleTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
-        <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
-    </Style>
-
-    <!-- ===================== Metrics ===================== -->
-    <Style x:Key="MetricValueTextStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="{ThemeResource FontSizeMetric}" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
-        <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
-    </Style>
-
-    <Style x:Key="MetricLabelTextStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="{ThemeResource FontSizeCaption}" />
-        <Setter Property="Foreground" Value="{ThemeResource AppTextSecondaryBrush}" />
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
     </Style>
 
@@ -199,7 +299,7 @@
     </Style>
 
     <!-- ===================== Buttons ===================== -->
-    <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
         <Setter Property="Background" Value="{ThemeResource AppAccentBrush}" />
         <Setter Property="Foreground" Value="{ThemeResource AppOnAccentBrush}" />
         <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
@@ -208,34 +308,25 @@
         <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
         <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}" />
         <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
     </Style>
 
-    <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+    <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
         <Setter Property="Background" Value="{ThemeResource AppSurfaceAltBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
-        <Setter Property="MinHeight" Value="32" />
-        <Setter Property="Padding" Value="14,6" />
-        <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
-        <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}" />
     </Style>
 
-    <Style x:Key="GhostButtonStyle" TargetType="Button">
+    <Style x:Key="GhostButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
-        <Setter Property="MinHeight" Value="32" />
         <Setter Property="Padding" Value="10,6" />
-        <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
-        <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}" />
     </Style>
 
-    <Style x:Key="IconButtonStyle" TargetType="Button">
+    <Style x:Key="IconButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
         <Setter Property="Width" Value="34" />
         <Setter Property="Height" Value="34" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
@@ -250,14 +341,19 @@
         <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}" />
     </Style>
 
-    <Style x:Key="DangerButtonStyle" TargetType="Button">
+    <Style x:Key="ToolLauncherButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+        <Setter Property="MinHeight" Value="66" />
+        <Setter Property="Padding" Value="12,10" />
+        <Setter Property="Background" Value="{ThemeResource AppInsetBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    </Style>
+
+    <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
         <Setter Property="Background" Value="{ThemeResource AppDangerBrush}" />
-        <Setter Property="Foreground" Value="#FFFFFF" />
-        <Setter Property="CornerRadius" Value="{ThemeResource RadiusSM}" />
-        <Setter Property="MinHeight" Value="32" />
-        <Setter Property="Padding" Value="14,6" />
-        <Setter Property="FontFamily" Value="{ThemeResource AppFontFamily}" />
-        <Setter Property="FontSize" Value="{ThemeResource FontSizeBody}" />
+        <Setter Property="Foreground" Value="{ThemeResource AppOnDangerBrush}" />
     </Style>
 
     <!-- ===================== Code ===================== -->
@@ -266,6 +362,23 @@
         <Setter Property="BorderBrush" Value="{ThemeResource AppBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{ThemeResource RadiusMD}" />
+    </Style>
+
+    <Style x:Key="TechnicalEditorStyle" TargetType="TextBox" BasedOn="{StaticResource BaseTextBoxStyle}">
+        <Setter Property="AcceptsReturn" Value="True" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="MinHeight" Value="{StaticResource TechnicalEditorMinHeight}" />
+        <Setter Property="MaxHeight" Value="{StaticResource TechnicalEditorMaxHeight}" />
+        <Setter Property="FontFamily" Value="{ThemeResource CodeFontFamily}" />
+        <Setter Property="FontSize" Value="{ThemeResource FontSizeCode}" />
+        <Setter Property="Background" Value="{ThemeResource AppCodeBackgroundBrush}" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+    </Style>
+
+    <Style x:Key="TechnicalReadOnlyOutputStyle" TargetType="TextBox" BasedOn="{StaticResource TechnicalEditorStyle}">
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="Foreground" Value="{ThemeResource AppTextPrimaryBrush}" />
     </Style>
 
     <Style x:Key="CodeTextStyle" TargetType="TextBlock">
@@ -281,6 +394,8 @@
         <Setter Property="FontSize" Value="{ThemeResource FontSizeCaption}" />
         <Setter Property="Foreground" Value="{ThemeResource AppTextSecondaryBrush}" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <!-- ===================== Mono text ===================== -->

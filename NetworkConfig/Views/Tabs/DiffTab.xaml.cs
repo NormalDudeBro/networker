@@ -3,7 +3,6 @@ using System.Linq;
 using System.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using networker.Models;
 using networker.Services;
 using Networker.Core.NetTools.Config;
@@ -18,9 +17,14 @@ namespace networker.NetworkConfig.Views.Tabs
     /// </summary>
     public sealed partial class DiffTab : UserControl
     {
+        public event Action? WorkspaceChanged;
+        public event Action<string>? ActionCompleted;
+        public event Action<string>? ActionFailed;
         public DiffTab()
         {
             this.InitializeComponent();
+            DiffLeftText.TextChanged += (_, _) => WorkspaceChanged?.Invoke();
+            DiffRightText.TextChanged += (_, _) => WorkspaceChanged?.Invoke();
         }
 
         private void Compare_Click(object sender, RoutedEventArgs e)
@@ -30,6 +34,7 @@ namespace networker.NetworkConfig.Views.Tabs
             if (left.Length == 0 || right.Length == 0)
             {
                 SetStatus("Please paste configurations in both panels", error: true);
+                ActionFailed?.Invoke("Both baseline and revised configurations are required.");
                 return;
             }
 
@@ -39,10 +44,11 @@ namespace networker.NetworkConfig.Views.Tabs
 
             if (additions == 0 && deletions == 0)
             {
-                DiffResultsText.Text = "Configurations are identical - no differences found.";
+                ShowResults("Configurations are identical - no differences found.");
                 DiffStatsText.Text = "0 additions, 0 deletions";
                 SetStatus("Configurations are identical");
                 LogActivity("Config Diff", "Configurations are identical", "\uE8C8");
+                ActionCompleted?.Invoke("Configurations are identical.");
                 return;
             }
 
@@ -51,10 +57,11 @@ namespace networker.NetworkConfig.Views.Tabs
             sb.AppendLine("+++ Configuration B");
             sb.Append(TextDiff.ToUnified(diff));
 
-            DiffResultsText.Text = sb.ToString();
+            ShowResults(sb.ToString());
             DiffStatsText.Text = $"{additions} additions, {deletions} deletions";
             SetStatus($"Diff complete: {additions} additions, {deletions} deletions");
             LogActivity("Config Diff", $"{additions} additions, {deletions} deletions", "\uE8C8");
+            ActionCompleted?.Invoke($"{additions} additions and {deletions} deletions found.");
         }
 
         private void Clear_Click(object sender, RoutedEventArgs e)
@@ -69,9 +76,14 @@ namespace networker.NetworkConfig.Views.Tabs
         private void SetStatus(string message, bool error = false)
         {
             StatusText.Text = message;
-            StatusText.Foreground = error
-                ? (Brush)Application.Current.Resources["AppDangerBrush"]
-                : (Brush)Application.Current.Resources["AppTextSecondaryBrush"];
+            StatusText.Style = (Style)Application.Current.Resources[
+                error ? "InlineErrorTextStyle" : "InlineStatusTextStyle"];
+        }
+
+        private void ShowResults(string text)
+        {
+            DiffResultsText.Text = text;
+            DiffResultsText.Focus(FocusState.Programmatic);
         }
 
         private static void LogActivity(string title, string detail, string glyph = "\uE774")
@@ -84,6 +96,17 @@ namespace networker.NetworkConfig.Views.Tabs
                 Timestamp = DateTime.Now,
                 Glyph = glyph,
             });
+        }
+
+        public (string Baseline, string Candidate, string Results, string Stats) CaptureState()
+            => (DiffLeftText.Text, DiffRightText.Text, DiffResultsText.Text, DiffStatsText.Text);
+
+        public void RestoreState(string? baseline, string? candidate, string? results, string? stats)
+        {
+            DiffLeftText.Text = baseline ?? string.Empty;
+            DiffRightText.Text = candidate ?? string.Empty;
+            DiffResultsText.Text = results ?? string.Empty;
+            DiffStatsText.Text = stats ?? string.Empty;
         }
     }
 }

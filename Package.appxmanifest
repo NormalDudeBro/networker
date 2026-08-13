@@ -15,7 +15,7 @@
   <mp:PhoneIdentity PhoneProductId="12266223-d1a1-43c3-aca2-59c9ae71cd23" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>networker</DisplayName>
+    <DisplayName>Networker</DisplayName>
     <PublisherDisplayName>Kenny</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -34,8 +34,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="networker"
-        Description="networker"
+        DisplayName="Networker"
+        Description="Network operations workspace for configuration, diagnostics, and AI-assisted analysis."
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">

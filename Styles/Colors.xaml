@@ -15,31 +15,30 @@
         <ResourceDictionary x:Key="Light">
 
             <!-- Surfaces -->
-            <Color x:Key="AppBackgroundColor">#F6F8FA</Color>
+            <Color x:Key="AppBackgroundColor">#F4F7F9</Color>
+            <Color x:Key="AppShellColor">#EAF0F3</Color>
             <Color x:Key="AppSurfaceColor">#FFFFFF</Color>
-            <Color x:Key="AppSurfaceAltColor">#EEF1F5</Color>
+            <Color x:Key="AppSurfaceAltColor">#EDF3F5</Color>
+            <Color x:Key="AppInsetColor">#F0F4F6</Color>
             <Color x:Key="AppCardColor">#FFFFFF</Color>
-            <Color x:Key="AppCodeBackgroundColor">#F6F8FA</Color>
-            <Color x:Key="AppSkeletonColor">#E5E9EE</Color>
+            <Color x:Key="AppCodeBackgroundColor">#F2F6F8</Color>
             <Color x:Key="AppScrimColor">#66000000</Color>
 
             <!-- Interaction states -->
-            <Color x:Key="AppHoverBackgroundColor">#F0F3F6</Color>
-            <Color x:Key="AppActiveBackgroundColor">#E3E9EF</Color>
-            <Color x:Key="AppSelectedBackgroundColor">#E3EEFB</Color>
+            <Color x:Key="AppAccentMutedColor">#D8EEF3</Color>
 
             <!-- Text -->
-            <Color x:Key="AppTextPrimaryColor">#1F2328</Color>
-            <Color x:Key="AppTextSecondaryColor">#59636E</Color>
-            <Color x:Key="AppTextDisabledColor">#9099A3</Color>
+            <Color x:Key="AppTextPrimaryColor">#18242C</Color>
+            <Color x:Key="AppTextSecondaryColor">#52616B</Color>
+            <Color x:Key="AppTextDisabledColor">#82919A</Color>
 
             <!-- Lines -->
-            <Color x:Key="AppBorderColor">#D1D9E0</Color>
-            <Color x:Key="AppBorderStrongColor">#B4BDC6</Color>
+            <Color x:Key="AppBorderColor">#CBD7DD</Color>
 
             <!-- Semantic / status -->
-            <Color x:Key="AppAccentColor">#0969DA</Color>
-            <Color x:Key="AppInfoColor">#0969DA</Color>
+            <Color x:Key="AppAccentColor">#0A7188</Color>
+            <Color x:Key="AppAccentPressedColor">#064D5D</Color>
+            <Color x:Key="AppInfoColor">#0A7188</Color>
             <Color x:Key="AppSuccessColor">#1A7F37</Color>
             <Color x:Key="AppWarningColor">#9A6700</Color>
             <Color x:Key="AppDangerColor">#CF222E</Color>
@@ -47,58 +46,54 @@
             <Color x:Key="AppOfflineColor">#59636E</Color>
 
             <!-- Chat -->
-            <Color x:Key="AppChatUserBubbleColor">#0969DA</Color>
-            <Color x:Key="AppChatUserTextColor">#FFFFFF</Color>
+            <Color x:Key="AppChatUserBubbleColor">#D8EEF3</Color>
+            <Color x:Key="AppChatUserTextColor">#18242C</Color>
 
             <!-- Text on accent backgrounds (primary buttons, user bubbles) -->
             <Color x:Key="AppOnAccentColor">#FFFFFF</Color>
+            <Color x:Key="AppOnDangerColor">#FFFFFF</Color>
 
             <!-- Syntax (code highlighting) -->
-            <Color x:Key="AppKeywordColor">#0550AE</Color>
+            <Color x:Key="AppKeywordColor">#075F73</Color>
             <Color x:Key="AppIpColor">#116329</Color>
             <Color x:Key="AppCommentColor">#6E7781</Color>
             <Color x:Key="AppNumberColor">#9A6700</Color>
 
             <!-- Badge fills -->
-            <Color x:Key="BadgeInfoBackgroundColor">#E3EEFB</Color>
+            <Color x:Key="BadgeInfoBackgroundColor">#D8EEF3</Color>
             <Color x:Key="BadgeSuccessBackgroundColor">#DDF4E4</Color>
             <Color x:Key="BadgeWarningBackgroundColor">#FFF2D5</Color>
             <Color x:Key="BadgeDangerBackgroundColor">#FFE3E2</Color>
-            <Color x:Key="BadgeInfoTextColor">#0969DA</Color>
-            <Color x:Key="BadgeSuccessTextColor">#1A7F37</Color>
-            <Color x:Key="BadgeWarningTextColor">#9A6700</Color>
-            <Color x:Key="BadgeDangerTextColor">#CF222E</Color>
 
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Dark">
 
             <!-- Surfaces -->
-            <Color x:Key="AppBackgroundColor">#0B0E11</Color>
-            <Color x:Key="AppSurfaceColor">#151A21</Color>
-            <Color x:Key="AppSurfaceAltColor">#1D232C</Color>
-            <Color x:Key="AppCardColor">#161B22</Color>
-            <Color x:Key="AppCodeBackgroundColor">#0D1117</Color>
-            <Color x:Key="AppSkeletonColor">#21262D</Color>
+            <Color x:Key="AppBackgroundColor">#091016</Color>
+            <Color x:Key="AppShellColor">#0C141B</Color>
+            <Color x:Key="AppSurfaceColor">#111A22</Color>
+            <Color x:Key="AppSurfaceAltColor">#16222C</Color>
+            <Color x:Key="AppInsetColor">#0B131A</Color>
+            <Color x:Key="AppCardColor">#111A22</Color>
+            <Color x:Key="AppCodeBackgroundColor">#070D12</Color>
             <Color x:Key="AppScrimColor">#8C000000</Color>
 
             <!-- Interaction states -->
-            <Color x:Key="AppHoverBackgroundColor">#1B222B</Color>
-            <Color x:Key="AppActiveBackgroundColor">#232B36</Color>
-            <Color x:Key="AppSelectedBackgroundColor">#1D3A5F</Color>
+            <Color x:Key="AppAccentMutedColor">#153440</Color>
 
             <!-- Text -->
-            <Color x:Key="AppTextPrimaryColor">#E6EDF3</Color>
-            <Color x:Key="AppTextSecondaryColor">#9DA7B3</Color>
-            <Color x:Key="AppTextDisabledColor">#6E7681</Color>
+            <Color x:Key="AppTextPrimaryColor">#E6EEF2</Color>
+            <Color x:Key="AppTextSecondaryColor">#9DADB7</Color>
+            <Color x:Key="AppTextDisabledColor">#667680</Color>
 
             <!-- Lines -->
-            <Color x:Key="AppBorderColor">#2D333B</Color>
-            <Color x:Key="AppBorderStrongColor">#3A424C</Color>
+            <Color x:Key="AppBorderColor">#263640</Color>
 
             <!-- Semantic / status -->
-            <Color x:Key="AppAccentColor">#3D8BFD</Color>
-            <Color x:Key="AppInfoColor">#3D8BFD</Color>
+            <Color x:Key="AppAccentColor">#58BBD2</Color>
+            <Color x:Key="AppAccentPressedColor">#3B9FB6</Color>
+            <Color x:Key="AppInfoColor">#58BBD2</Color>
             <Color x:Key="AppSuccessColor">#3FB950</Color>
             <Color x:Key="AppWarningColor">#D29922</Color>
             <Color x:Key="AppDangerColor">#F85149</Color>
@@ -106,46 +101,42 @@
             <Color x:Key="AppOfflineColor">#8B949E</Color>
 
             <!-- Chat -->
-            <Color x:Key="AppChatUserBubbleColor">#3D8BFD</Color>
-            <Color x:Key="AppChatUserTextColor">#0B0E11</Color>
+            <Color x:Key="AppChatUserBubbleColor">#153440</Color>
+            <Color x:Key="AppChatUserTextColor">#E6EEF2</Color>
 
             <!-- Text on accent backgrounds (primary buttons, user bubbles).
                  Dark theme keeps a bright accent, so the on-accent foreground
                  inverts to near-black to hold a 4.5:1 text contrast ratio. -->
-            <Color x:Key="AppOnAccentColor">#0B0E11</Color>
+            <Color x:Key="AppOnAccentColor">#061116</Color>
+            <Color x:Key="AppOnDangerColor">#FFFFFF</Color>
 
             <!-- Syntax (code highlighting) -->
-            <Color x:Key="AppKeywordColor">#79B8FF</Color>
+            <Color x:Key="AppKeywordColor">#7BD3E6</Color>
             <Color x:Key="AppIpColor">#3FB950</Color>
             <Color x:Key="AppCommentColor">#8B949E</Color>
             <Color x:Key="AppNumberColor">#D29922</Color>
 
             <!-- Badge fills -->
-            <Color x:Key="BadgeInfoBackgroundColor">#172A43</Color>
+            <Color x:Key="BadgeInfoBackgroundColor">#153440</Color>
             <Color x:Key="BadgeSuccessBackgroundColor">#13271B</Color>
             <Color x:Key="BadgeWarningBackgroundColor">#2C2413</Color>
             <Color x:Key="BadgeDangerBackgroundColor">#2B1A1A</Color>
-            <Color x:Key="BadgeInfoTextColor">#79B8FF</Color>
-            <Color x:Key="BadgeSuccessTextColor">#3FB950</Color>
-            <Color x:Key="BadgeWarningTextColor">#D29922</Color>
-            <Color x:Key="BadgeDangerTextColor">#F85149</Color>
 
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
     <!-- ===================== Surfaces ===================== -->
     <SolidColorBrush x:Key="AppBackgroundBrush" Color="{ThemeResource AppBackgroundColor}" />
+    <SolidColorBrush x:Key="AppShellBrush" Color="{ThemeResource AppShellColor}" />
     <SolidColorBrush x:Key="AppSurfaceBrush" Color="{ThemeResource AppSurfaceColor}" />
     <SolidColorBrush x:Key="AppSurfaceAltBrush" Color="{ThemeResource AppSurfaceAltColor}" />
+    <SolidColorBrush x:Key="AppInsetBrush" Color="{ThemeResource AppInsetColor}" />
     <SolidColorBrush x:Key="AppCardBrush" Color="{ThemeResource AppCardColor}" />
     <SolidColorBrush x:Key="AppCodeBackgroundBrush" Color="{ThemeResource AppCodeBackgroundColor}" />
-    <SolidColorBrush x:Key="AppSkeletonBrush" Color="{ThemeResource AppSkeletonColor}" />
     <SolidColorBrush x:Key="AppScrimBrush" Color="{ThemeResource AppScrimColor}" />
 
     <!-- ===================== Interaction states ===================== -->
-    <SolidColorBrush x:Key="AppHoverBackgroundBrush" Color="{ThemeResource AppHoverBackgroundColor}" />
-    <SolidColorBrush x:Key="AppActiveBackgroundBrush" Color="{ThemeResource AppActiveBackgroundColor}" />
-    <SolidColorBrush x:Key="AppSelectedBackgroundBrush" Color="{ThemeResource AppSelectedBackgroundColor}" />
+    <SolidColorBrush x:Key="AppAccentMutedBrush" Color="{ThemeResource AppAccentMutedColor}" />
 
     <!-- ===================== Text ===================== -->
     <SolidColorBrush x:Key="AppTextPrimaryBrush" Color="{ThemeResource AppTextPrimaryColor}" />
@@ -154,10 +145,10 @@
 
     <!-- ===================== Lines ===================== -->
     <SolidColorBrush x:Key="AppBorderBrush" Color="{ThemeResource AppBorderColor}" />
-    <SolidColorBrush x:Key="AppBorderStrongBrush" Color="{ThemeResource AppBorderStrongColor}" />
 
     <!-- ===================== Semantic / status ===================== -->
     <SolidColorBrush x:Key="AppAccentBrush" Color="{ThemeResource AppAccentColor}" />
+    <SolidColorBrush x:Key="AppAccentPressedBrush" Color="{ThemeResource AppAccentPressedColor}" />
     <SolidColorBrush x:Key="AppInfoBrush" Color="{ThemeResource AppInfoColor}" />
     <SolidColorBrush x:Key="AppSuccessBrush" Color="{ThemeResource AppSuccessColor}" />
     <SolidColorBrush x:Key="AppWarningBrush" Color="{ThemeResource AppWarningColor}" />
@@ -171,6 +162,7 @@
 
     <!-- ===================== Text on accent ===================== -->
     <SolidColorBrush x:Key="AppOnAccentBrush" Color="{ThemeResource AppOnAccentColor}" />
+    <SolidColorBrush x:Key="AppOnDangerBrush" Color="{ThemeResource AppOnDangerColor}" />
 
     <!-- ===================== Syntax ===================== -->
     <SolidColorBrush x:Key="AppKeywordBrush" Color="{ThemeResource AppKeywordColor}" />
@@ -183,9 +175,5 @@
     <SolidColorBrush x:Key="BadgeSuccessBackgroundBrush" Color="{ThemeResource BadgeSuccessBackgroundColor}" />
     <SolidColorBrush x:Key="BadgeWarningBackgroundBrush" Color="{ThemeResource BadgeWarningBackgroundColor}" />
     <SolidColorBrush x:Key="BadgeDangerBackgroundBrush" Color="{ThemeResource BadgeDangerBackgroundColor}" />
-    <SolidColorBrush x:Key="BadgeInfoTextBrush" Color="{ThemeResource BadgeInfoTextColor}" />
-    <SolidColorBrush x:Key="BadgeSuccessTextBrush" Color="{ThemeResource BadgeSuccessTextColor}" />
-    <SolidColorBrush x:Key="BadgeWarningTextBrush" Color="{ThemeResource BadgeWarningTextColor}" />
-    <SolidColorBrush x:Key="BadgeDangerTextBrush" Color="{ThemeResource BadgeDangerTextColor}" />
 
 </ResourceDictionary>

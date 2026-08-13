@@ -84,7 +84,7 @@ namespace networker.Services
             }
             catch
             {
-                return Environment.CurrentDirectory;
+                return AppSettings.GetLocalDataDirectory();
             }
         }
     }

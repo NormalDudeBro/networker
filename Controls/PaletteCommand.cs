@@ -8,10 +8,24 @@ namespace networker.Controls
     public sealed class PaletteCommand
     {
         public PaletteCommand(string title, string subtitle, string glyph, Action action, params string[] keywords)
+            : this(title, subtitle, glyph, string.Empty, string.Empty, action, keywords)
+        {
+        }
+
+        public PaletteCommand(
+            string title,
+            string subtitle,
+            string glyph,
+            string category,
+            string shortcut,
+            Action action,
+            params string[] keywords)
         {
             Title = title;
             Subtitle = subtitle;
             Glyph = glyph;
+            Category = category;
+            Shortcut = shortcut;
             Action = action;
             Keywords = keywords;
         }
@@ -21,6 +35,10 @@ namespace networker.Controls
         public string Subtitle { get; }
 
         public string Glyph { get; }
+
+        public string Category { get; }
+
+        public string Shortcut { get; }
 
         public Action Action { get; }
 

@@ -8,6 +8,7 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.Extensions.DependencyInjection;
 using Networker.Core.NetTools.Config;
 using Networker.Core.NetTools.Ip;
 using Networker.Core.NetTools.Logs;
@@ -17,10 +18,11 @@ using Networker.Core.Prompting;
 using networker.Controls;
 using networker.Models;
 using networker.Services;
+using Networker.Core.Workflow;
 
-namespace networker
+namespace networker.Views
 {
-    public sealed partial class ToolsPage : Page
+    public sealed partial class WorkflowPage : Page
     {
         private static readonly string SampleDeviceSpec = """
             {
@@ -60,34 +62,184 @@ namespace networker
             }
             """;
 
-        public ToolsPage()
+        private readonly Dictionary<string, FrameworkElement> _workflowPanels;
+        private FrameworkElement? _activeWorkflow;
+        private bool _isSelectingWorkflow;
+        private bool _isLlmSubscribed;
+        private WorkflowStage _activeStage = WorkflowStage.Inspect;
+        private readonly TroubleshootingSession _session;
+        private bool _workspaceRestored;
+
+        public WorkflowPage()
         {
             this.InitializeComponent();
+            _session = ((App)Application.Current).Services.GetRequiredService<TroubleshootingSession>();
             GeneratorSpec.Text = SampleDeviceSpec;
             GeneratorPlatform.SelectedIndex = 0;
             TranslateDirection.SelectedIndex = 0;
             PlaybookScenario.SelectedIndex = 0;
+
+            _workflowPanels = new Dictionary<string, FrameworkElement>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["ip"] = IpToolPanel,
+                ["json-generator"] = JsonGeneratorPanel,
+                ["config-audit"] = AuditToolPanel,
+                ["log-analyzer"] = LogAnalyzerPanel,
+                ["playbooks"] = PlaybooksPanel,
+                ["topology"] = TopologyPanel,
+                ["translator"] = TranslatorPanel,
+                ["config-generate"] = ConfigGeneratePanel,
+                ["config-import"] = ConfigImportPanel,
+                ["config-diff"] = ConfigDiffPanel,
+            };
+
+            StageToolSelector.ItemsSource = ToolDescriptor.All;
+
+            SelectStage(WorkflowStage.Inspect, AppSettings.SelectedToolKey);
+
+            ConfigImportControl.WorkspaceChanged += CaptureWorkspace;
+            ConfigImportControl.ActionCompleted += message => CompleteStage(WorkflowStage.Inspect, message);
+            ConfigImportControl.ActionFailed += message => FailStage(WorkflowStage.Inspect, message);
+            ConfigDiffControl.WorkspaceChanged += CaptureWorkspace;
+            ConfigDiffControl.ActionCompleted += message => CompleteStage(WorkflowStage.Compare, message);
+            ConfigDiffControl.ActionFailed += message => FailStage(WorkflowStage.Compare, message);
+            ConfigGenerateControl.WorkspaceChanged += CaptureWorkspace;
+            ConfigGenerateControl.ActionCompleted += message => CompleteStage(WorkflowStage.Resolve, message);
+            ConfigGenerateControl.ActionFailed += message => FailStage(WorkflowStage.Resolve, message);
+            RestoreWorkspace();
         }
 
         protected override void OnNavigatedTo(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            if (e.Parameter is string header && !string.IsNullOrWhiteSpace(header))
+            if (!_isLlmSubscribed)
             {
-                SelectTab(header);
+                LlmSession.Changed += LlmSession_Changed;
+                _isLlmSubscribed = true;
+            }
+            UpdateAiAvailability();
+
+            if (e.Parameter is string value && !string.IsNullOrWhiteSpace(value))
+            {
+                if (WorkflowStageCatalog.TryFind(value, out var definition))
+                {
+                    SelectStage(definition.Stage);
+                }
+                else
+                {
+                    SelectWorkflow(value);
+                }
             }
         }
 
-        private void SelectTab(string header)
+        protected override void OnNavigatedFrom(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
         {
-            for (int i = 0; i < ToolsTabs.TabItems.Count; i++)
+            base.OnNavigatedFrom(e);
+            if (_isLlmSubscribed)
             {
-                if (ToolsTabs.TabItems[i] is TabViewItem { Header: string h } && h == header)
-                {
-                    ToolsTabs.SelectedIndex = i;
-                    return;
-                }
+                LlmSession.Changed -= LlmSession_Changed;
+                _isLlmSubscribed = false;
             }
+        }
+
+        public void SelectStage(WorkflowStage stage, string? toolKey = null)
+        {
+            if (stage < WorkflowStage.Inspect || stage > WorkflowStage.Resolve) return;
+            _activeStage = stage;
+
+            var tools = ToolDescriptor.All.Where(tool => StageForTool(tool.Key) == stage).ToList();
+            StageToolSelector.ItemsSource = tools;
+            StageToolSelector.Visibility = tools.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+
+            var definition = WorkflowStageCatalog.Get(stage);
+            StageEyebrow.Text = $"STEP {definition.Number} OF 9";
+            StageTitle.Text = definition.Label;
+            StageSubtitle.Text = definition.Description;
+
+            string defaultKey = stage switch
+            {
+                WorkflowStage.Inspect => "config-import",
+                WorkflowStage.Diagnose => "config-audit",
+                WorkflowStage.Map => "topology",
+                WorkflowStage.Compare => "config-diff",
+                WorkflowStage.Plan => "playbooks",
+                WorkflowStage.Resolve => "config-generate",
+                _ => "config-import",
+            };
+            string selectedKey = toolKey is not null && tools.Any(t => t.Matches(toolKey)) ? toolKey : defaultKey;
+            SelectWorkflow(selectedKey);
+        }
+
+        private static WorkflowStage StageForTool(string key) => key switch
+        {
+            "config-import" => WorkflowStage.Inspect,
+            "config-audit" or "log-analyzer" => WorkflowStage.Diagnose,
+            "topology" or "ip" => WorkflowStage.Map,
+            "quick-diff" or "config-diff" => WorkflowStage.Compare,
+            "playbooks" => WorkflowStage.Plan,
+            "config-generate" or "translator" or "json-generator" => WorkflowStage.Resolve,
+            _ => WorkflowStage.Settings,
+        };
+
+        public void SelectWorkflow(string header)
+        {
+            if (header.Equals("quick-diff", StringComparison.OrdinalIgnoreCase)) header = "config-diff";
+            var descriptor = ToolDescriptor.Find(header);
+            if (descriptor is null || !_workflowPanels.TryGetValue(descriptor.Key, out var panel))
+            {
+                return;
+            }
+
+            var targetStage = StageForTool(descriptor.Key);
+            if (targetStage is >= WorkflowStage.Inspect and <= WorkflowStage.Resolve && targetStage != _activeStage)
+            {
+                SelectStage(targetStage, descriptor.Key);
+                return;
+            }
+
+            if (!ReferenceEquals(_activeWorkflow, panel))
+            {
+                if (_activeWorkflow is not null) _activeWorkflow.Visibility = Visibility.Collapsed;
+                panel.Visibility = Visibility.Visible;
+                _activeWorkflow = panel;
+            }
+
+            _isSelectingWorkflow = true;
+            try
+            {
+                StageToolSelector.SelectedItem = descriptor;
+            }
+            finally
+            {
+                _isSelectingWorkflow = false;
+            }
+
+            AppSettings.SelectedToolKey = descriptor.Key;
+        }
+
+        private void StageToolSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (!_isSelectingWorkflow && StageToolSelector.SelectedItem is ToolDescriptor descriptor)
+            {
+                SelectWorkflow(descriptor.Key);
+            }
+        }
+
+        private void LlmSession_Changed() => DispatcherQueue.TryEnqueue(UpdateAiAvailability);
+
+        private void UpdateAiAvailability()
+        {
+            bool available = ChatService.IsModelSelected;
+            foreach (var button in new[] { AuditAiButton, LogAiButton, PlaybookAiButton, TopologyAiButton, TranslateAiButton })
+            {
+                button.IsEnabled = available;
+                ToolTipService.SetToolTip(button, available ? null : "Select an AI model in Assistant or Settings.");
+            }
+
+            ToolsAiStatusDot.Fill = (Brush)Application.Current.Resources[available ? "AppOnlineBrush" : "AppOfflineBrush"];
+            ToolsAiStatusText.Text = available
+                ? $"AI ready · {AppSettings.SelectedModel}"
+                : "AI model unavailable";
         }
 
         private sealed class FindingItem
@@ -208,6 +360,7 @@ namespace networker
             if (string.IsNullOrWhiteSpace(input))
             {
                 Toaster.Show("Enter a CIDR like 192.168.10.0/24", InfoBarSeverity.Warning);
+                FailStage(WorkflowStage.Map, "Enter a valid CIDR to calculate.");
                 return;
             }
 
@@ -237,10 +390,14 @@ namespace networker
                 var text = sb.ToString().TrimEnd();
                 ShowCode(IpResult, "Subnet Information", text);
                 LogActivity("Subnet Calculator", text, "\uE774");
+                SaveNamed("map.ip.input", IpInput.Text);
+                SaveNamed("map.ip.result", text);
+                CompleteStage(WorkflowStage.Map, "Subnet calculation complete.");
             }
             catch (Exception ex)
             {
                 Toaster.Show(ex.Message, InfoBarSeverity.Error, "Invalid CIDR");
+                FailStage(WorkflowStage.Map, ex.Message);
             }
         }
 
@@ -290,6 +447,9 @@ namespace networker
                 SeverityBrush = SeverityBrush(f.Severity.ToString()),
             }));
             LogActivity("Config Audit", $"{findings.Count} finding(s)", "\uE8FD");
+            SaveNamed("diagnose.audit.input", AuditInput.Text);
+            SaveNamed("diagnose.audit.summary", $"{findings.Count} finding(s)");
+            CompleteStage(WorkflowStage.Diagnose, $"Configuration audit found {findings.Count} item(s).");
         }
 
         private async void AuditAi_Click(object sender, RoutedEventArgs e)
@@ -312,40 +472,6 @@ namespace networker
             await RunAiAsync(AuditAiButton, AuditAiResult, "AI Audit Assessment", ToolPrompts.ConfigAudit, content);
         }
 
-        // ===================== Diff =====================
-
-        private void DiffRun_Click(object sender, RoutedEventArgs e)
-        {
-            var oldText = DiffOldInput.Text ?? string.Empty;
-            var newText = DiffNewInput.Text ?? string.Empty;
-
-            if (oldText.Length == 0 && newText.Length == 0)
-            {
-                Toaster.Show("Paste two configurations to compare.", InfoBarSeverity.Warning);
-                return;
-            }
-
-            var diff = TextDiff.ToUnified(TextDiff.DiffLines(oldText, newText));
-            ShowCode(DiffResult, "Configuration Diff", diff);
-            LogActivity("Config Diff", diff, "\uE8C8");
-        }
-
-        private async void DiffAi_Click(object sender, RoutedEventArgs e)
-        {
-            var oldText = DiffOldInput.Text ?? string.Empty;
-            var newText = DiffNewInput.Text ?? string.Empty;
-
-            if (oldText.Length == 0 && newText.Length == 0)
-            {
-                Toaster.Show("Paste two configurations to analyze.", InfoBarSeverity.Warning);
-                return;
-            }
-
-            var diff = TextDiff.ToUnified(TextDiff.DiffLines(oldText, newText));
-            var content = $"Baseline configuration:\n{oldText}\n\nCandidate configuration:\n{newText}\n\nUnified diff:\n{diff}";
-            await RunAiAsync(DiffAiButton, DiffAiResult, "AI Diff Analysis", ToolPrompts.ConfigDiff, content);
-        }
-
         // ===================== Log Analyzer =====================
 
         private void LogAnalyze_Click(object sender, RoutedEventArgs e)
@@ -356,6 +482,7 @@ namespace networker
             if (analysis.Entries.Count == 0)
             {
                 Toaster.Show("No log lines to analyze.", InfoBarSeverity.Warning);
+                FailStage(WorkflowStage.Diagnose, "Paste log lines to analyze.");
                 return;
             }
 
@@ -368,6 +495,9 @@ namespace networker
                 SeverityBrush = SeverityBrush(f.Severity.ToString()),
             }));
             LogActivity("Log Analysis", $"{analysis.Findings.Count} finding(s) in {analysis.Entries.Count} lines", "\uE721");
+            SaveNamed("diagnose.logs.input", LogInput.Text);
+            SaveNamed("diagnose.logs.summary", $"{analysis.Findings.Count} finding(s) in {analysis.Entries.Count} lines");
+            CompleteStage(WorkflowStage.Diagnose, "Log analysis complete.");
         }
 
         private async void LogAi_Click(object sender, RoutedEventArgs e)
@@ -392,16 +522,6 @@ namespace networker
 
         // ===================== Playbooks =====================
 
-        private void PlaybookScenario_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (PlaybookResult is null)
-            {
-                return;
-            }
-
-            GeneratePlaybook();
-        }
-
         private void PlaybookGenerate_Click(object sender, RoutedEventArgs e)
         {
             GeneratePlaybook();
@@ -414,14 +534,22 @@ namespace networker
             var rendered = PlaybookGenerator.RenderPlain(playbook);
             ShowCode(PlaybookResult, $"{scenario} playbook", rendered);
             LogActivity($"{scenario} Playbook", rendered, "\uE8A5");
+            SaveNamed("plan.scenario", scenario);
+            SaveNamed("plan.result", rendered);
+            CompleteStage(WorkflowStage.Plan, "Troubleshooting playbook generated.");
         }
 
         private async void PlaybookAi_Click(object sender, RoutedEventArgs e)
         {
             var scenario = ScenarioKey(PlaybookScenario.SelectedIndex);
             var display = (PlaybookScenario.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? scenario;
-            var content = $"Scenario: {scenario} ({display}).\n\nWrite a step-by-step playbook for this scenario.";
-            await RunAiAsync(PlaybookAiButton, PlaybookAiResult, $"{scenario} playbook (AI)", ToolPrompts.Playbook, content);
+            var customScenario = (PlaybookCustomScenario.Text ?? string.Empty).Trim();
+            var content = customScenario.Length > 0
+                ? $"User-defined network scenario:\n{customScenario}\n\nWrite a step-by-step operational playbook for this scenario."
+                : $"Scenario: {scenario} ({display}).\n\nWrite a step-by-step operational playbook for this scenario.";
+            var title = customScenario.Length > 0 ? "Custom playbook (AI)" : $"{scenario} playbook (AI)";
+
+            await RunAiAsync(PlaybookAiButton, PlaybookAiResult, title, ToolPrompts.Playbook, content);
         }
 
         private static string ScenarioKey(int index) => index switch
@@ -444,6 +572,7 @@ namespace networker
             if (configs.Count == 0)
             {
                 Toaster.Show("Paste at least one device configuration.", InfoBarSeverity.Warning);
+                FailStage(WorkflowStage.Map, "Paste at least one device configuration.");
                 return;
             }
 
@@ -456,6 +585,9 @@ namespace networker
             TopologySummary.Visibility = Visibility.Visible;
             ShowCode(TopologyResult, "Topology (Mermaid)", mermaid);
             LogActivity("Topology", TopologySummary.Text, "\uE703");
+            SaveNamed("map.topology.input", TopologyInput.Text);
+            SaveNamed("map.topology.result", mermaid);
+            CompleteStage(WorkflowStage.Map, "Topology inferred.");
         }
 
         private async void TopologyAi_Click(object sender, RoutedEventArgs e)
@@ -500,6 +632,7 @@ namespace networker
             if (input.Length == 0)
             {
                 Toaster.Show("Paste a configuration to translate.", InfoBarSeverity.Warning);
+                FailStage(WorkflowStage.Resolve, "Paste a configuration to translate.");
                 return;
             }
 
@@ -510,7 +643,57 @@ namespace networker
 
             ShowCode(TranslateResult, iosToJunos ? "Juniper Junos (set)" : "Cisco IOS-XE", output);
             LogActivity("Config Translation", output, "\uE8D4");
+            SaveNamed("resolve.translate.input", TranslateInput.Text);
+            SaveNamed("resolve.translate.result", output);
+            CompleteStage(WorkflowStage.Resolve, "Configuration translated.");
         }
+
+        private void RestoreWorkspace()
+        {
+            if (_workspaceRestored) return;
+            _workspaceRestored = true;
+            var values = _session.Current.NamedValues;
+            IpInput.Text = Get(values, "map.ip.input");
+            AuditInput.Text = Get(values, "diagnose.audit.input");
+            LogInput.Text = Get(values, "diagnose.logs.input");
+            TopologyInput.Text = Get(values, "map.topology.input");
+            TranslateInput.Text = Get(values, "resolve.translate.input");
+            PlaybookCustomScenario.Text = Get(values, "plan.custom");
+            ConfigImportControl.RestoreState(Get(values, "inspect.input"), Get(values, "inspect.result"));
+            ConfigDiffControl.RestoreState(Get(values, "compare.baseline"), Get(values, "compare.candidate"), Get(values, "compare.result"), Get(values, "compare.stats"));
+            ConfigGenerateControl.RestoreState(_session.Current.Generate);
+        }
+
+        private static string Get(IReadOnlyDictionary<string, string> values, string key)
+            => values.TryGetValue(key, out string? value) ? value : string.Empty;
+
+        private void CaptureWorkspace()
+        {
+            var import = ConfigImportControl.CaptureState();
+            var diff = ConfigDiffControl.CaptureState();
+            SaveNamed("inspect.input", import.Input, notify: false);
+            SaveNamed("inspect.result", import.Results, notify: false);
+            SaveNamed("compare.baseline", diff.Baseline, notify: false);
+            SaveNamed("compare.candidate", diff.Candidate, notify: false);
+            SaveNamed("compare.result", diff.Results, notify: false);
+            SaveNamed("compare.stats", diff.Stats, notify: false);
+            _session.Current.Generate = ConfigGenerateControl.CaptureState();
+            _session.NotifyChanged();
+        }
+
+        private void SaveNamed(string key, string? value, bool notify = true)
+        {
+            _session.Current.NamedValues[key] = value ?? string.Empty;
+            if (notify) _session.NotifyChanged();
+        }
+
+        private void CompleteStage(WorkflowStage stage, string message)
+        {
+            CaptureWorkspace();
+            _session.SetCompleted(stage, message);
+        }
+
+        private void FailStage(WorkflowStage stage, string message) => _session.SetError(stage, message);
 
         private async void TranslateAi_Click(object sender, RoutedEventArgs e)
         {

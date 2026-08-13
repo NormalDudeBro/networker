@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using static Networker.Core.NetTools.Config.ConfigWriter;
 using Networker.Core.Models.NetworkConfig;
@@ -20,7 +21,7 @@ internal static class SonicConfigTemplate
                 && i.InterfaceType is not (InterfaceType.Loopback or InterfaceType.Vlan))
             .ToList();
         var loopbackInterfaces = cfg.Interfaces
-            .Where(i => i.InterfaceType == InterfaceType.Loopback && i.IpAddress is not null)
+            .Where(i => i.InterfaceType == InterfaceType.Loopback && i.IpAddress is not null && i.SubnetMask is not null)
             .ToList();
         var portchannelInterfaces = cfg.Interfaces
             .Where(i => i.InterfaceType == InterfaceType.PortChannel)
@@ -35,7 +36,7 @@ internal static class SonicConfigTemplate
             .Where(i => i.VlanId is not null || i.AccessVlan is not null || i.IsTrunk)
             .ToList();
         var vlanInterfaces = cfg.Interfaces
-            .Where(i => i.InterfaceType == InterfaceType.Vlan && i.IpAddress is not null)
+            .Where(i => i.InterfaceType == InterfaceType.Vlan && i.IpAddress is not null && i.SubnetMask is not null)
             .ToList();
 
         var sections = new List<string> { "DEVICE_METADATA" };
@@ -129,7 +130,9 @@ internal static class SonicConfigTemplate
             for (int i = 0; i < l3Interfaces.Count; i++)
             {
                 var iface = l3Interfaces[i];
-                sb.Append($"        \"{ConfigTemplateFilters.SonicInterfaceName(iface.Name)}|{iface.IpAddress}/{ConfigTemplateFilters.SubnetToCidr(iface.SubnetMask.ToString())}\": {{}}");
+                IPAddress ipAddress = iface.IpAddress!;
+                IPAddress subnetMask = iface.SubnetMask!;
+                sb.Append($"        \"{ConfigTemplateFilters.SonicInterfaceName(iface.Name)}|{ipAddress}/{ConfigTemplateFilters.SubnetToCidr(subnetMask.ToString())}\": {{}}");
                 if (i != l3Interfaces.Count - 1) sb.Append(',');
                 sb.Append('\n');
             }
@@ -145,7 +148,9 @@ internal static class SonicConfigTemplate
             for (int i = 0; i < loopbackInterfaces.Count; i++)
             {
                 var iface = loopbackInterfaces[i];
-                sb.Append($"        \"{ConfigTemplateFilters.SonicInterfaceName(iface.Name)}|{iface.IpAddress}/{ConfigTemplateFilters.SubnetToCidr(iface.SubnetMask.ToString())}\": {{}}");
+                IPAddress ipAddress = iface.IpAddress!;
+                IPAddress subnetMask = iface.SubnetMask!;
+                sb.Append($"        \"{ConfigTemplateFilters.SonicInterfaceName(iface.Name)}|{ipAddress}/{ConfigTemplateFilters.SubnetToCidr(subnetMask.ToString())}\": {{}}");
                 if (i != loopbackInterfaces.Count - 1) sb.Append(',');
                 sb.Append('\n');
             }
@@ -184,7 +189,9 @@ internal static class SonicConfigTemplate
             for (int i = 0; i < pcWithIp.Count; i++)
             {
                 var iface = pcWithIp[i];
-                sb.Append($"        \"{ConfigTemplateFilters.SonicInterfaceName(iface.Name)}|{iface.IpAddress}/{ConfigTemplateFilters.SubnetToCidr(iface.SubnetMask.ToString())}\": {{}}");
+                IPAddress ipAddress = iface.IpAddress!;
+                IPAddress subnetMask = iface.SubnetMask!;
+                sb.Append($"        \"{ConfigTemplateFilters.SonicInterfaceName(iface.Name)}|{ipAddress}/{ConfigTemplateFilters.SubnetToCidr(subnetMask.ToString())}\": {{}}");
                 if (i != pcWithIp.Count - 1) sb.Append(',');
                 sb.Append('\n');
             }
@@ -200,7 +207,8 @@ internal static class SonicConfigTemplate
             for (int i = 0; i < channelMembers.Count; i++)
             {
                 var iface = channelMembers[i];
-                sb.Append($"        \"PortChannel{iface.ChannelGroup.Value:D4}|{ConfigTemplateFilters.SonicInterfaceName(iface.Name)}\": {{}}");
+                int channelGroup = iface.ChannelGroup!.Value;
+                sb.Append($"        \"PortChannel{channelGroup:D4}|{ConfigTemplateFilters.SonicInterfaceName(iface.Name)}\": {{}}");
                 if (i != channelMembers.Count - 1) sb.Append(',');
                 sb.Append('\n');
             }
@@ -267,7 +275,9 @@ internal static class SonicConfigTemplate
             for (int i = 0; i < vlanInterfaces.Count; i++)
             {
                 var iface = vlanInterfaces[i];
-                sb.Append($"        \"Vlan{ConfigTemplateFilters.SonicVlanId(iface.Name)}|{iface.IpAddress}/{ConfigTemplateFilters.SubnetToCidr(iface.SubnetMask.ToString())}\": {{}}");
+                IPAddress ipAddress = iface.IpAddress!;
+                IPAddress subnetMask = iface.SubnetMask!;
+                sb.Append($"        \"Vlan{ConfigTemplateFilters.SonicVlanId(iface.Name)}|{ipAddress}/{ConfigTemplateFilters.SubnetToCidr(subnetMask.ToString())}\": {{}}");
                 if (i != vlanInterfaces.Count - 1) sb.Append(',');
                 sb.Append('\n');
             }

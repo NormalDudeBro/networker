@@ -26,8 +26,8 @@ public class PromptBuilderTests
     [Fact]
     public void BuildUserMessage_OnlyCustom_OmitsSystem()
     {
-        string result = PromptBuilder.BuildUserMessage("", "Answer in Spanish.", "¿Qué es OSPF?");
-        Assert.Equal("Answer in Spanish.\n\n¿Qué es OSPF?", result);
+        string result = PromptBuilder.BuildUserMessage("", "Answer with one sentence.", "What is OSPF?");
+        Assert.Equal("Answer with one sentence.\n\nWhat is OSPF?", result);
     }
 
     [Fact]

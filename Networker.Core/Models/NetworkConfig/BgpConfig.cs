@@ -12,7 +12,7 @@ public sealed record BgpConfig
     /// Local AS number.
     /// </summary>
     [Required]
-    [Range(1, 4294967295)]
+    [Range(1, int.MaxValue)]
     public required int LocalAs { get; init; }
 
     /// <summary>
@@ -45,7 +45,7 @@ public sealed record BgpConfig
     /// </summary>
     public void Validate()
     {
-        if (LocalAs < 1 || LocalAs > 4294967295)
-            throw new ValidationException($"BGP AS must be 1-4294967295, got {LocalAs}");
+        if (LocalAs < 1)
+            throw new ValidationException($"BGP AS must be between 1 and {int.MaxValue}, got {LocalAs}");
     }
 }

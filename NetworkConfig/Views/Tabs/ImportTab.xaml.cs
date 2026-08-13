@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using networker.Models;
 using networker.Services;
 using Networker.Core.Models.NetworkConfig;
@@ -22,6 +21,9 @@ namespace networker.NetworkConfig.Views.Tabs
     /// </summary>
     public sealed partial class ImportTab : UserControl
     {
+        public event Action? WorkspaceChanged;
+        public event Action<string>? ActionCompleted;
+        public event Action<string>? ActionFailed;
         private static readonly string[] SyslogSeverities =
             { "EMERG", "ALERT", "CRIT", "ERR", "WARNING", "NOTICE", "INFO", "DEBUG" };
 
@@ -37,6 +39,7 @@ namespace networker.NetworkConfig.Views.Tabs
                 ?? throw new InvalidOperationException("IConfigParserFactory is not registered in the DI container.");
             _validator = services.GetService<IConfigValidator>()
                 ?? throw new InvalidOperationException("IConfigValidator is not registered in the DI container.");
+            ImportText.TextChanged += (_, _) => WorkspaceChanged?.Invoke();
         }
 
         private void Parse_Click(object sender, RoutedEventArgs e)
@@ -45,6 +48,7 @@ namespace networker.NetworkConfig.Views.Tabs
             if (configText.Length == 0)
             {
                 SetStatus("Please paste a configuration first", error: true);
+                ActionFailed?.Invoke("Paste a configuration or import a syslog file first.");
                 return;
             }
 
@@ -54,8 +58,9 @@ namespace networker.NetworkConfig.Views.Tabs
                 var sb = new StringBuilder();
                 sb.AppendLine("ERRORS:");
                 sb.AppendLine("  - Could not detect configuration vendor/format");
-                ResultsText.Text = sb.ToString();
+                ShowResults(sb.ToString());
                 SetStatus("Parse errors occurred", error: true);
+                ActionFailed?.Invoke("Could not detect the configuration vendor or format.");
                 return;
             }
 
@@ -69,8 +74,9 @@ namespace networker.NetworkConfig.Views.Tabs
                     sb.AppendLine($"  - {error}");
                 }
 
-                ResultsText.Text = sb.ToString();
+                ShowResults(sb.ToString());
                 SetStatus("Parse errors occurred", error: true);
+                ActionFailed?.Invoke("The configuration contains parse errors.");
                 return;
             }
 
@@ -78,12 +84,14 @@ namespace networker.NetworkConfig.Views.Tabs
             if (config is null)
             {
                 SetStatus("Parse error: no configuration was produced", error: true);
+                ActionFailed?.Invoke("No configuration was produced.");
                 return;
             }
 
-            ResultsText.Text = FormatResults(result, config);
+            ShowResults(FormatResults(result, config));
             SetStatus($"Parsed: {config.Hostname}");
             LogActivity("Config Parse", $"{config.Hostname} — {result.Vendor}", "\uE774");
+            ActionCompleted?.Invoke($"Parsed {config.Hostname} ({result.Vendor}).");
         }
 
         private async void ImportSyslogFile_Click(object sender, RoutedEventArgs e)
@@ -115,10 +123,12 @@ namespace networker.NetworkConfig.Views.Tabs
                 ShowSyslogSummary(content, file.Name);
                 SetStatus($"Loaded syslog file: {file.Name}");
                 LogActivity("Syslog Import", file.Name, "\uE774");
+                ActionCompleted?.Invoke($"Loaded syslog file {file.Name}.");
             }
             catch (Exception ex)
             {
                 SetStatus($"Error loading syslog file: {ex.Message}", error: true);
+                ActionFailed?.Invoke(ex.Message);
             }
         }
 
@@ -260,15 +270,20 @@ namespace networker.NetworkConfig.Views.Tabs
             sb.AppendLine("results, clear this box, paste a full device configuration, and use");
             sb.AppendLine("'Parse Configuration'.");
 
-            ResultsText.Text = sb.ToString();
+            ShowResults(sb.ToString());
         }
 
         private void SetStatus(string message, bool error = false)
         {
             StatusText.Text = message;
-            StatusText.Foreground = error
-                ? (Brush)Application.Current.Resources["AppDangerBrush"]
-                : (Brush)Application.Current.Resources["AppTextSecondaryBrush"];
+            StatusText.Style = (Style)Application.Current.Resources[
+                error ? "InlineErrorTextStyle" : "InlineStatusTextStyle"];
+        }
+
+        private void ShowResults(string text)
+        {
+            ResultsText.Text = text;
+            ResultsText.Focus(FocusState.Programmatic);
         }
 
         private static void LogActivity(string title, string detail, string glyph = "\uE774")
@@ -281,6 +296,21 @@ namespace networker.NetworkConfig.Views.Tabs
                 Timestamp = DateTime.Now,
                 Glyph = glyph,
             });
+        }
+
+        public (string Input, string Results) CaptureState() => (ImportText.Text, ResultsText.Text);
+
+        public void RestoreState(string? input, string? results)
+        {
+            ImportText.Text = input ?? string.Empty;
+            ResultsText.Text = results ?? string.Empty;
+        }
+
+        public bool SetInputIfEmpty(string input)
+        {
+            if (!string.IsNullOrWhiteSpace(ImportText.Text)) return false;
+            ImportText.Text = input;
+            return true;
         }
     }
 }

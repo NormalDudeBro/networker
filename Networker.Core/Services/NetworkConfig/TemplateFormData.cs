@@ -61,23 +61,22 @@ public sealed class TemplateAcl
     public List<TemplateAclEntry> Entries { get; set; } = new();
 }
 
+/// <summary>
+/// One ACL entry preset. All values are stored as text to match the template form.
+/// </summary>
+public sealed class TemplateAclEntry
+{
     /// <summary>
-    /// One ACL entry preset (all fields text, matching the Python form rows).
+    /// Entry sequence number. The JSON key preserves the template schema.
     /// </summary>
-    public sealed class TemplateAclEntry
-    {
-        /// <summary>
-        /// Entry sequence number. Stored as text; JSON key is <c>seq</c> to
-        /// match the Python form field name.
-        /// </summary>
-        [JsonPropertyName("seq")]
-        public string Sequence { get; set; } = string.Empty;
+    [JsonPropertyName("seq")]
+    public string Sequence { get; set; } = string.Empty;
     public string Action { get; set; } = "permit";
     public string Protocol { get; set; } = "ip";
     public string Source { get; set; } = string.Empty;
 
     /// <summary>
-    /// Source wildcard mask; JSON key <c>src_wildcard</c> matches the Python form.
+    /// Source wildcard mask. The JSON key preserves the template schema.
     /// </summary>
     [JsonPropertyName("src_wildcard")]
     public string SourceWildcard { get; set; } = string.Empty;
@@ -85,13 +84,13 @@ public sealed class TemplateAcl
     public string Destination { get; set; } = string.Empty;
 
     /// <summary>
-    /// Destination wildcard mask; JSON key <c>dst_wildcard</c> matches the Python form.
+    /// Destination wildcard mask. The JSON key preserves the template schema.
     /// </summary>
     [JsonPropertyName("dst_wildcard")]
     public string DestinationWildcard { get; set; } = string.Empty;
 
     /// <summary>
-    /// Destination port; JSON key <c>dst_port</c> matches the Python form.
+    /// Destination port. The JSON key preserves the template schema.
     /// </summary>
     [JsonPropertyName("dst_port")]
     public string DestinationPort { get; set; } = string.Empty;

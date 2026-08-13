@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="networker.Views.SettingsPage"
+    x:Name="SettingsPageRoot"
+    NavigationCacheMode="Required"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:networker.Controls"
+    xmlns:configTabs="using:networker.NetworkConfig.Views.Tabs"
+    Background="{ThemeResource AppBackgroundBrush}">
+
+    <Grid x:Name="SettingsLayout" RowDefinitions="Auto,*">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="SettingsWidthStates">
+                <VisualState x:Name="NarrowSettings">
+                    <VisualState.StateTriggers>
+                        <controls:ElementWidthTrigger Source="{x:Bind SettingsContent}" MaxWidth="759.999"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="AiSummaryColumn.Width" Value="*"/>
+                        <Setter Target="AiContentColumn.Width" Value="0*"/>
+                        <Setter Target="AiRuntimeForm.(Grid.Row)" Value="1"/>
+                        <Setter Target="AiRuntimeForm.(Grid.Column)" Value="0"/>
+                        <Setter Target="AiRuntimeForm.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="PromptSummaryColumn.Width" Value="*"/>
+                        <Setter Target="PromptContentColumn.Width" Value="0*"/>
+                        <Setter Target="PromptForm.(Grid.Row)" Value="1"/>
+                        <Setter Target="PromptForm.(Grid.Column)" Value="0"/>
+                        <Setter Target="PromptForm.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="ConfigSummaryColumn.Width" Value="*"/>
+                        <Setter Target="ConfigContentColumn.Width" Value="0*"/>
+                        <Setter Target="ConfigurationForm.(Grid.Row)" Value="1"/>
+                        <Setter Target="ConfigurationForm.(Grid.Column)" Value="0"/>
+                        <Setter Target="ConfigurationForm.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="AppearanceSummaryColumn.Width" Value="*"/>
+                        <Setter Target="AppearanceContentColumn.Width" Value="0*"/>
+                        <Setter Target="AppearanceForm.(Grid.Row)" Value="1"/>
+                        <Setter Target="AppearanceForm.(Grid.Column)" Value="0"/>
+                        <Setter Target="AppearanceForm.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="UpdateSummaryColumn.Width" Value="*"/>
+                        <Setter Target="UpdateContentColumn.Width" Value="0*"/>
+                        <Setter Target="UpdateForm.(Grid.Row)" Value="1"/>
+                        <Setter Target="UpdateForm.(Grid.Column)" Value="0"/>
+                        <Setter Target="UpdateForm.(Grid.ColumnSpan)" Value="2"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="WideSettings">
+                    <VisualState.StateTriggers>
+                        <controls:ElementWidthTrigger Source="{x:Bind SettingsContent}" MinWidth="760"/>
+                    </VisualState.StateTriggers>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <Border Grid.Row="0" Style="{StaticResource WorkspaceHeaderStyle}">
+            <StackPanel Style="{StaticResource PageHeaderStackStyle}">
+                 <TextBlock Text="STEP 9 OF 9" Style="{StaticResource PageEyebrowTextStyle}"/>
+                <TextBlock Text="Settings" Style="{StaticResource PageTitleTextStyle}"/>
+                <TextBlock Text="Configure the AI runtime, prompt defaults, configuration workspace, appearance, and application updates." Style="{StaticResource PageSubtitleTextStyle}"/>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel
+                x:Name="SettingsContent"
+                Padding="{StaticResource PagePadding}"
+                Spacing="0"
+                MaxWidth="{StaticResource SettingsMaxWidth}"
+                HorizontalAlignment="Stretch">
+
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+                    <Button Content="General" Tag="general" Click="SettingsSection_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                    <Button Content="Templates" Tag="templates" Click="SettingsSection_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                    <Button Content="Vault" Tag="vault" Click="SettingsSection_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                </StackPanel>
+
+                <StackPanel x:Name="GeneralSettingsPanel">
+
+                <Border Style="{StaticResource SectionPanelStyle}">
+                    <Grid ColumnSpacing="24" RowSpacing="16" RowDefinitions="Auto,Auto">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="AiSummaryColumn" Width="180"/>
+                            <ColumnDefinition x:Name="AiContentColumn" Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="AI RUNTIME" Style="{StaticResource SectionLabelTextStyle}"/>
+                            <TextBlock Text="Provider and model choices save automatically. Connection changes apply only when refreshed." Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+
+                        <StackPanel x:Name="AiRuntimeForm" Grid.Column="1" Spacing="14">
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                <StackPanel Spacing="6">
+                                    <TextBlock x:Name="ProviderLabel" Text="Active provider" Style="{StaticResource FieldLabelTextStyle}"/>
+                                    <ComboBox x:Name="ProviderComboBox" SelectionChanged="ProviderComboBox_SelectionChanged" HorizontalAlignment="Stretch" AutomationProperties.LabeledBy="{x:Bind ProviderLabel}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="6">
+                                    <TextBlock x:Name="ModelLabel" Text="Default model" Style="{StaticResource FieldLabelTextStyle}"/>
+                                    <ComboBox x:Name="ModelComboBox" SelectionChanged="ModelComboBox_SelectionChanged" IsEnabled="False" HorizontalAlignment="Stretch" AutomationProperties.LabeledBy="{x:Bind ModelLabel}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Border Style="{StaticResource InsetPanelStyle}">
+                                <StackPanel Spacing="10">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Ollama connection" Style="{StaticResource CardTitleTextStyle}"/>
+                                        <TextBlock Text="Endpoint and optional bearer token are staged until Apply &amp; refresh is selected." Style="{StaticResource CaptionTextStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Spacing="6">
+                                        <TextBlock x:Name="EndpointLabel" Text="API endpoint" Style="{StaticResource FieldLabelTextStyle}"/>
+                                        <TextBox x:Name="EndpointTextBox" PlaceholderText="http://localhost:11434" AutomationProperties.LabeledBy="{x:Bind EndpointLabel}"/>
+                                    </StackPanel>
+                                    <StackPanel Spacing="6">
+                                        <TextBlock x:Name="ApiKeyLabel" Text="API key" Style="{StaticResource FieldLabelTextStyle}"/>
+                                        <PasswordBox x:Name="ApiKeyPasswordBox" PlaceholderText="Optional" AutomationProperties.LabeledBy="{x:Bind ApiKeyLabel}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <Button x:Name="RefreshButton" Content="Apply &amp; refresh" Click="RefreshButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                                        <ProgressRing x:Name="LoadingRing" IsActive="False" Width="20" Height="20" Visibility="Collapsed"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                <Ellipse x:Name="ConnectionStatusDot" Style="{StaticResource StatusDotStyle}" Fill="{ThemeResource AppTextDisabledBrush}" AutomationProperties.Name="AI connection status"/>
+                                <TextBlock x:Name="ConnectionStatusText" Grid.Column="1" Style="{StaticResource InlineStatusTextStyle}" AutomationProperties.LiveSetting="Polite"/>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource SectionPanelStyle}">
+                    <Grid ColumnDefinitions="180,*" ColumnSpacing="24">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="WORKSPACE DATA" Style="{StaticResource SectionLabelTextStyle}"/>
+                            <TextBlock Text="The latest troubleshooting workspace is restored after restart." Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="8">
+                            <TextBlock x:Name="WorkspaceDataText" Style="{StaticResource InlineStatusTextStyle}" TextWrapping="Wrap"/>
+                            <Button Content="Clear troubleshooting workspace" Click="ClearWorkspace_Click" Style="{StaticResource DangerButtonStyle}" HorizontalAlignment="Left"/>
+                            <TextBlock Text="Settings, templates, and encrypted vault data are retained." Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource SectionPanelStyle}">
+                    <Grid ColumnSpacing="24" RowSpacing="16" RowDefinitions="Auto,Auto">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="PromptSummaryColumn" Width="180"/>
+                            <ColumnDefinition x:Name="PromptContentColumn" Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="PROMPT DEFAULTS" Style="{StaticResource SectionLabelTextStyle}"/>
+                            <TextBlock Text="Optional instructions prepended to every model request. Changes are saved only with Save." Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+
+                        <StackPanel x:Name="PromptForm" Grid.Column="1" Spacing="12">
+                            <StackPanel Spacing="6">
+                                <TextBlock x:Name="SystemPromptLabel" Text="System prompt" Style="{StaticResource FieldLabelTextStyle}"/>
+                                <TextBox x:Name="SystemPromptTextBox" PlaceholderText="You are a network engineering assistant." AcceptsReturn="True" TextWrapping="Wrap" MinHeight="110" MaxHeight="220" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.LabeledBy="{x:Bind SystemPromptLabel}"/>
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock x:Name="CustomInstructionsLabel" Text="Custom instructions" Style="{StaticResource FieldLabelTextStyle}"/>
+                                <TextBox x:Name="CustomInstructionsTextBox" PlaceholderText="Prefer concise, operationally safe recommendations." AcceptsReturn="True" TextWrapping="Wrap" MinHeight="110" MaxHeight="220" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.LabeledBy="{x:Bind CustomInstructionsLabel}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button x:Name="SavePromptButton" Content="Save prompts" Click="SavePromptButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                                <Button x:Name="ResetPromptButton" Content="Reset" Click="ResetPromptButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                            </StackPanel>
+                            <TextBlock x:Name="PromptStatusText" Style="{StaticResource InlineStatusTextStyle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource SectionPanelStyle}">
+                    <Grid ColumnSpacing="24" RowSpacing="16" RowDefinitions="Auto,Auto">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="ConfigSummaryColumn" Width="180"/>
+                            <ColumnDefinition x:Name="ConfigContentColumn" Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="CONFIGURATION" Style="{StaticResource SectionLabelTextStyle}"/>
+                            <TextBlock Text="The default vendor saves automatically. Data-folder changes require applying and restarting Networker." Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+
+                        <StackPanel x:Name="ConfigurationForm" Grid.Column="1" Spacing="12">
+                            <StackPanel Spacing="6">
+                                <TextBlock x:Name="VendorLabel" Text="Default vendor" Style="{StaticResource FieldLabelTextStyle}"/>
+                                <ComboBox x:Name="VendorComboBox" SelectionChanged="VendorComboBox_SelectionChanged" HorizontalAlignment="Stretch" AutomationProperties.LabeledBy="{x:Bind VendorLabel}"/>
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock x:Name="DataFolderLabel" Text="Data folder" Style="{StaticResource FieldLabelTextStyle}"/>
+                                <TextBox x:Name="NetworkConfigDirTextBox" AutomationProperties.LabeledBy="{x:Bind DataFolderLabel}"/>
+                                <TextBlock Text="Stores vault.dat and custom_templates.json. Existing data is not moved automatically." Style="{StaticResource CaptionTextStyle}"/>
+                            </StackPanel>
+                            <Button Content="Apply on restart" Click="ApplyDataFolderButton_Click" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left"/>
+                            <TextBlock x:Name="DataFolderStatusText" Style="{StaticResource InlineStatusTextStyle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource SectionPanelStyle}">
+                    <Grid ColumnSpacing="24" RowSpacing="16" RowDefinitions="Auto,Auto">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="AppearanceSummaryColumn" Width="180"/>
+                            <ColumnDefinition x:Name="AppearanceContentColumn" Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="APPEARANCE" Style="{StaticResource SectionLabelTextStyle}"/>
+                            <TextBlock Text="Theme selection saves and applies immediately." Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+
+                        <StackPanel x:Name="AppearanceForm" Grid.Column="1" Spacing="6">
+                            <TextBlock x:Name="ThemeLabel" Text="Theme" Style="{StaticResource FieldLabelTextStyle}"/>
+                            <ComboBox x:Name="ThemeComboBox" SelectionChanged="ThemeComboBox_SelectionChanged" HorizontalAlignment="Stretch" AutomationProperties.LabeledBy="{x:Bind ThemeLabel}"/>
+                            <TextBlock Text="System follows the Windows app theme preference." Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource SectionPanelStyle}">
+                    <Grid ColumnSpacing="24" RowSpacing="16" RowDefinitions="Auto,Auto">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition x:Name="UpdateSummaryColumn" Width="180"/>
+                            <ColumnDefinition x:Name="UpdateContentColumn" Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="APPLICATION UPDATES" Style="{StaticResource SectionLabelTextStyle}"/>
+                            <TextBlock Text="Updates come from versioned GitHub releases and install as signed x64 packages. Automatic checks run in the background and never block startup." Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+
+                        <StackPanel x:Name="UpdateForm" Grid.Column="1" Spacing="14">
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                <StackPanel Spacing="2">
+                                    <ToggleSwitch x:Name="AutomaticChecksToggle" Header="Automatic update checks" OnContent="On" OffContent="Off" Toggled="AutomaticChecksToggle_Toggled" AutomationProperties.Name="Automatic update checks"/>
+                                    <TextBlock Text="Check for updates in the background. Manual checks always work." Style="{StaticResource CaptionTextStyle}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="2">
+                                    <ToggleSwitch x:Name="PreviewToggle" Header="Preview builds" OnContent="Preview" OffContent="Stable" Toggled="PreviewToggle_Toggled" AutomationProperties.Name="Preview builds"/>
+                                    <TextBlock Text="Stable installs only stable releases; Preview can install pre-releases." Style="{StaticResource CaptionTextStyle}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="24">
+                                <StackPanel Spacing="6" MinWidth="180">
+                                    <TextBlock Text="Installed version" Style="{StaticResource FieldLabelTextStyle}"/>
+                                    <TextBlock x:Name="InstalledVersionText" Style="{StaticResource CardTitleTextStyle}" AutomationProperties.LiveSetting="Polite"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="6">
+                                    <TextBlock Text="Last successful check" Style="{StaticResource FieldLabelTextStyle}"/>
+                                    <TextBlock x:Name="LastCheckText" Style="{StaticResource InlineStatusTextStyle}" AutomationProperties.LiveSetting="Polite"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button x:Name="CheckUpdatesButton" Content="Check for updates" Click="CheckUpdatesButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                                <ProgressRing x:Name="UpdateBusyRing" IsActive="False" Width="20" Height="20" Visibility="Collapsed"/>
+                            </StackPanel>
+
+                            <Border x:Name="UpdateDetailPanel" Style="{StaticResource InsetPanelStyle}" Visibility="Collapsed">
+                                <StackPanel Spacing="10">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="Update available" Style="{StaticResource CardTitleTextStyle}"/>
+                                        <TextBlock x:Name="UpdateVersionText" Style="{StaticResource CaptionTextStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="Published" Style="{StaticResource FieldLabelTextStyle}"/>
+                                        <TextBlock x:Name="UpdatePublishedText" Style="{StaticResource InlineStatusTextStyle}"/>
+                                    </StackPanel>
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="Release notes" Style="{StaticResource FieldLabelTextStyle}"/>
+                                        <TextBlock x:Name="UpdateNotesText" TextWrapping="Wrap" MaxHeight="140" Style="{StaticResource CaptionTextStyle}" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                                    </StackPanel>
+                                    <HyperlinkButton x:Name="ReleaseLinkButton" Content="View release on GitHub" NavigateUri="https://github.com/NormalDudeBro/networker" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </Border>
+
+                            <ProgressBar x:Name="UpdateProgressBar" Maximum="1" Visibility="Collapsed" AutomationProperties.Name="Update download progress"/>
+
+                            <TextBlock x:Name="UpdateStatusText" Style="{StaticResource InlineStatusTextStyle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button x:Name="InstallUpdateButton" Content="Download and install" Click="InstallUpdateButton_Click" Style="{StaticResource PrimaryButtonStyle}" Visibility="Collapsed"/>
+                                <Button x:Name="CancelInstallButton" Content="Cancel" Click="CancelInstallButton_Click" Style="{StaticResource SecondaryButtonStyle}" Visibility="Collapsed"/>
+                                <Button x:Name="RestartNowButton" Content="Restart now" Click="RestartNowButton_Click" Style="{StaticResource PrimaryButtonStyle}" Visibility="Collapsed"/>
+                                <Button x:Name="LaterButton" Content="Later" Click="LaterButton_Click" Style="{StaticResource SecondaryButtonStyle}" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                </StackPanel>
+
+                <Grid x:Name="TemplatesSettingsPanel" Visibility="Collapsed" MinHeight="420">
+                    <configTabs:TemplatesTab/>
+                </Grid>
+
+                <Grid x:Name="VaultSettingsPanel" Visibility="Collapsed" MinHeight="420">
+                    <configTabs:VaultTab/>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

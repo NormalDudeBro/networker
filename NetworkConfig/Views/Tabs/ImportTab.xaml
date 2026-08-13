@@ -3,39 +3,73 @@
     x:Class="networker.NetworkConfig.Views.Tabs.ImportTab"
     x:Name="ImportRoot"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:networker.Controls">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="16,12" Spacing="12" MaxWidth="1100" HorizontalAlignment="Stretch">
+    <Grid x:Name="ImportLayout">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="ImportWidthStates">
+                <VisualState x:Name="NarrowImport">
+                    <VisualState.StateTriggers>
+                        <controls:ElementWidthTrigger Source="{x:Bind ImportLayout}" MaxWidth="899.999"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="ImportOutputColumn.Width" Value="0*"/>
+                        <Setter Target="ImportResultsPanel.(Grid.Row)" Value="1"/>
+                        <Setter Target="ImportResultsPanel.(Grid.Column)" Value="0"/>
+                        <Setter Target="ImportResultsPanel.(Grid.ColumnSpan)" Value="2"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="WideImport">
+                    <VisualState.StateTriggers>
+                        <controls:ElementWidthTrigger Source="{x:Bind ImportLayout}" MinWidth="900"/>
+                    </VisualState.StateTriggers>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
 
-            <Border Style="{StaticResource CardStyle}">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="Import Configuration" Style="{StaticResource SectionHeaderTextStyle}"/>
-                    <TextBox x:Name="ImportText" AcceptsReturn="True" TextWrapping="NoWrap" Height="240"
-                             PlaceholderText="Paste a configuration here... (Cisco IOS, Juniper Junos, or SONiC)"/>
-                    <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="8">
-                        <Button Content="Parse Configuration" Style="{StaticResource PrimaryButtonStyle}" Click="Parse_Click">
-                            <Button.KeyboardAccelerators>
-                                <KeyboardAccelerator Key="Enter" Modifiers="Control" ScopeOwner="{x:Bind ImportRoot}"/>
-                            </Button.KeyboardAccelerators>
-                        </Button>
-                        <Button Grid.Column="1" Content="Import Syslog File" Click="ImportSyslogFile_Click" Style="{StaticResource SecondaryButtonStyle}"/>
-                        <Button Grid.Column="2" Content="Clear" Click="Clear_Click" Style="{StaticResource ChipButtonStyle}"/>
-                        <TextBlock x:Name="StatusText" Grid.Column="3" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
-                    </Grid>
-                </StackPanel>
-            </Border>
+        <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+            <Grid Padding="{StaticResource TabContentPadding}" ColumnSpacing="12" RowSpacing="12" MaxWidth="1200" HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition x:Name="ImportOutputColumn" Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <Border Style="{StaticResource CardStyle}">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="Parse Results" Style="{StaticResource SectionHeaderTextStyle}"/>
-                    <TextBox x:Name="ResultsText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
-                             Height="360"
-                             FontFamily="{ThemeResource CodeFontFamily}" FontSize="{ThemeResource FontSizeCode}"
-                             Foreground="{ThemeResource AppTextPrimaryBrush}"/>
-                </StackPanel>
-            </Border>
+                <Border Style="{StaticResource ToolInputPanelStyle}">
+                    <StackPanel Spacing="10">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="IMPORT / ANALYZE" Style="{StaticResource SectionLabelTextStyle}"/>
+                            <TextBlock Text="Paste a Cisco IOS, Juniper Junos, or SONiC configuration, or load a syslog file." Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+                        <TextBlock x:Name="ImportEditorLabel" Text="Configuration or syslog input" Style="{StaticResource FieldLabelTextStyle}"/>
+                        <TextBox x:Name="ImportText" Style="{StaticResource TechnicalEditorStyle}" MinHeight="260" PlaceholderText="Paste configuration text here..." AutomationProperties.LabeledBy="{x:Bind ImportEditorLabel}"/>
+                        <Grid ColumnDefinitions="Auto,Auto,Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                            <Button Content="Parse configuration" Style="{StaticResource PrimaryButtonStyle}" Click="Parse_Click">
+                                <Button.KeyboardAccelerators>
+                                    <KeyboardAccelerator Key="Enter" Modifiers="Control" ScopeOwner="{x:Bind ImportRoot}"/>
+                                </Button.KeyboardAccelerators>
+                            </Button>
+                            <Button Grid.Column="1" Content="Import syslog" Click="ImportSyslogFile_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                            <Button Grid.Column="2" Content="Clear" Click="Clear_Click" Style="{StaticResource GhostButtonStyle}"/>
+                            <TextBlock x:Name="StatusText" Grid.Row="1" Grid.ColumnSpan="4" Style="{StaticResource InlineStatusTextStyle}" AutomationProperties.LiveSetting="Polite"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
-        </StackPanel>
-    </ScrollViewer>
+                <Border x:Name="ImportResultsPanel" Grid.Column="1" Style="{StaticResource ToolInputPanelStyle}">
+                    <StackPanel Spacing="10">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="PARSE RESULTS" Style="{StaticResource SectionLabelTextStyle}"/>
+                            <TextBlock Text="Detected platform, inventory summary, parser warnings, and validation findings." Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+                        <TextBox x:Name="ResultsText" Style="{StaticResource TechnicalReadOnlyOutputStyle}" MinHeight="320" AutomationProperties.Name="Configuration parse results"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

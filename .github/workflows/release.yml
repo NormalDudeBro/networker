@@ -1,0 +1,272 @@
+name: Release
+
+# Publishes a signed production release. Triggered only by versioned tags
+# (vMAJOR.MINOR.PATCH for stable, vMAJOR.MINOR.PATCH-preview.N for prereleases).
+#
+# Produces and uploads exactly three assets for the tag:
+#   Networker-<semver>-win-x64.msix          - trusted-certificate-signed MSIX
+#   Networker-<semver>-win-x64.msix.sha256   - checksum sidecar (see Networker.Core/Updates/UpdateChecksum.cs)
+#   Networker-x64.appinstaller               - App Installer manifest, no UpdateSettings
+#
+# The release is created as a DRAFT, all three assets are uploaded, and only
+# then is it published. Any step failure leaves the draft invisible to the
+# updater. Stable releases become latest; preview releases stay prereleases.
+# Existing tags/releases/assets are never overwritten.
+#
+# The tag's version and the certificate subject (Publisher) are patched into
+# Package.appxmanifest before the signed build, so the package identity is
+# frozen from the trusted certificate. Before building, the workflow verifies
+# that any prior non-draft release used the same package name/publisher.
+#
+# Requires repository (or production-release environment) secrets:
+#   NETWORKER_SIGNING_CERTIFICATE_BASE64 - the trusted code-signing PFX, base64-encoded
+#   NETWORKER_SIGNING_CERTIFICATE_PASSWORD - its password
+# The workflow fails fast when those secrets are missing: a release without the
+# trusted certificate would ship unsigned and be rejected by the OS, so it must
+# never be published. The certificate is decoded only into $RUNNER_TEMP and is
+# removed after the build.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-2022
+    environment: production-release
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Extract release tag
+        id: tag
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF.Substring('refs/tags/'.Length)
+          if (-not $tag.StartsWith('v')) {
+            throw "Expected a version tag (refs/tags/v*), got $env:GITHUB_REF"
+          }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "tag=$tag"
+
+      - name: Restore
+        run: dotnet restore networker.sln
+
+      - name: Run Core tests
+        run: dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj -c Debug --no-restore
+
+      - name: Materialize trusted certificate
+        shell: pwsh
+        env:
+          NETWORKER_SIGNING_CERTIFICATE_BASE64: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_BASE64 }}
+          NETWORKER_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrEmpty($env:NETWORKER_SIGNING_CERTIFICATE_BASE64) -or [string]::IsNullOrEmpty($env:NETWORKER_SIGNING_CERTIFICATE_PASSWORD)) {
+            throw 'Signing certificate secrets (NETWORKER_SIGNING_CERTIFICATE_BASE64 / NETWORKER_SIGNING_CERTIFICATE_PASSWORD) are not configured. No signed public release can be produced without them.'
+          }
+          $bytes = [Convert]::FromBase64String($env:NETWORKER_SIGNING_CERTIFICATE_BASE64)
+          $path = Join-Path $env:RUNNER_TEMP 'trusted-certificate.pfx'
+          [IO.File]::WriteAllBytes($path, $bytes)
+          Write-Host "Wrote trusted certificate ($($bytes.Length) bytes); certificate data is not printed."
+
+      - name: Prepare release (validate tag, patch manifest, derive publisher)
+        id: prepare
+        shell: pwsh
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          PFX_PASSWORD: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'trusted-certificate.pfx'
+          & ./scripts/Prepare-Release.ps1 -Tag $env:TAG -ManifestPath Package.appxmanifest -CertificatePath $pfx -CertificatePassword $env:PFX_PASSWORD
+
+      - name: Verify package identity against prior releases
+        shell: pwsh
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          PACKAGE_NAME: ${{ steps.prepare.outputs.package_name }}
+          PUBLISHER: ${{ steps.prepare.outputs.publisher }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $headers = @{
+            'Accept'             = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+            'User-Agent'         = 'Networker-release'
+          }
+          if ($env:GITHUB_TOKEN) { $headers['Authorization'] = "Bearer $env:GITHUB_TOKEN" }
+
+          # Page through the releases API; a prior non-draft release must never
+          # be missed, because the identity freeze only applies when one exists.
+          $releases = [System.Collections.Generic.List[object]]::new()
+          $page = 1
+          while ($true) {
+            $batch = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/NormalDudeBro/networker/releases?per_page=100&page=$page"
+            $releases.AddRange($batch)
+            if (@($batch).Count -lt 100) { break }
+            $page++
+            if ($page -gt 10) { break }
+          }
+
+          if ($releases | Where-Object { $_.tag_name -eq $env:TAG }) {
+            throw "Tag $env:TAG already has a GitHub release. Releases and assets are immutable; delete the release manually to republish, or use a new tag."
+          }
+
+          $prior = $releases | Where-Object { -not $_.draft } | Sort-Object { [datetime]$_.published_at } -Descending | Select-Object -First 1
+          if ($prior) {
+            $url = "https://github.com/NormalDudeBro/networker/releases/download/$($prior.tag_name)/Networker-x64.appinstaller"
+            $appInstallerPath = Join-Path $env:RUNNER_TEMP 'prior-release-appinstaller.xml'
+            Invoke-WebRequest -Uri $url -OutFile $appInstallerPath -MaximumRedirection 5
+            [xml]$doc = Get-Content -Raw -Path $appInstallerPath
+            $main = $doc.DocumentElement.GetElementsByTagName('MainPackage').Item(0)
+            if (-not $main) { throw "Prior release $($prior.tag_name) has no MainPackage in its appinstaller." }
+            $priorName = $main.GetAttribute('Name')
+            $priorPublisher = $main.GetAttribute('Publisher')
+            if ($priorName -ne $env:PACKAGE_NAME -or $priorPublisher -ne $env:PUBLISHER) {
+              throw "Package identity changed vs prior release $($prior.tag_name): prior '$priorName' / '$priorPublisher', current '$env:PACKAGE_NAME' / '$env:PUBLISHER'. The publisher identity is frozen; certificate rotation must keep the same subject."
+            }
+            Write-Host "Prior release identity matches: $priorName / $priorPublisher"
+          }
+          else {
+            Write-Host 'No prior non-draft release; this release freezes the package identity.'
+          }
+
+      - name: Build signed MSIX
+        shell: pwsh
+        env:
+          PFX_PASSWORD: ${{ secrets.NETWORKER_SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'trusted-certificate.pfx'
+          dotnet build networker.csproj -c Release -p:Platform=x64 --no-restore `
+            -p:GenerateAppxPackageOnBuild=true `
+            -p:AppxPackageSigningEnabled=true `
+            -p:PackageCertificateKeyFile=$pfx `
+            -p:PackageCertificatePassword=$env:PFX_PASSWORD
+
+      - name: Remove temporary certificate
+        shell: pwsh
+        run: |
+          Remove-Item -Path (Join-Path $env:RUNNER_TEMP 'trusted-certificate.pfx') -Force -ErrorAction SilentlyContinue
+
+      - name: Cross-check release mapping against built Core assembly
+        shell: pwsh
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          # The built Core assembly lands under bin\x64\Release (the Core project
+          # targets net8.0; its assembly is copied into the app's output folder).
+          $core = Get-ChildItem -Path (Join-Path $env:GITHUB_WORKSPACE 'bin\x64\Release') -Recurse -Filter 'Networker.Core.dll' -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $core) { throw 'Networker.Core.dll not found under bin\x64\Release after the signed build.' }
+          $env:NETWORKER_CORE_ASSEMBLY = $core.FullName
+          & ./scripts/Prepare-Release.ps1 -Tag $env:TAG -SelfTest
+          Write-Host 'Cross-check passed; script and Core policy agree.'
+
+      - name: Verify signed MSIX and prepare release assets
+        id: assets
+        shell: pwsh
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          ASSET_NAME: ${{ steps.prepare.outputs.asset_name }}
+          CHECKSUM_NAME: ${{ steps.prepare.outputs.checksum_name }}
+          PACKAGE_NAME: ${{ steps.prepare.outputs.package_name }}
+          PUBLISHER: ${{ steps.prepare.outputs.publisher }}
+          MSIX_VERSION: ${{ steps.prepare.outputs.msix_version }}
+        run: |
+          $msix = Get-ChildItem -Path 'AppPackages' -Recurse -Filter 'networker_*_x64.msix' -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msix) { throw 'No signed x64 MSIX found under AppPackages.' }
+
+          # Structural signing verification: the signature block and the
+          # code-integrity catalog must be inside the package.
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [IO.Compression.ZipFile]::OpenRead($msix.FullName)
+          try {
+            $entries = @($zip.Entries | ForEach-Object { $_.FullName })
+            foreach ($required in @('AppxSignature.p7x', 'AppxMetadata/CodeIntegrity.cat', 'AppxBlockMap.xml')) {
+              if ($entries -notcontains $required) { throw "MSIX is missing $required (signing did not complete)." }
+            }
+
+            # Packaged manifest identity: the embedded AppxManifest.xml must
+            # declare exactly the prepared package name/publisher and the
+            # mapped x64 version (plan: unpack/inspect the manifest).
+            $manifestEntry = $zip.GetEntry('AppxManifest.xml')
+            if (-not $manifestEntry) { throw 'MSIX has no AppxManifest.xml entry.' }
+            if ($manifestEntry.Length -gt 1MB) { throw 'AppxManifest.xml is unexpectedly large.' }
+            $manifestReader = New-Object System.IO.StreamReader($manifestEntry.Open())
+            $manifestXml = $manifestReader.ReadToEnd()
+            $manifestReader.Dispose()
+            $xmlSettings = New-Object System.Xml.XmlReaderSettings
+            $xmlSettings.DtdProcessing = 'Prohibit'
+            $xmlSettings.XmlResolver = $null
+            $xmlReader = [System.Xml.XmlReader]::Create([System.IO.StringReader]::new($manifestXml), $xmlSettings)
+            $manifestDoc = New-Object System.Xml.XmlDocument
+            $manifestDoc.Load($xmlReader)
+            $nsm = New-Object System.Xml.XmlNamespaceManager($manifestDoc.NameTable)
+            $nsm.AddNamespace('m', 'http://schemas.microsoft.com/appx/manifest/foundation/windows10')
+            $identity = $manifestDoc.SelectSingleNode('//m:Identity', $nsm)
+            if (-not $identity) { throw 'AppxManifest.xml has no Identity element.' }
+            $manifestName = $identity.GetAttribute('Name')
+            $manifestPublisher = $identity.GetAttribute('Publisher')
+            $manifestArch = $identity.GetAttribute('ProcessorArchitecture')
+            $manifestVersion = $identity.GetAttribute('Version')
+            if ($manifestName -ne $env:PACKAGE_NAME -or $manifestPublisher -ne $env:PUBLISHER -or $manifestArch -ne 'x64' -or $manifestVersion -ne $env:MSIX_VERSION) {
+              throw "Packaged manifest identity mismatch: got '$manifestName' / '$manifestPublisher' / '$manifestArch' / '$manifestVersion'; expected '$env:PACKAGE_NAME' / '$env:PUBLISHER' / 'x64' / '$env:MSIX_VERSION'."
+            }
+            Write-Host "Packaged manifest identity verified: $manifestName / $manifestPublisher / $manifestArch / $manifestVersion"
+          }
+          finally {
+            $zip.Dispose()
+          }
+          Write-Host "Verified signature artifacts and manifest in $($msix.Name)."
+
+          # Chain verification: the signature must validate against the
+          # runner's trusted root store. This requires a real code-signing
+          # certificate whose PFX contains its full chain; self-signed test
+          # certificates fail here by design.
+          $signtool = Get-ChildItem -Path 'C:\Program Files (x86)\Windows Kits\10\bin' -Filter 'signtool.exe' -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match '\\x64\\signtool\.exe$' } |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe not found under the Windows Kits.' }
+          $verifyLog = Join-Path $env:RUNNER_TEMP 'signtool-verify.log'
+          & $signtool.FullName verify /pa /v $msix.FullName *> $verifyLog
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host (Get-Content $verifyLog -ErrorAction SilentlyContinue | Select-Object -Last 15)
+            throw "signtool verify failed (exit $LASTEXITCODE). The certificate must be trusted by the runner and the PFX must contain its full chain."
+          }
+          Write-Host 'signtool verify passed.'
+
+          $msixPath = Join-Path $env:RUNNER_TEMP $env:ASSET_NAME
+          Copy-Item -Path $msix.FullName -Destination $msixPath
+
+          $hash = (Get-FileHash -Path $msixPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sidecarPath = Join-Path $env:RUNNER_TEMP $env:CHECKSUM_NAME
+          [IO.File]::WriteAllText($sidecarPath, "$hash  $($env:ASSET_NAME)`n", [Text.UTF8Encoding]::new($false))
+          Write-Host "sha256: $hash  $($env:ASSET_NAME)"
+
+          $appinstallerPath = Join-Path $env:RUNNER_TEMP 'Networker-x64.appinstaller'
+          & ./scripts/New-AppInstaller.ps1 -Tag $env:TAG -PackageName $env:PACKAGE_NAME -Publisher $env:PUBLISHER -MsixVersion $env:MSIX_VERSION -MsixAssetName $env:ASSET_NAME -OutputPath $appinstallerPath
+
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "msix_path=$msixPath"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "sidecar_path=$sidecarPath"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "appinstaller_path=$appinstallerPath"
+
+      - name: Publish GitHub release (draft, upload assets, then publish)
+        shell: pwsh
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          PRERELEASE: ${{ steps.prepare.outputs.prerelease }}
+          MSIX_PATH: ${{ steps.assets.outputs.msix_path }}
+          SIDECAR_PATH: ${{ steps.assets.outputs.sidecar_path }}
+          APPINSTALLER_PATH: ${{ steps.assets.outputs.appinstaller_path }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create $env:TAG --repo NormalDudeBro/networker --title $env:TAG --draft
+          gh release upload $env:TAG $env:MSIX_PATH $env:SIDECAR_PATH $env:APPINSTALLER_PATH --repo NormalDudeBro/networker
+          gh release edit $env:TAG --repo NormalDudeBro/networker --draft=false --prerelease=$env:PRERELEASE

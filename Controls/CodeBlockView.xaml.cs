@@ -1,8 +1,11 @@
 using System;
 using System.ComponentModel;
+using System.Collections.Generic;
 using System.Linq;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using networker.Models;
@@ -15,11 +18,32 @@ namespace networker.Controls
     public sealed partial class CodeBlockView : UserControl
     {
         private ChatMessage? _source;
+        private readonly Dictionary<HighlightType, SolidColorBrush> _brushes = new();
+        private readonly DispatcherQueueTimer _renderTimer;
+        private readonly DispatcherQueueTimer _copyTimer;
 
         public CodeBlockView()
         {
             this.InitializeComponent();
+            _renderTimer = DispatcherQueue.CreateTimer();
+            _renderTimer.Interval = TimeSpan.FromMilliseconds(50);
+            _renderTimer.IsRepeating = false;
+            _renderTimer.Tick += (_, _) =>
+            {
+                if (_source is not null) Render(_source);
+            };
+
+            _copyTimer = DispatcherQueue.CreateTimer();
+            _copyTimer.Interval = TimeSpan.FromMilliseconds(1500);
+            _copyTimer.IsRepeating = false;
+            _copyTimer.Tick += (_, _) => ResetCopyFeedback();
+
             DataContextChanged += OnDataContextChanged;
+            ActualThemeChanged += (_, _) =>
+            {
+                _brushes.Clear();
+                if (_source is not null) Render(_source);
+            };
         }
 
         private void OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
@@ -36,12 +60,35 @@ namespace networker.Controls
                 _source.PropertyChanged += OnSourcePropertyChanged;
                 Render(_source);
             }
+            else
+            {
+                TitleText.Text = "Configuration";
+                BadgeHost.Visibility = Visibility.Collapsed;
+                BodyText.Blocks.Clear();
+            }
         }
 
         private void OnSourcePropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(ChatMessage.Text) && sender is ChatMessage message)
+            if (sender is not ChatMessage message)
             {
+                return;
+            }
+
+            if (e.PropertyName == nameof(ChatMessage.Text))
+            {
+                if (message.IsStreaming)
+                {
+                    if (!_renderTimer.IsRunning) _renderTimer.Start();
+                }
+                else
+                {
+                    Render(message);
+                }
+            }
+            else if (e.PropertyName == nameof(ChatMessage.IsStreaming) && !message.IsStreaming)
+            {
+                _renderTimer.Stop();
                 Render(message);
             }
         }
@@ -77,7 +124,7 @@ namespace networker.Controls
                     paragraph.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run
                     {
                         Text = token.Text,
-                        Foreground = new SolidColorBrush(BrushFor(token.Type))
+                        Foreground = BrushFor(token.Type)
                     });
                 }
 
@@ -85,9 +132,14 @@ namespace networker.Controls
             }
         }
 
-        private static Color BrushFor(HighlightType type)
+        private SolidColorBrush BrushFor(HighlightType type)
         {
-            return type switch
+            if (_brushes.TryGetValue(type, out var brush))
+            {
+                return brush;
+            }
+
+            var color = type switch
             {
                 HighlightType.Comment => ColorFromResource("AppCommentColor"),
                 HighlightType.Keyword => ColorFromResource("AppKeywordColor"),
@@ -95,6 +147,10 @@ namespace networker.Controls
                 HighlightType.Number => ColorFromResource("AppNumberColor"),
                 _ => ColorFromResource("AppTextPrimaryColor")
             };
+
+            brush = new SolidColorBrush(color);
+            _brushes[type] = brush;
+            return brush;
         }
 
         private static Color ColorFromResource(string key)
@@ -123,6 +179,20 @@ namespace networker.Controls
             var package = new DataPackage();
             package.SetText(_source.Text ?? "");
             Clipboard.SetContent(package);
+            CopyGlyph.Glyph = "\uE73E";
+            CopyStatus.Visibility = Visibility.Visible;
+            AutomationProperties.SetName(CopyButton, "Copied");
+            ToolTipService.SetToolTip(CopyButton, "Copied");
+            _copyTimer.Stop();
+            _copyTimer.Start();
+        }
+
+        private void ResetCopyFeedback()
+        {
+            CopyGlyph.Glyph = "\uE8C8";
+            CopyStatus.Visibility = Visibility.Collapsed;
+            AutomationProperties.SetName(CopyButton, "Copy to clipboard");
+            ToolTipService.SetToolTip(CopyButton, "Copy to clipboard");
         }
     }
 }

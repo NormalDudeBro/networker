@@ -22,6 +22,9 @@ namespace networker.NetworkConfig.Views.Tabs
     /// </summary>
     public sealed partial class GenerateTab : UserControl
     {
+        public event Action? WorkspaceChanged;
+        public event Action<string>? ActionCompleted;
+        public event Action<string>? ActionFailed;
         private static readonly (string DisplayName, Vendor Vendor)[] VendorOptions =
         {
             ("Cisco IOS/IOS-XE", Vendor.CiscoIos),
@@ -96,6 +99,7 @@ namespace networker.NetworkConfig.Views.Tabs
             BgpNeighborRows.ItemsSource = _bgpNeighbors;
 
             LoadTemplates();
+            HostnameInput.TextChanged += (_, _) => WorkspaceChanged?.Invoke();
         }
 
         private void LoadTemplates()
@@ -118,9 +122,13 @@ namespace networker.NetworkConfig.Views.Tabs
             if (TemplateSelector.SelectedItem is TemplateItem item && item.Detail.FormData is { } data)
             {
                 ApplyFormData(data);
-                StatusText.Text = $"Applied template '{item.Name}'.";
+                InvalidateOutput();
+                SetStatus($"Applied template '{item.Name}'. Generate to refresh the output.");
                 LogActivity("Template Applied", $"'{item.Name}' pre-filled the generate form", "\uE8A5");
+                return;
             }
+
+            SetStatus("Select a template with an editable form preset.", error: true);
         }
 
         private void Generate_Click(object sender, RoutedEventArgs e)
@@ -128,28 +136,53 @@ namespace networker.NetworkConfig.Views.Tabs
             var form = CollectFormData();
             if (string.IsNullOrWhiteSpace(form.Basic.Hostname))
             {
-                StatusText.Text = "Hostname is required.";
-                GenerateOutput.Visibility = Visibility.Collapsed;
-                ValidationSummaryText.Visibility = Visibility.Collapsed;
-                ValidationList.Visibility = Visibility.Collapsed;
+                InvalidateOutput();
+                SetStatus("Hostname is required.", error: true);
+                HostnameInput.StartBringIntoView();
+                HostnameInput.Focus(FocusState.Programmatic);
+                ActionFailed?.Invoke("Hostname is required.");
                 return;
             }
 
-            var config = TemplateFormConverter.Convert(form);
-            var output = _generator.Generate(config);
-
-            GenerateOutput.DataContext = new ChatMessage
+            GenerateButton.IsEnabled = false;
+            SetStatus("Generating configuration...");
+            try
             {
-                IsCode = true,
-                CodeTitle = $"{form.Basic.Hostname.Trim()} — generated configuration",
-                Text = output,
-            };
-            GenerateOutput.Visibility = Visibility.Visible;
+                var config = TemplateFormConverter.Convert(form);
+                var output = _generator.Generate(config);
 
-            ShowValidation(_validator.Validate(config));
-            StatusText.Text = $"Generated configuration for {form.Basic.Hostname.Trim()}";
-            AppSettings.DefaultVendor = form.Basic.Vendor;
-            LogActivity("Config Generator", $"{form.Basic.Hostname.Trim()} — {form.Basic.Vendor}", "\uE943");
+                GenerateOutput.DataContext = new ChatMessage
+                {
+                    IsCode = true,
+                    CodeTitle = $"{form.Basic.Hostname.Trim()} — generated configuration",
+                    Text = output,
+                };
+                GenerateOutput.Visibility = Visibility.Visible;
+
+                ShowValidation(_validator.Validate(config));
+                OutputEmptyState.Visibility = Visibility.Collapsed;
+                GeneratedResultPanel.Visibility = Visibility.Visible;
+                SetStatus($"Generated configuration for {form.Basic.Hostname.Trim()}.", success: true);
+                AppSettings.DefaultVendor = form.Basic.Vendor;
+                LogActivity("Config Generator", $"{form.Basic.Hostname.Trim()} — {form.Basic.Vendor}", "\uE943");
+                ActionCompleted?.Invoke($"Generated configuration for {form.Basic.Hostname.Trim()}.");
+
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    OutputWorkbench.StartBringIntoView();
+                    GenerateOutput.Focus(FocusState.Programmatic);
+                });
+            }
+            catch (Exception ex)
+            {
+                InvalidateOutput();
+                SetStatus($"Generation failed: {ex.Message}", error: true);
+                ActionFailed?.Invoke(ex.Message);
+            }
+            finally
+            {
+                GenerateButton.IsEnabled = true;
+            }
         }
 
         private TemplateFormData CollectFormData() => new()
@@ -206,6 +239,20 @@ namespace networker.NetworkConfig.Views.Tabs
                 BpduguardDefault = StpBpduguardCheck.IsChecked == true,
             },
         };
+
+        public TemplateFormData CaptureState()
+        {
+            TemplateFormData state = CollectFormData();
+            state.Basic.EnableSecret = string.Empty;
+            return state;
+        }
+
+        public void RestoreState(TemplateFormData? state)
+        {
+            if (state is null) return;
+            ApplyFormData(state);
+            EnableInput.Password = string.Empty;
+        }
 
         /// <summary>
         /// Populates the form from a template preset. Row items are cloned so
@@ -293,6 +340,26 @@ namespace networker.NetworkConfig.Views.Tabs
             StpRootSecondaryInput.Text = data.Stp.RootSecondaryVlans;
             StpPortfastCheck.IsChecked = data.Stp.PortfastDefault;
             StpBpduguardCheck.IsChecked = data.Stp.BpduguardDefault;
+
+        }
+
+        private void InvalidateOutput()
+        {
+            OutputEmptyState.Visibility = Visibility.Visible;
+            GeneratedResultPanel.Visibility = Visibility.Collapsed;
+            GenerateOutput.Visibility = Visibility.Collapsed;
+            GenerateOutput.DataContext = null;
+            ValidationSummaryText.Visibility = Visibility.Collapsed;
+            ValidationList.Visibility = Visibility.Collapsed;
+        }
+
+        private void SetStatus(string message, bool error = false, bool success = false)
+        {
+            StatusText.Text = message;
+            string styleKey = error
+                ? "InlineErrorTextStyle"
+                : success ? "InlineSuccessTextStyle" : "InlineStatusTextStyle";
+            StatusText.Style = (Style)Application.Current.Resources[styleKey];
         }
 
         private void ShowValidation(IReadOnlyList<ValidationIssue> issues)
@@ -327,7 +394,7 @@ namespace networker.NetworkConfig.Views.Tabs
 
         /// <summary>
         /// Display row for the validation findings list — mirrors the severity
-        /// pill pattern used across the toolkit (see ToolsPage FindingItem).
+        /// pill pattern used across the workflow (see WorkflowPage FindingItem).
         /// </summary>
         private sealed class ValidationRow
         {

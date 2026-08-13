@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore networker.sln
+
+      - name: Run Core tests
+        run: dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj -c Debug --no-restore
+
+      - name: Build Debug x64
+        run: dotnet build networker.csproj -c Debug -p:Platform=x64 --no-restore
+
+      # Release publishing is self-contained but deliberately disables trimming because
+      # WinUI 3 and reflection-driven application paths are not trim-safe. The CI package
+      # is unsigned (AppxPackageSigningEnabled=false), so no certificate is required.
+      - name: Publish Release x64
+        run: dotnet publish networker.csproj -c Release -p:Platform=x64 --no-restore

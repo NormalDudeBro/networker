@@ -1,5 +1,5 @@
 using System;
-using System.Text;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -40,35 +40,44 @@ namespace networker.NetworkConfig.Views.Tabs
         {
             if (!_vault.Exists)
             {
-                VaultStatusText.Text = "No vault exists - Enter a password to create one";
-                VaultStatusText.Foreground = (Brush)Application.Current.Resources["AppTextSecondaryBrush"];
+                SetVaultState("No vault exists. Enter a master password to create one.", "AppTextDisabledBrush", unlocked: false);
                 VaultUnlockButton.Content = "Create Vault";
                 VaultUnlockButton.IsEnabled = true;
                 VaultLockButton.IsEnabled = false;
                 VaultPasswordInput.IsEnabled = true;
-                CredsList.Text = "(No vault)";
-                VarsList.Text = "(No vault)";
             }
             else if (_vault.IsLocked)
             {
-                VaultStatusText.Text = "Vault is LOCKED";
-                VaultStatusText.Foreground = (Brush)Application.Current.Resources["AppDangerBrush"];
+                SetVaultState("Vault locked", "AppWarningBrush", unlocked: false);
                 VaultUnlockButton.Content = "Unlock";
                 VaultUnlockButton.IsEnabled = true;
                 VaultLockButton.IsEnabled = false;
                 VaultPasswordInput.IsEnabled = true;
-                CredsList.Text = "(Vault is locked)";
-                VarsList.Text = "(Vault is locked)";
             }
             else
             {
-                VaultStatusText.Text = "Vault is UNLOCKED";
-                VaultStatusText.Foreground = (Brush)Application.Current.Resources["AppSuccessBrush"];
+                SetVaultState("Vault unlocked", "AppSuccessBrush", unlocked: true);
                 VaultUnlockButton.IsEnabled = false;
                 VaultLockButton.IsEnabled = true;
                 VaultPasswordInput.IsEnabled = false;
                 VaultPasswordInput.Password = string.Empty;
                 RefreshVaultLists();
+            }
+        }
+
+        private void SetVaultState(string message, string brushKey, bool unlocked)
+        {
+            VaultStatusText.Text = message;
+            VaultStatusText.Foreground = (Brush)Application.Current.Resources[brushKey];
+            VaultStatusDot.Fill = (Brush)Application.Current.Resources[brushKey];
+            VaultDataPanel.Visibility = unlocked ? Visibility.Visible : Visibility.Collapsed;
+            VaultLockedState.Visibility = unlocked ? Visibility.Collapsed : Visibility.Visible;
+
+            if (!unlocked)
+            {
+                CredentialList.ItemsSource = null;
+                VariableList.ItemsSource = null;
+                ClearStoredValueInputs();
             }
         }
 
@@ -79,41 +88,29 @@ namespace networker.NetworkConfig.Views.Tabs
                 return;
             }
 
-            var credentialNames = _vault.ListCredentials();
-            if (credentialNames.Count == 0)
-            {
-                CredsList.Text = "(No credentials stored)";
-            }
-            else
-            {
-                var sb = new StringBuilder();
-                foreach (var name in credentialNames)
-                {
-                    var credential = _vault.GetCredential(name);
-                    if (credential is not null)
-                    {
-                        sb.AppendLine($"{name}: {credential.Username} - {credential.Description}");
-                    }
-                }
+            var credentials = _vault.ListCredentials()
+                .Select(name => (Name: name, Info: _vault.GetCredential(name)))
+                .Where(item => item.Info is not null)
+                .Select(item => new VaultCredentialRow(
+                    item.Name,
+                    item.Info!.Username,
+                    item.Info.Description))
+                .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            CredentialList.ItemsSource = credentials;
+            CredentialEmptyState.Visibility = credentials.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            CredentialList.Visibility = credentials.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
 
-                CredsList.Text = sb.ToString();
-            }
-
-            var variables = _vault.GetAllVariables();
-            if (variables.Count == 0)
-            {
-                VarsList.Text = "(No variables stored)";
-            }
-            else
-            {
-                var sb = new StringBuilder();
-                foreach (var (name, variable) in variables)
-                {
-                    sb.AppendLine(variable.IsSecret ? $"{name}: ******** (secret)" : $"{name}: {variable.Value}");
-                }
-
-                VarsList.Text = sb.ToString();
-            }
+            var variables = _vault.GetAllVariables()
+                .Select(item => new VaultVariableRow(
+                    item.Key,
+                    item.Value.IsSecret ? "********" : item.Value.Value,
+                    item.Value.IsSecret ? "Secret" : "Normal"))
+                .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            VariableList.ItemsSource = variables;
+            VariableEmptyState.Visibility = variables.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            VariableList.Visibility = variables.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private void UnlockOrCreate_Click(object sender, RoutedEventArgs e)
@@ -157,6 +154,7 @@ namespace networker.NetworkConfig.Views.Tabs
         private void Lock_Click(object sender, RoutedEventArgs e)
         {
             _vault.Lock();
+            ClearStoredValueInputs();
             UpdateVaultUi();
             SetStatus("Vault locked");
             LogActivity("Vault Locked", "Vault locked — stored data is encrypted", "\uE72E");
@@ -191,6 +189,7 @@ namespace networker.NetworkConfig.Views.Tabs
                 CredPassInput.Password = string.Empty;
                 CredDescInput.Text = string.Empty;
                 RefreshVaultLists();
+                CredNameInput.Focus(FocusState.Programmatic);
             }
             catch (Exception ex)
             {
@@ -198,7 +197,7 @@ namespace networker.NetworkConfig.Views.Tabs
             }
         }
 
-        private void DeleteCredential_Click(object sender, RoutedEventArgs e)
+        private async void DeleteCredentialRow_Click(object sender, RoutedEventArgs e)
         {
             if (_vault.IsLocked)
             {
@@ -206,23 +205,29 @@ namespace networker.NetworkConfig.Views.Tabs
                 return;
             }
 
-            var name = DelCredNameInput.Text.Trim();
-            if (name.Length == 0)
-            {
-                SetStatus("Enter credential name to delete", error: true);
-                return;
-            }
+            if (sender is not FrameworkElement { DataContext: VaultCredentialRow row }) return;
 
-            if (_vault.DeleteCredential(name))
+            var dialog = new ContentDialog
             {
-                SetStatus($"Credential '{name}' deleted");
-                LogActivity("Vault Credential", $"'{name}' deleted", "\uE774");
-                DelCredNameInput.Text = string.Empty;
+                Title = "Delete credential?",
+                Content = $"Delete '{row.Name}' from the encrypted vault? This cannot be undone.",
+                PrimaryButtonText = "Delete",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = XamlRoot,
+            };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+
+            if (_vault.DeleteCredential(row.Name))
+            {
+                SetStatus($"Credential '{row.Name}' deleted");
+                LogActivity("Vault Credential", $"'{row.Name}' deleted", "\uE774");
                 RefreshVaultLists();
+                AddCredentialButton.Focus(FocusState.Programmatic);
             }
             else
             {
-                SetStatus($"Credential '{name}' not found", error: true);
+                SetStatus($"Credential '{row.Name}' not found", error: true);
             }
         }
 
@@ -253,6 +258,7 @@ namespace networker.NetworkConfig.Views.Tabs
                 VarValueInput.Text = string.Empty;
                 VarSecretCombo.SelectedIndex = 0;
                 RefreshVaultLists();
+                VarNameInput.Focus(FocusState.Programmatic);
             }
             catch (Exception ex)
             {
@@ -260,12 +266,56 @@ namespace networker.NetworkConfig.Views.Tabs
             }
         }
 
+        private async void DeleteVariableRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vault.IsLocked)
+            {
+                SetStatus("Vault is locked", error: true);
+                return;
+            }
+
+            if (sender is not FrameworkElement { DataContext: VaultVariableRow row }) return;
+
+            var dialog = new ContentDialog
+            {
+                Title = "Delete variable?",
+                Content = $"Delete '{row.Name}' from the encrypted vault? This cannot be undone.",
+                PrimaryButtonText = "Delete",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = XamlRoot,
+            };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+
+            if (_vault.DeleteVariable(row.Name))
+            {
+                SetStatus($"Variable '{row.Name}' deleted");
+                LogActivity("Vault Variable", $"'{row.Name}' deleted", "\uE774");
+                RefreshVaultLists();
+                AddVariableButton.Focus(FocusState.Programmatic);
+            }
+            else
+            {
+                SetStatus($"Variable '{row.Name}' not found", error: true);
+            }
+        }
+
+        private void ClearStoredValueInputs()
+        {
+            CredNameInput.Text = string.Empty;
+            CredUserInput.Text = string.Empty;
+            CredPassInput.Password = string.Empty;
+            CredDescInput.Text = string.Empty;
+            VarNameInput.Text = string.Empty;
+            VarValueInput.Text = string.Empty;
+            VarSecretCombo.SelectedIndex = 0;
+        }
+
         private void SetStatus(string message, bool error = false)
         {
             StatusText.Text = message;
-            StatusText.Foreground = error
-                ? (Brush)Application.Current.Resources["AppDangerBrush"]
-                : (Brush)Application.Current.Resources["AppTextSecondaryBrush"];
+            StatusText.Style = (Style)Application.Current.Resources[
+                error ? "InlineErrorTextStyle" : "InlineStatusTextStyle"];
         }
 
         private static void LogActivity(string title, string detail, string glyph = "\uE774")
@@ -280,4 +330,8 @@ namespace networker.NetworkConfig.Views.Tabs
             });
         }
     }
+
+    public sealed record VaultCredentialRow(string Name, string Username, string Description);
+
+    public sealed record VaultVariableRow(string Name, string DisplayValue, string Classification);
 }

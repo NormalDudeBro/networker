@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
-    x:Class="networker.MainPage"
+    x:Class="networker.Views.AssistantPage"
+    x:Name="AssistantPageRoot"
+    NavigationCacheMode="Required"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:networker.Controls"
@@ -21,7 +23,7 @@
         </DataTemplate>
 
         <DataTemplate x:Key="AssistantMessageTemplate" x:DataType="models:ChatMessage">
-            <StackPanel Spacing="6" Margin="0,0,0,16" MaxWidth="760">
+            <StackPanel Spacing="6" Margin="0,0,0,16" MaxWidth="760" HorizontalAlignment="Left">
                 <TextBlock Style="{StaticResource CaptionTextStyle}" FontSize="11">
                     <Run Text="Assistant"/>
                     <Run Text="{x:Bind Provider, Mode=OneWay}" Foreground="{ThemeResource AppAccentBrush}"/>
@@ -71,10 +73,31 @@
             ErrorTemplate="{StaticResource ErrorMessageTemplate}"/>
 
         <controls:BoolToVisibilityConverter x:Key="BoolToVis"/>
-        <controls:BoolToVisibilityConverter x:Key="InverseBoolToVis" Invert="True"/>
     </Page.Resources>
 
-    <Grid>
+    <Grid x:Name="MainLayout" SizeChanged="MainLayout_SizeChanged">
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Key="Escape" Invoked="ClosePanelAccelerator_Invoked"/>
+        </Grid.KeyboardAccelerators>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="AssistantWidthStates">
+                <VisualState x:Name="NarrowAssistant">
+                    <VisualState.StateTriggers>
+                        <controls:ElementWidthTrigger Source="{x:Bind MainLayout}" MaxWidth="899.999"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="AssistantPanel.(Grid.Column)" Value="0"/>
+                        <Setter Target="AssistantPanel.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="AssistantPanel.HorizontalAlignment" Value="Right"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="WideAssistant">
+                    <VisualState.StateTriggers>
+                        <controls:ElementWidthTrigger Source="{x:Bind MainLayout}" MinWidth="900"/>
+                    </VisualState.StateTriggers>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
@@ -83,25 +106,31 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- ======================= Header ======================= -->
-        <Grid
-            Grid.Row="0" Grid.Column="0"
-            Padding="20,14,20,12"
-            ColumnDefinitions="*,Auto"
-            Background="{ThemeResource AppSurfaceBrush}"
-            BorderBrush="{ThemeResource AppBorderBrush}"
-            BorderThickness="0,0,0,1">
-            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                <TextBlock Text="Assistant" Style="{StaticResource SectionHeaderTextStyle}"/>
+        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource WorkspaceHeaderStyle}">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Grid.Column="0" Style="{StaticResource PageHeaderStackStyle}" VerticalAlignment="Center">
+                <TextBlock Text="STEP 8 OF 9" Style="{StaticResource PageEyebrowTextStyle}"/>
+                <TextBlock Text="Assist" Style="{StaticResource PageTitleTextStyle}"/>
                 <TextBlock
-                    Style="{StaticResource CaptionTextStyle}"
-                    Text="Chat with your configured AI provider. Deterministic tools run locally; the model explains and assists."/>
+                    Style="{StaticResource PageSubtitleTextStyle}"
+                    Text="Escalate unresolved findings with optional evidence from the current troubleshooting workspace."/>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <Button
+                    x:Name="HeaderModelButton"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Click="PanelToggleButton_Click"
+                    ToolTipService.ToolTip="Open session settings"
+                    AutomationProperties.Name="Open session settings">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                        <Ellipse x:Name="HeaderModelDot" Style="{StaticResource StatusDotStyle}" Fill="{ThemeResource AppOfflineBrush}"/>
+                        <TextBlock x:Name="HeaderModelText" Text="Select a model" MaxWidth="180" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Button>
                 <Button
                     x:Name="PanelToggleButton"
                     Style="{StaticResource IconButtonStyle}"
@@ -128,37 +157,41 @@
                 </Button>
             </StackPanel>
         </Grid>
+        </Border>
 
         <!-- ======================= Chat area ======================= -->
         <Grid Grid.Row="1" Grid.Column="0">
-            <Grid x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560">
+            <Border x:Name="EmptyState" Style="{StaticResource EmptyStatePanelStyle}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20">
                 <StackPanel Spacing="10" HorizontalAlignment="Center">
                     <Border
-                        Width="72" Height="72"
-                        CornerRadius="20"
-                        Background="{ThemeResource AppSurfaceBrush}"
-                        BorderBrush="{ThemeResource AppBorderBrush}"
-                        BorderThickness="1"
+                        Width="42" Height="42"
+                        CornerRadius="{ThemeResource RadiusSM}"
+                        Background="{ThemeResource AppAccentMutedBrush}"
                         HorizontalAlignment="Center">
                         <FontIcon
-                            Glyph="&#xE8BD;" FontSize="32"
+                            Glyph="&#xE8BD;" FontSize="20"
                             Foreground="{ThemeResource AppAccentBrush}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"/>
                     </Border>
-                    <TextBlock Text="Start a conversation" Style="{StaticResource SectionHeaderTextStyle}" FontSize="20" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Start a network investigation" Style="{StaticResource WorkspaceTitleTextStyle}" HorizontalAlignment="Center"/>
                     <TextBlock
                         Style="{StaticResource CaptionTextStyle}"
                         TextAlignment="Center"
                         MaxWidth="480"
-                        Text="Ask about network configs, troubleshooting, IP math, or log analysis. Deterministic tools run first; the model explains the results."/>
-                    <StackPanel Spacing="8" HorizontalAlignment="Stretch" Margin="0,8,0,0">
-                        <Button Style="{StaticResource ChipButtonStyle}" Content="Calculate a subnet" Click="QuickStart_Click" Tag="ip"/>
-                        <Button Style="{StaticResource ChipButtonStyle}" Content="Generate OSPF config" Click="QuickStart_Click" Tag="ospf"/>
-                        <Button Style="{StaticResource ChipButtonStyle}" Content="Audit a config" Click="QuickStart_Click" Tag="audit"/>
-                    </StackPanel>
+                        Text="Ask about configuration behavior, troubleshooting, routing, logs, or an operational change. Local tools remain available beside the composer."/>
+                    <ItemsControl HorizontalAlignment="Center" MaxWidth="480" Margin="0,8,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <Button Margin="0,0,8,8" Style="{StaticResource ChipButtonStyle}" Content="Calculate a subnet" Click="QuickStart_Click" Tag="ip"/>
+                        <Button Margin="0,0,8,8" Style="{StaticResource ChipButtonStyle}" Content="Generate OSPF config" Click="QuickStart_Click" Tag="ospf"/>
+                        <Button Margin="0,0,8,8" Style="{StaticResource ChipButtonStyle}" Content="Audit a config" Click="QuickStart_Click" Tag="audit"/>
+                    </ItemsControl>
                 </StackPanel>
-            </Grid>
+            </Border>
 
             <ListView
                 x:Name="MessagesList"
@@ -170,50 +203,45 @@
                 Background="Transparent"/>
         </Grid>
 
-        <!-- ======================= Quick actions ======================= -->
-        <Grid Grid.Row="2" Grid.Column="0" Padding="20,4,20,4" RowDefinitions="Auto,Auto">
-            <TextBlock Text="Quick actions" Style="{StaticResource CaptionTextStyle}" Margin="0,0,0,4"/>
-            <GridView
-                x:Name="QuickActionsRow"
-                Grid.Row="1"
-                SelectionMode="None"
-                IsItemClickEnabled="False"
-                HorizontalContentAlignment="Stretch">
-                <GridView.ItemContainerStyle>
-                    <Style TargetType="GridViewItem">
-                        <Setter Property="Padding" Value="0"/>
-                        <Setter Property="Margin" Value="0,0,8,8"/>
-                        <Setter Property="MinWidth" Value="0"/>
-                    </Style>
-                </GridView.ItemContainerStyle>
-                <GridView.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <ItemsWrapGrid Orientation="Horizontal"/>
-                    </ItemsPanelTemplate>
-                </GridView.ItemsPanel>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="Subnet calc" Click="RunTool_Click" Tag="ip"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="OSPF config" Click="RunTool_Click" Tag="ospf"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="BGP config" Click="RunTool_Click" Tag="bgp"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="Audit config" Click="RunTool_Click" Tag="audit"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="Analyze logs" Click="RunTool_Click" Tag="logs"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="Topology" Click="RunTool_Click" Tag="topology"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="Translate" Click="RunTool_Click" Tag="translate"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="Playbook" Click="RunTool_Click" Tag="playbook"/>
-            </GridView>
-        </Grid>
-
         <!-- ======================= Input ======================= -->
-        <Grid Grid.Row="3" Grid.Column="0" Padding="20,8,20,16">
+        <Grid Grid.Row="2" Grid.Column="0" Padding="20,8,20,16" RowDefinitions="Auto,Auto" RowSpacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <CheckBox x:Name="IncludeEvidenceCheckBox" Content="Include workspace evidence" VerticalAlignment="Center"/>
+                <TextBlock x:Name="EvidenceSummaryText" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
             <Border
+                Grid.Row="1"
                 Background="{ThemeResource AppSurfaceBrush}"
                 BorderBrush="{ThemeResource AppBorderBrush}"
                 BorderThickness="1"
                 CornerRadius="{ThemeResource RadiusMD}"
                 Padding="8,6">
-                <Grid ColumnDefinitions="*,Auto,Auto">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <Button
+                        x:Name="LocalToolsButton"
+                        Grid.Column="0"
+                        Margin="0,0,4,0"
+                        Style="{StaticResource IconButtonStyle}"
+                        ToolTipService.ToolTip="Run a local tool"
+                        AutomationProperties.Name="Run a local deterministic tool">
+                        <Button.Flyout>
+                            <MenuFlyout Placement="TopEdgeAlignedLeft">
+                                <MenuFlyoutItem Text="Subnet calculator" Tag="ip" Click="RunTool_Click"/>
+                                <MenuFlyoutItem Text="OSPF configuration" Tag="ospf" Click="RunTool_Click"/>
+                                <MenuFlyoutItem Text="BGP configuration" Tag="bgp" Click="RunTool_Click"/>
+                                <MenuFlyoutItem Text="Configuration audit" Tag="audit" Click="RunTool_Click"/>
+                                <MenuFlyoutSeparator/>
+                                <MenuFlyoutItem Text="Log analysis" Tag="logs" Click="RunTool_Click"/>
+                                <MenuFlyoutItem Text="Topology discovery" Tag="topology" Click="RunTool_Click"/>
+                                <MenuFlyoutItem Text="Configuration translation" Tag="translate" Click="RunTool_Click"/>
+                                <MenuFlyoutItem Text="Troubleshooting playbook" Tag="playbook" Click="RunTool_Click"/>
+                            </MenuFlyout>
+                        </Button.Flyout>
+                        <FontIcon Glyph="&#xE713;" FontSize="15"/>
+                    </Button>
                     <TextBox
                         x:Name="InputBox"
-                        Grid.Column="0"
+                        Grid.Column="1"
                         PlaceholderText="Ask about network engineering… (Ctrl+Enter to send)"
                         AcceptsReturn="True"
                         TextWrapping="Wrap"
@@ -226,7 +254,7 @@
                         Background="Transparent"/>
                     <Button
                         x:Name="CancelButton"
-                        Grid.Column="1"
+                        Grid.Column="2"
                         Visibility="Collapsed"
                         Style="{StaticResource IconButtonStyle}"
                         Click="CancelButton_Click"
@@ -236,8 +264,9 @@
                     </Button>
                     <Button
                         x:Name="SendButton"
-                        Grid.Column="2"
+                        Grid.Column="3"
                         Margin="4,0,0,0"
+                        IsEnabled="False"
                         Click="SendButton_Click"
                         ToolTipService.ToolTip="Send (Ctrl+Enter)"
                         AutomationProperties.Name="Send message"
@@ -252,30 +281,42 @@
         </Grid>
 
         <!-- ======================= Session panel ======================= -->
+        <Button
+            x:Name="SessionScrim"
+            Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2"
+            Visibility="Collapsed"
+            Background="{ThemeResource AppScrimBrush}"
+            BorderThickness="0"
+            Padding="0"
+            IsTabStop="False"
+            Click="SessionScrim_Click"
+            AutomationProperties.AccessibilityView="Raw"/>
         <Grid
             x:Name="AssistantPanel"
-            Grid.Row="1" Grid.RowSpan="3" Grid.Column="1"
+            Grid.Row="1" Grid.RowSpan="2" Grid.Column="1"
             Width="320"
             Visibility="Collapsed"
             Background="{ThemeResource AppSurfaceBrush}"
             BorderBrush="{ThemeResource AppBorderBrush}"
-            BorderThickness="1,0,0,0">
+            BorderThickness="1,0,0,0"
+            AutomationProperties.Name="Assistant session settings">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Padding="16" Spacing="14">
-                    <TextBlock Text="Session" Style="{StaticResource SectionHeaderTextStyle}"/>
-
-                    <StackPanel Spacing="5">
-                        <TextBlock Text="Provider" Style="{StaticResource FieldLabelTextStyle}"/>
-                        <ComboBox x:Name="ProviderComboBox" SelectionChanged="ProviderComboBox_SelectionChanged" HorizontalAlignment="Stretch"/>
-                    </StackPanel>
-
-                    <StackPanel Spacing="5">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="Model" Style="{StaticResource FieldLabelTextStyle}"/>
-                            <ProgressRing x:Name="ModelLoadingRing" IsActive="False" Width="16" Height="16"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Assist session" Style="{StaticResource SectionHeaderTextStyle}"/>
+                            <TextBlock Text="Runtime status and current history" Style="{StaticResource CaptionTextStyle}"/>
                         </StackPanel>
-                        <ComboBox x:Name="ModelComboBox" SelectionChanged="ModelComboBox_SelectionChanged" HorizontalAlignment="Stretch" IsEnabled="False"/>
-                    </StackPanel>
+                        <Button
+                            x:Name="ClosePanelButton"
+                            Grid.Column="1"
+                            Style="{StaticResource IconButtonStyle}"
+                            Click="ClosePanelButton_Click"
+                            ToolTipService.ToolTip="Close session settings"
+                            AutomationProperties.Name="Close session settings">
+                            <FontIcon Glyph="&#xE711;" FontSize="14"/>
+                        </Button>
+                    </Grid>
 
                     <Grid ColumnDefinitions="Auto,*">
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
@@ -284,6 +325,8 @@
                         </StackPanel>
                         <Button Grid.Column="1" Style="{StaticResource ChipButtonStyle}" Content="Check" Click="HealthCheckButton_Click" HorizontalAlignment="Right" Padding="10,4"/>
                     </Grid>
+
+                    <Button Content="Configure AI in Settings" Style="{StaticResource SecondaryButtonStyle}" Click="ConfigureAiButton_Click" HorizontalAlignment="Stretch"/>
 
                     <Border Height="1" Background="{ThemeResource AppBorderBrush}"/>
 

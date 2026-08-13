@@ -33,6 +33,10 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+# The Core log-analysis tool is authored source, not runtime log output.
+!Networker.Core/NetTools/Logs/
+!Networker.Core/NetTools/Logs/**
+
 # Visual Studio 2015/2017 cache/options directory
 .vs/
 # Uncomment if you have tasks that create the project's static files in wwwroot
@@ -185,6 +189,7 @@ publish/
 # Note: Comment the next line if you want to checkin your web deploy settings,
 # but database connection strings (with potential passwords) will be unencrypted
 *.pubxml
+!Properties/PublishProfiles/win-x64.pubxml
 *.publishproj
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to
@@ -222,6 +227,12 @@ _pkginfo.txt
 *.appx
 *.appxbundle
 *.appxupload
+*.msix
+*.msixbundle
+*.appinstaller
+
+# Update pipeline artifacts and checksum sidecars
+*.sha256
 
 # Visual Studio cache files
 # files ending in .cache can be ignored

@@ -3,49 +3,75 @@
     x:Class="networker.NetworkConfig.Views.Tabs.DiffTab"
     x:Name="DiffRoot"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:networker.Controls">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="16,12" Spacing="12" MaxWidth="1100" HorizontalAlignment="Stretch">
+    <Grid x:Name="DiffLayout">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="DiffWidthStates">
+                <VisualState x:Name="NarrowDiff">
+                    <VisualState.StateTriggers>
+                        <controls:ElementWidthTrigger Source="{x:Bind DiffLayout}" MaxWidth="999.999"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="DiffOutputColumn.Width" Value="0*"/>
+                        <Setter Target="DiffResultsPanel.(Grid.Row)" Value="1"/>
+                        <Setter Target="DiffResultsPanel.(Grid.Column)" Value="0"/>
+                        <Setter Target="DiffResultsPanel.(Grid.ColumnSpan)" Value="2"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="WideDiff">
+                    <VisualState.StateTriggers>
+                        <controls:ElementWidthTrigger Source="{x:Bind DiffLayout}" MinWidth="1000"/>
+                    </VisualState.StateTriggers>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
 
-            <Border Style="{StaticResource CardStyle}">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="Compare Configurations" Style="{StaticResource SectionHeaderTextStyle}"/>
-                    <TextBlock Style="{StaticResource CaptionTextStyle}"
-                               Text="Paste two configurations and compare them. Added lines are prefixed with '+', removed with '-'."/>
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="DiffLeftText" Grid.Column="0" AcceptsReturn="True" TextWrapping="NoWrap"
-                                 Height="260" PlaceholderText="Configuration A (Original)"/>
-                        <TextBox x:Name="DiffRightText" Grid.Column="1" AcceptsReturn="True" TextWrapping="NoWrap"
-                                 Height="260" PlaceholderText="Configuration B (New/Modified)"/>
-                    </Grid>
-                    <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="8">
-                        <Button Content="Compare" Style="{StaticResource PrimaryButtonStyle}" Click="Compare_Click">
-                            <Button.KeyboardAccelerators>
-                                <KeyboardAccelerator Key="Enter" Modifiers="Control" ScopeOwner="{x:Bind DiffRoot}"/>
-                            </Button.KeyboardAccelerators>
-                        </Button>
-                        <Button Grid.Column="1" Content="Clear" Click="Clear_Click" Style="{StaticResource ChipButtonStyle}"/>
-                        <TextBlock x:Name="DiffStatsText" Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}" TextWrapping="NoWrap"/>
-                        <TextBlock x:Name="StatusText" Grid.Column="3" VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
-                    </Grid>
-                </StackPanel>
-            </Border>
+        <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+            <Grid Padding="{StaticResource TabContentPadding}" ColumnSpacing="12" RowSpacing="12" MaxWidth="1200" HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.1*"/>
+                    <ColumnDefinition x:Name="DiffOutputColumn" Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <Border Style="{StaticResource CardStyle}">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="Differences" Style="{StaticResource SectionHeaderTextStyle}"/>
-                    <TextBox x:Name="DiffResultsText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
-                             Height="320"
-                             FontFamily="{ThemeResource CodeFontFamily}" FontSize="{ThemeResource FontSizeCode}"
-                             Foreground="{ThemeResource AppTextPrimaryBrush}"/>
-                </StackPanel>
-            </Border>
+                <Border Style="{StaticResource ToolInputPanelStyle}">
+                    <StackPanel Spacing="10">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="COMPARE CONFIGURATIONS" Style="{StaticResource SectionLabelTextStyle}"/>
+                            <TextBlock Text="Compare an original configuration with a proposed revision. Added lines use + and removed lines use -." Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+                        <TextBlock x:Name="OriginalConfigLabel" Text="Configuration A · Original" Style="{StaticResource FieldLabelTextStyle}"/>
+                        <TextBox x:Name="DiffLeftText" Style="{StaticResource TechnicalEditorStyle}" MinHeight="180" PlaceholderText="Paste the original configuration..." AutomationProperties.LabeledBy="{x:Bind OriginalConfigLabel}"/>
+                        <TextBlock x:Name="RevisedConfigLabel" Text="Configuration B · Revised" Style="{StaticResource FieldLabelTextStyle}"/>
+                        <TextBox x:Name="DiffRightText" Style="{StaticResource TechnicalEditorStyle}" MinHeight="180" PlaceholderText="Paste the revised configuration..." AutomationProperties.LabeledBy="{x:Bind RevisedConfigLabel}"/>
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                            <Button Content="Compare" Style="{StaticResource PrimaryButtonStyle}" Click="Compare_Click">
+                                <Button.KeyboardAccelerators>
+                                    <KeyboardAccelerator Key="Enter" Modifiers="Control" ScopeOwner="{x:Bind DiffRoot}"/>
+                                </Button.KeyboardAccelerators>
+                            </Button>
+                            <Button Grid.Column="1" Content="Clear" Click="Clear_Click" Style="{StaticResource GhostButtonStyle}"/>
+                            <TextBlock x:Name="DiffStatsText" Grid.Column="3" VerticalAlignment="Center" Style="{StaticResource MonoSecondaryTextStyle}" TextWrapping="NoWrap"/>
+                            <TextBlock x:Name="StatusText" Grid.Row="1" Grid.ColumnSpan="4" Style="{StaticResource InlineStatusTextStyle}" AutomationProperties.LiveSetting="Polite"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
-        </StackPanel>
-    </ScrollViewer>
+                <Border x:Name="DiffResultsPanel" Grid.Column="1" Style="{StaticResource ToolInputPanelStyle}">
+                    <StackPanel Spacing="10">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="DIFFERENCES" Style="{StaticResource SectionLabelTextStyle}"/>
+                            <TextBlock Text="Unified line-by-line output for review or change approval." Style="{StaticResource CaptionTextStyle}"/>
+                        </StackPanel>
+                        <TextBox x:Name="DiffResultsText" Style="{StaticResource TechnicalReadOnlyOutputStyle}" MinHeight="360" AutomationProperties.Name="Configuration differences"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

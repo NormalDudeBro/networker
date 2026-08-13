@@ -1,7 +1,7 @@
 namespace Networker.Core.Prompting
 {
     /// <summary>
-    /// System prompts for the AI-assisted ToolsPage features. Each tool sends its
+    /// System prompts for the AI-assisted workflow features. Each tool sends its
     /// deterministic inputs (config, diff, logs, findings, topology, scenario) to
     /// the model with a purpose-built system prompt. The global system prompt and
     /// custom instructions are appended by <c>ChatService</c> when the request is

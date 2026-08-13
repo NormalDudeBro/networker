@@ -23,19 +23,50 @@
 
   <ItemGroup>
     <ProjectReference Include="Networker.Core\Networker.Core.csproj" />
+    <ProjectReference Include="Networker.Update.Contracts\Networker.Update.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="Networker.Core\**" />
     <Compile Remove="Networker.Core.Tests\**" />
+    <Compile Remove="Networker.Update.Contracts\**" />
+    <Compile Remove="Networker.Update\**" />
+    <Compile Remove="Networker.Update.Tests\**" />
+    <Compile Remove="Networker.Launcher\**" />
+    <Compile Remove="Networker.Bootstrap\**" />
+    <Compile Remove="Networker.UpdateHost\**" />
     <Content Remove="Networker.Core\**" />
     <Content Remove="Networker.Core.Tests\**" />
+    <Content Remove="Networker.Update.Contracts\**" />
+    <Content Remove="Networker.Update\**" />
+    <Content Remove="Networker.Update.Tests\**" />
+    <Content Remove="Networker.Launcher\**" />
+    <Content Remove="Networker.Bootstrap\**" />
+    <Content Remove="Networker.UpdateHost\**" />
     <None Remove="Networker.Core\**" />
     <None Remove="Networker.Core.Tests\**" />
+    <None Remove="Networker.Update.Contracts\**" />
+    <None Remove="Networker.Update\**" />
+    <None Remove="Networker.Update.Tests\**" />
+    <None Remove="Networker.Launcher\**" />
+    <None Remove="Networker.Bootstrap\**" />
+    <None Remove="Networker.UpdateHost\**" />
     <Page Remove="Networker.Core\**" />
     <Page Remove="Networker.Core.Tests\**" />
+    <Page Remove="Networker.Update.Contracts\**" />
+    <Page Remove="Networker.Update\**" />
+    <Page Remove="Networker.Update.Tests\**" />
+    <Page Remove="Networker.Launcher\**" />
+    <Page Remove="Networker.Bootstrap\**" />
+    <Page Remove="Networker.UpdateHost\**" />
     <Resource Remove="Networker.Core\**" />
     <Resource Remove="Networker.Core.Tests\**" />
+    <Resource Remove="Networker.Update.Contracts\**" />
+    <Resource Remove="Networker.Update\**" />
+    <Resource Remove="Networker.Update.Tests\**" />
+    <Resource Remove="Networker.Launcher\**" />
+    <Resource Remove="Networker.Bootstrap\**" />
+    <Resource Remove="Networker.UpdateHost\**" />
   </ItemGroup>
 
   <!-- Single-project MSIX Packaging Capability -->

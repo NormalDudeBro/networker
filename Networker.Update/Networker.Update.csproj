@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Networker.Update</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Networker.Update.Contracts\Networker.Update.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(NetworkerUpdateKeyId)' != '' and '$(NetworkerUpdatePublicKeyBase64)' != ''">
+    <AssemblyMetadata Include="NetworkerUpdateKeyId" Value="$(NetworkerUpdateKeyId)" />
+    <AssemblyMetadata Include="NetworkerUpdatePublicKeyBase64" Value="$(NetworkerUpdatePublicKeyBase64)" />
+  </ItemGroup>
+</Project>

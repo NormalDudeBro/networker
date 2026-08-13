@@ -26,11 +26,18 @@ jobs:
       - name: Run Core tests
         run: dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj -c Debug --no-restore
 
+      - name: Run updater tests
+        run: dotnet test Networker.Update.Tests\Networker.Update.Tests.csproj -c Debug --no-restore
+
       - name: Build Debug x64
         run: dotnet build networker.csproj -c Debug -p:Platform=x64 --no-restore
 
-      # Release publishing is self-contained but deliberately disables trimming because
-      # WinUI 3 and reflection-driven application paths are not trim-safe. The CI package
-      # is unsigned (AppxPackageSigningEnabled=false), so no certificate is required.
+      - name: Build launcher boundary
+        shell: pwsh
+        run: |
+          dotnet build Networker.Launcher\Networker.Launcher.csproj -c Debug -p:Platform=x64 --no-restore
+          dotnet build Networker.UpdateHost\Networker.UpdateHost.csproj -c Debug --no-restore
+          dotnet build Networker.Bootstrap\Networker.Bootstrap.csproj -c Debug --no-restore
+
       - name: Publish Release x64
-        run: dotnet publish networker.csproj -c Release -p:Platform=x64 --no-restore
+        run: dotnet publish networker.csproj -c Release -p:Platform=x64 -p:WindowsPackageType=None --no-restore

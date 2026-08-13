@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using System.Text;
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
@@ -8,8 +8,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using networker.NetworkConfig.Views.Tabs;
 using networker.Services;
-using networker.Services.Updates;
-using Networker.Core.Updates;
+using Networker.Update.Contracts.State;
+using Networker.Update.Contracts.Versioning;
 using Networker.Core.Workflow;
 
 namespace networker.Views
@@ -17,9 +17,8 @@ namespace networker.Views
     public sealed partial class SettingsPage : Page
     {
         private bool _isInitializing = false;
-        private UpdateCoordinator? _updateCoordinator;
-        private System.Threading.CancellationTokenSource? _installCts;
         private TroubleshootingSession? _troubleshootingSession;
+        private readonly LauncherStateStore _launcherState = new();
 
         private static IServiceProvider Services => ((App)Application.Current).Services;
 
@@ -60,48 +59,21 @@ namespace networker.Views
             VendorComboBox.SelectedItem = AppSettings.DefaultVendor;
             NetworkConfigDirTextBox.Text = AppSettings.NetworkConfigDirectory;
 
-            AutomaticChecksToggle.IsOn = AppSettings.AutomaticUpdateChecksEnabled;
-            PreviewToggle.IsOn = AppSettings.IncludePrereleaseUpdates;
-
-            try
-            {
-                UpdateCoordinator coordinator = Services.GetRequiredService<UpdateCoordinator>();
-                _updateCoordinator = coordinator;
-                coordinator.StateChanged += UpdateCoordinator_StateChanged;
-                coordinator.ProgressChanged += UpdateCoordinator_ProgressChanged;
-            }
-            catch (Exception)
-            {
-                // The update stack is unavailable; the page renders its disabled state.
-            }
+            LauncherState launcherState = _launcherState.Read();
+            AutomaticChecksToggle.IsOn = launcherState.AutomaticChecksEnabled;
+            PreviewToggle.IsOn = launcherState.Channel == NetworkerVersionPolicy.PreviewChannel;
+            InstalledVersionText.Text = GetInstalledVersion();
+            LastCheckText.Text = launcherState.LastSuccessfulCheckUtc is { } checkedAt
+                ? checkedAt.ToLocalTime().ToString("g") : "Never";
+            SetStatus(UpdateStatusText, "Updates are applied by the independent launcher before Networker starts.", "InlineStatusTextStyle");
 
             _isInitializing = false;
-
-            if (_updateCoordinator is not null)
-            {
-                ApplySnapshot(_updateCoordinator.Snapshot);
-            }
-            else
-            {
-                AutomaticChecksToggle.IsEnabled = false;
-                PreviewToggle.IsEnabled = false;
-                CheckUpdatesButton.IsEnabled = false;
-                SetStatus(UpdateStatusText, "Update services aren't available right now.", "InlineErrorTextStyle");
-            }
 
             await FetchModelsAsync(applyConnection: false);
         }
 
         private void SettingsPage_Unloaded(object sender, RoutedEventArgs e)
         {
-            if (_updateCoordinator is not null)
-            {
-                _updateCoordinator.StateChanged -= UpdateCoordinator_StateChanged;
-                _updateCoordinator.ProgressChanged -= UpdateCoordinator_ProgressChanged;
-                _updateCoordinator = null;
-            }
-            _installCts?.Dispose();
-            _installCts = null;
         }
 
         private async void RefreshButton_Click(object sender, RoutedEventArgs e) => await FetchModelsAsync(applyConnection: true);
@@ -263,248 +235,25 @@ namespace networker.Views
         private void AutomaticChecksToggle_Toggled(object sender, RoutedEventArgs e)
         {
             if (_isInitializing) return;
-            AppSettings.AutomaticUpdateChecksEnabled = AutomaticChecksToggle.IsOn;
+            _launcherState.Update(state => state with { AutomaticChecksEnabled = AutomaticChecksToggle.IsOn });
         }
 
-        private async void PreviewToggle_Toggled(object sender, RoutedEventArgs e)
+        private void PreviewToggle_Toggled(object sender, RoutedEventArgs e)
         {
             if (_isInitializing) return;
-            AppSettings.IncludePrereleaseUpdates = PreviewToggle.IsOn;
-
-            // A channel change is immediately due on its own cadence.
-            AppSettings.LastCheckedUpdateChannel = (PreviewToggle.IsOn ? UpdateChannel.Preview : UpdateChannel.Stable).ToString();
-            AppSettings.NextAutomaticUpdateCheckUtc = null;
-            await RunManualCheckAsync();
+            string channel = PreviewToggle.IsOn ? NetworkerVersionPolicy.PreviewChannel : NetworkerVersionPolicy.StableChannel;
+            _launcherState.Update(state => state with { Channel = channel, NextCheckUtc = null, ManualCheckRequested = true });
+            SetStatus(UpdateStatusText, "The launcher will use this channel on the next launch.", "InlineStatusTextStyle");
         }
 
-        private async void CheckUpdatesButton_Click(object sender, RoutedEventArgs e) => await RunManualCheckAsync();
-
-        private async System.Threading.Tasks.Task RunManualCheckAsync()
+        private void CheckUpdatesButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_updateCoordinator is null) return;
-            SetStatus(UpdateStatusText, "Checking for updates...", "InlineStatusTextStyle");
-            try
-            {
-                UpdateChannel channel = AppSettings.IncludePrereleaseUpdates ? UpdateChannel.Preview : UpdateChannel.Stable;
-                AppSettings.LastCheckedUpdateChannel = channel.ToString();
-                UpdateCheckOutcome outcome = await _updateCoordinator.CheckAsync(channel, manual: true, System.Threading.CancellationToken.None);
-                if (outcome.Cancelled) return;
-
-                // Manual checks bypass time/backoff but persist like any successful check.
-                DateTimeOffset now = DateTimeOffset.UtcNow;
-                if (outcome.Succeeded)
-                {
-                    AppSettings.UpdateCheckFailureCount = 0;
-                    AppSettings.LastSuccessfulUpdateCheckUtc = now;
-                    AppSettings.NextAutomaticUpdateCheckUtc = UpdateSchedulerPolicy.ComputeNextCheck(now, succeeded: true, 0, null);
-                }
-                else
-                {
-                    int failures = AppSettings.UpdateCheckFailureCount + 1;
-                    AppSettings.UpdateCheckFailureCount = failures;
-                    AppSettings.NextAutomaticUpdateCheckUtc = UpdateSchedulerPolicy.ComputeNextCheck(now, succeeded: false, failures, outcome.RetryAfterUtc);
-                }
-
-                if (_updateCoordinator is not null)
-                {
-                    ApplySnapshot(_updateCoordinator.Snapshot);
-                }
-            }
-            catch (Exception)
-            {
-                SetStatus(UpdateStatusText, "Couldn't check for updates right now.", "InlineErrorTextStyle");
-            }
+            _launcherState.Update(state => state with { ManualCheckRequested = true, NextCheckUtc = null });
+            SetStatus(UpdateStatusText, "Update check scheduled for the next launch.", "InlineSuccessTextStyle");
         }
 
-        private async void InstallUpdateButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_updateCoordinator is null) return;
-            _installCts?.Dispose();
-            _installCts = new System.Threading.CancellationTokenSource();
-            try
-            {
-                await _updateCoordinator.InstallUpdateAsync(_installCts.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                // The coordinator publishes the cancelled state.
-            }
-        }
-
-        private void CancelInstallButton_Click(object sender, RoutedEventArgs e)
-        {
-            _installCts?.Cancel();
-        }
-
-        private async void RestartNowButton_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new ContentDialog
-            {
-                Title = "Restart Networker?",
-                Content = "The update is ready. Restart now to finish installing it?",
-                PrimaryButtonText = "Restart now",
-                CloseButtonText = "Later",
-                DefaultButton = ContentDialogButton.Primary,
-                XamlRoot = XamlRoot,
-            };
-
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-
-            AppRestartService restart = Services.GetRequiredService<AppRestartService>();
-            if (restart.TryRestart(out string? error)) return;
-            SetStatus(UpdateStatusText, error ?? "Couldn't restart Networker.", "InlineErrorTextStyle");
-        }
-
-        private void LaterButton_Click(object sender, RoutedEventArgs e)
-        {
-            _updateCoordinator?.DismissUpdate();
-        }
-
-        private void UpdateCoordinator_StateChanged(UpdateSnapshot snapshot)
-        {
-            if (_updateCoordinator is null) return;
-            if (DispatcherQueue.HasThreadAccess)
-            {
-                ApplySnapshot(snapshot);
-            }
-            else
-            {
-                DispatcherQueue.TryEnqueue(() =>
-                {
-                    if (_updateCoordinator is not null) ApplySnapshot(snapshot);
-                });
-            }
-        }
-
-        private void UpdateCoordinator_ProgressChanged(double value)
-        {
-            if (_updateCoordinator is null) return;
-            if (DispatcherQueue.HasThreadAccess)
-            {
-                ApplyProgress(value);
-            }
-            else
-            {
-                DispatcherQueue.TryEnqueue(() =>
-                {
-                    if (_updateCoordinator is not null) ApplyProgress(value);
-                });
-            }
-        }
-
-        private void ApplyProgress(double value)
-        {
-            if (value < 0)
-            {
-                UpdateProgressBar.IsIndeterminate = true;
-            }
-            else
-            {
-                UpdateProgressBar.IsIndeterminate = false;
-                UpdateProgressBar.Value = value;
-            }
-        }
-
-        private void ApplySnapshot(UpdateSnapshot snapshot)
-        {
-            if (UpdateForm is null || UpdateStatusText is null) return;
-
-            InstalledVersionText.Text = snapshot.Installed.DisplayVersion;
-
-            bool canInstall = snapshot.Installed.CanInstallUpdates;
-            AutomaticChecksToggle.IsEnabled = canInstall;
-            PreviewToggle.IsEnabled = canInstall;
-
-            DateTimeOffset? last = AppSettings.LastSuccessfulUpdateCheckUtc;
-            LastCheckText.Text = last is null
-                ? "Never"
-                : last.Value.ToLocalTime().ToString("g");
-
-            bool busy = snapshot.Status is UpdateStatus.Checking
-                or UpdateStatus.Downloading
-                or UpdateStatus.Verifying
-                or UpdateStatus.Installing;
-
-            UpdateBusyRing.IsActive = busy;
-            UpdateBusyRing.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
-            CheckUpdatesButton.IsEnabled = !busy && canInstall;
-
-            bool showProgress = snapshot.Status is UpdateStatus.Downloading
-                or UpdateStatus.Verifying
-                or UpdateStatus.Installing;
-            UpdateProgressBar.Visibility = showProgress ? Visibility.Visible : Visibility.Collapsed;
-            if (showProgress)
-            {
-                ApplyProgress(snapshot.Progress);
-            }
-
-            UpdateRelease? release = snapshot.AvailableRelease;
-            UpdateDetailPanel.Visibility = release is null ? Visibility.Collapsed : Visibility.Visible;
-            if (release is not null)
-            {
-                UpdateVersionText.Text = $"Version {release.Version.ToNormalizedString()} ({(release.IsPrerelease ? "preview" : "stable")})";
-                UpdatePublishedText.Text = release.PublishedAt.ToLocalTime().ToString("g");
-                UpdateNotesText.Text = TruncateReleaseNotes(release.Body);
-                ReleaseLinkButton.NavigateUri = new Uri(release.HtmlUrl);
-            }
-
-            InstallUpdateButton.Visibility = snapshot.Status == UpdateStatus.Available ? Visibility.Visible : Visibility.Collapsed;
-            LaterButton.Visibility = snapshot.Status == UpdateStatus.Available ? Visibility.Visible : Visibility.Collapsed;
-            CancelInstallButton.Visibility = snapshot.Status is UpdateStatus.Downloading or UpdateStatus.Verifying ? Visibility.Visible : Visibility.Collapsed;
-            RestartNowButton.Visibility = snapshot.Status == UpdateStatus.RestartRequired ? Visibility.Visible : Visibility.Collapsed;
-
-            string statusText = snapshot.Status switch
-            {
-                UpdateStatus.Disabled => "Automatic updates aren't available for this build.",
-                UpdateStatus.Checking => "Checking for updates...",
-                UpdateStatus.UpToDate => "You're up to date.",
-                UpdateStatus.Available => release is null
-                    ? "An update is available."
-                    : $"Version {release.Version.ToNormalizedString()} is available.",
-                UpdateStatus.Downloading => "Downloading update...",
-                UpdateStatus.Verifying => "Verifying update...",
-                UpdateStatus.Installing => "Installing update...",
-                UpdateStatus.RestartRequired => "The update is ready. Restart Networker to finish installing it.",
-                UpdateStatus.Cancelled => "Update cancelled.",
-                UpdateStatus.Failed => snapshot.Error?.Message ?? "The update failed.",
-                _ => string.Empty,
-            };
-
-            if (snapshot.Status == UpdateStatus.Failed)
-            {
-                SetStatus(UpdateStatusText, statusText, "InlineErrorTextStyle");
-            }
-            else if (snapshot.Status == UpdateStatus.RestartRequired)
-            {
-                SetStatus(UpdateStatusText, statusText, "InlineSuccessTextStyle");
-            }
-            else
-            {
-                SetStatus(UpdateStatusText, statusText, "InlineStatusTextStyle");
-            }
-        }
-
-        private static string TruncateReleaseNotes(string? body)
-        {
-            if (string.IsNullOrWhiteSpace(body)) return "No release notes were provided.";
-
-            string plain = body.Replace("\r\n", " ").Replace("\r", " ").Replace("\n", " ");
-            var builder = new StringBuilder(plain.Length);
-            bool lastSpace = false;
-            foreach (char c in plain)
-            {
-                bool isSpace = c == ' ' || c == '\t';
-                if (!isSpace || !lastSpace)
-                {
-                    builder.Append(c);
-                }
-                lastSpace = isSpace;
-            }
-
-            const int maxLength = 600;
-            string text = builder.ToString().Trim();
-            return text.Length <= maxLength ? text : text.Substring(0, maxLength - 3).TrimEnd() + "...";
-        }
+        private static string GetInstalledVersion() => Assembly.GetEntryAssembly()?
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "Development build";
 
         private static void SetStatus(TextBlock target, string message, string styleKey)
         {

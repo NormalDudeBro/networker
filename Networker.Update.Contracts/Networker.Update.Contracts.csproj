@@ -1,15 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <RootNamespace>Networker.Core</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
+    <RootNamespace>Networker.Update.Contracts</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\Templates.json" />
+    <PackageReference Include="NuGet.Versioning" Version="6.12.1" />
   </ItemGroup>
-
 </Project>

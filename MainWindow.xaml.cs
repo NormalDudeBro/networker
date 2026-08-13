@@ -12,9 +12,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using networker.Controls;
 using networker.Services;
-using networker.Services.Updates;
 using networker.Views;
-using Networker.Core.Updates;
 using Networker.Core.Workflow;
 using Windows.Graphics;
 using Windows.System;
@@ -28,7 +26,6 @@ namespace networker
         private const int MinWindowHeight = 540;
         private bool _enforcingMinimumSize;
         private bool _selectingTab;
-        private UpdateCoordinator? _updateCoordinator;
         private TroubleshootingSession? _session;
 
         public static MainWindow? Instance { get; private set; }
@@ -39,7 +36,11 @@ namespace networker
             InitializeComponent();
             Instance = this;
 
-            Root.Loaded += (_, _) => EnforceMinimumWindowSize();
+            Root.Loaded += (_, _) =>
+            {
+                EnforceMinimumWindowSize();
+                try { ((App)Application.Current).Services.GetRequiredService<LaunchHealthService>().SignalHealthy(); } catch { }
+            };
             AppWindow.Changed += (_, args) => { if (args.DidSizeChange) EnforceMinimumWindowSize(); };
             Closed += MainWindow_Closed;
 
@@ -52,8 +53,6 @@ namespace networker
             {
                 _session = ((App)Application.Current).Services.GetRequiredService<TroubleshootingSession>();
                 _session.Changed += Session_Changed;
-                _updateCoordinator = ((App)Application.Current).Services.GetRequiredService<UpdateCoordinator>();
-                _updateCoordinator.StateChanged += UpdateCoordinator_StateChanged;
             }
             catch (Exception)
             {
@@ -293,12 +292,6 @@ namespace networker
                 LlmSession.IsChecking ? "AppTextDisabledBrush" : LlmSession.IsConnected ? "AppOnlineBrush" : "AppOfflineBrush"];
         }
 
-        private void UpdateCoordinator_StateChanged(UpdateSnapshot snapshot)
-        {
-            if (snapshot.Status != UpdateStatus.Available || snapshot.AvailableRelease is not { } release) return;
-            Toaster.ShowUpdate(release.TagName, $"Version {release.Version.ToNormalizedString()} is available.", "View update", () => NavigateToStage(WorkflowStage.Settings, "updates"));
-        }
-
         private void StatusRefreshButton_Click(object sender, RoutedEventArgs e) => _ = LlmSession.RefreshAsync();
         private void ThemeButton_Click(object sender, RoutedEventArgs e) => ToggleTheme();
         private void PaletteAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args) { args.Handled = true; Palette.Open(); }
@@ -332,8 +325,7 @@ namespace networker
             _session?.SaveNow();
             if (_session is not null) _session.Changed -= Session_Changed;
             LlmSession.Changed -= LlmSession_Changed;
-            if (_updateCoordinator is not null) _updateCoordinator.StateChanged -= UpdateCoordinator_StateChanged;
-            try { ((App)Application.Current).Services.GetRequiredService<UpdateScheduler>().Stop(); } catch { }
+            try { ((App)Application.Current).Services.GetRequiredService<LaunchHealthService>().Dispose(); } catch { }
         }
     }
 

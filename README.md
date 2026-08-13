@@ -75,7 +75,6 @@ networker/                 # WinUI 3 app (net8.0-windows10.0.19041)
 ├── Controls/              # CodeBlockView, MessageTemplateSelector, CommandPalette
 ├── Models/                # ChatMessage, ChatRole, ActivityItem
 ├── Services/              # ChatService, LlmRuntime, RecentActivity, Toaster, ConfigSyntaxHighlighter
-│   └── Updates/           # InstalledVersion, cache/storage, MSIX installer, scheduler, logger, restart
 ├── Styles/                # Colors, Fonts, Styles (design tokens, theme switching)
 ├── Views/DashboardPage.xaml  # Dashboard landing (quick actions, activity feed, AI status)
 ├── Views/AssistantPage.xaml  # Stage 8 Assist workspace and persisted chat
@@ -84,10 +83,14 @@ networker/                 # WinUI 3 app (net8.0-windows10.0.19041)
 ├── NetworkConfig/Views/Tabs/ # Reusable Generate/Import/Diff/Vault/Templates controls
 └── App.xaml               # DI container, theme at Application level
 
+Networker.Update.Contracts/   # Shared version, state, schedule, release, and migration contracts
+Networker.Update/             # Signed GitHub release discovery/download and diagnostics
+Networker.Launcher/           # Independent pre-launch updater and guided MSIX migration
+Networker.UpdateHost/         # Out-of-process inactive-slot extraction and atomic commit
+Networker.Bootstrap/          # Stable Start Menu entry point selecting app-a/app-b
 Networker.Core/               # Deterministic net logic (net8.0, no UI deps)
 ├── Llm/                   # Provider layer (config, router, retry, SSE)
 ├── Prompting/             # PromptBuilder
-├── Updates/               # Version policy, release client, downloader, verifier, coordinator
 ├── NetTools/
 │   ├── Ip/                # IpToolkit, IpSubnetInfo
 │   ├── Config/            # ConfigAuditor, TextDiff, DeviceSpec, ConfigGenerator, ConfigTranslator
@@ -127,25 +130,26 @@ Or configure in-app via **Settings → Provider**.
 
 ## Distribution & Updates
 
-Production packages are distributed as a **trusted-certificate-signed x64 MSIX** through
-GitHub Releases. When trusted signing is not configured, a release contains source archives
-only; Networker never publishes an unsigned installable package. Signed package releases
-ship the MSIX, its SHA-256 checksum sidecar, an App Installer manifest, and the public
-certificate required for one-time trust installation.
+Production packages are distributed through GitHub Releases as one publicly
+trusted Authenticode-signed `Networker-Setup.exe`. Setup installs per-user without an
+administrator prompt, always creates a Start Menu shortcut, and offers an unchecked desktop
+shortcut option. The app and updater are x64, self-contained, and installed under
+`%LOCALAPPDATA%\Networker.Desktop`; user data remains under `%LOCALAPPDATA%\Networker`.
 See [docs/UPDATES.md](docs/UPDATES.md) for the full version, asset, and release contract.
 
-In-app, **Settings → APPLICATION UPDATES** shows the installed version and provides the
-update channel toggles (stable by default, previews opt-in), a manual check, release
-notes, download/install progress, and Restart / Later controls. Automatic checks run in
-the background on a 24-hour cadence with failure backoff and never block startup or
-offline use. Updates never touch your settings, prompts, vault, templates, or
-configuration files.
+Start Menu and desktop shortcuts open a small independent launcher before `networker.exe`.
+Cached launches make no network request. A due check has a hard two-second metadata budget;
+offline or failed checks always open the current app. Stable is the default channel and
+preview remains an advanced opt-in. Updates are authenticated by a separately signed release
+manifest, staged into an inactive A/B slot, and committed by an atomic slot-pointer write.
+Updates never touch settings, prompts, vault, templates, or configuration files.
 
 ## Tests
 
 ```powershell
 dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj
-# Current: 481 tests (unit + golden-parity + architecture + performance smoke, no external deps)
+dotnet test Networker.Update.Tests\Networker.Update.Tests.csproj
+# Current: 310 tests across deterministic Core and independent updater policy.
 ```
 
 ## Key Design Decisions

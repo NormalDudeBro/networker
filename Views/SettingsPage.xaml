@@ -225,18 +225,18 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="4">
                             <TextBlock Text="APPLICATION UPDATES" Style="{StaticResource SectionLabelTextStyle}"/>
-                            <TextBlock Text="Updates come from versioned GitHub releases and install as signed x64 packages. Automatic checks run in the background and never block startup." Style="{StaticResource CaptionTextStyle}"/>
+                            <TextBlock Text="A small independent launcher checks authenticated GitHub releases before Networker starts. Cached launches do not use the network." Style="{StaticResource CaptionTextStyle}"/>
                         </StackPanel>
 
                         <StackPanel x:Name="UpdateForm" Grid.Column="1" Spacing="14">
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                                 <StackPanel Spacing="2">
                                     <ToggleSwitch x:Name="AutomaticChecksToggle" Header="Automatic update checks" OnContent="On" OffContent="Off" Toggled="AutomaticChecksToggle_Toggled" AutomationProperties.Name="Automatic update checks"/>
-                                    <TextBlock Text="Check for updates in the background. Manual checks always work." Style="{StaticResource CaptionTextStyle}"/>
+                                    <TextBlock Text="Checks run at most once every 24 hours and never prevent offline startup." Style="{StaticResource CaptionTextStyle}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Spacing="2">
                                     <ToggleSwitch x:Name="PreviewToggle" Header="Preview builds" OnContent="Preview" OffContent="Stable" Toggled="PreviewToggle_Toggled" AutomationProperties.Name="Preview builds"/>
-                                    <TextBlock Text="Stable installs only stable releases; Preview can install pre-releases." Style="{StaticResource CaptionTextStyle}"/>
+                                    <TextBlock Text="Advanced opt-in. Preview builds may be unstable; switching back never downgrades automatically." Style="{StaticResource CaptionTextStyle}"/>
                                 </StackPanel>
                             </Grid>
 
@@ -252,38 +252,11 @@
                             </Grid>
 
                             <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Button x:Name="CheckUpdatesButton" Content="Check for updates" Click="CheckUpdatesButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
-                                <ProgressRing x:Name="UpdateBusyRing" IsActive="False" Width="20" Height="20" Visibility="Collapsed"/>
+                                <Button x:Name="CheckUpdatesButton" Content="Check on next launch" Click="CheckUpdatesButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
                             </StackPanel>
-
-                            <Border x:Name="UpdateDetailPanel" Style="{StaticResource InsetPanelStyle}" Visibility="Collapsed">
-                                <StackPanel Spacing="10">
-                                    <StackPanel Spacing="2">
-                                        <TextBlock Text="Update available" Style="{StaticResource CardTitleTextStyle}"/>
-                                        <TextBlock x:Name="UpdateVersionText" Style="{StaticResource CaptionTextStyle}"/>
-                                    </StackPanel>
-                                    <StackPanel Spacing="6">
-                                        <TextBlock Text="Published" Style="{StaticResource FieldLabelTextStyle}"/>
-                                        <TextBlock x:Name="UpdatePublishedText" Style="{StaticResource InlineStatusTextStyle}"/>
-                                    </StackPanel>
-                                    <StackPanel Spacing="6">
-                                        <TextBlock Text="Release notes" Style="{StaticResource FieldLabelTextStyle}"/>
-                                        <TextBlock x:Name="UpdateNotesText" TextWrapping="Wrap" MaxHeight="140" Style="{StaticResource CaptionTextStyle}" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
-                                    </StackPanel>
-                                    <HyperlinkButton x:Name="ReleaseLinkButton" Content="View release on GitHub" NavigateUri="https://github.com/NormalDudeBro/networker" HorizontalAlignment="Left"/>
-                                </StackPanel>
-                            </Border>
-
-                            <ProgressBar x:Name="UpdateProgressBar" Maximum="1" Visibility="Collapsed" AutomationProperties.Name="Update download progress"/>
 
                             <TextBlock x:Name="UpdateStatusText" Style="{StaticResource InlineStatusTextStyle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
-
-                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Button x:Name="InstallUpdateButton" Content="Download and install" Click="InstallUpdateButton_Click" Style="{StaticResource PrimaryButtonStyle}" Visibility="Collapsed"/>
-                                <Button x:Name="CancelInstallButton" Content="Cancel" Click="CancelInstallButton_Click" Style="{StaticResource SecondaryButtonStyle}" Visibility="Collapsed"/>
-                                <Button x:Name="RestartNowButton" Content="Restart now" Click="RestartNowButton_Click" Style="{StaticResource PrimaryButtonStyle}" Visibility="Collapsed"/>
-                                <Button x:Name="LaterButton" Content="Later" Click="LaterButton_Click" Style="{StaticResource SecondaryButtonStyle}" Visibility="Collapsed"/>
-                            </StackPanel>
+                            <HyperlinkButton Content="View releases on GitHub" NavigateUri="https://github.com/NormalDudeBro/networker/releases" HorizontalAlignment="Left"/>
                         </StackPanel>
                     </Grid>
                 </Border>

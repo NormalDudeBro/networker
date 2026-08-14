@@ -6,6 +6,7 @@ A focused WinUI 3 troubleshooting workspace for network engineers: deterministic
 
 - [Project roadmap](ROADMAP.md)
 - [Updates and release operations](docs/UPDATES.md)
+- [OpenAI Codex (ChatGPT OAuth)](docs/CODEX.md)
 
 ## Troubleshooting Workflow
 
@@ -53,13 +54,11 @@ operations run locally; selected workflows can optionally ask the configured mod
   to `%LOCALAPPDATA%\Networker\custom_templates.json`
 
 ### AI Chat
-- Provider abstraction: **Ollama** (local), **Grok** (x.ai), **Gemini** (Google), and experimental **ChatGPT Plus / Pro** browser integration
-- ChatGPT sign-in happens visibly in a dedicated WebView2 profile. Networker never copies browser cookies or tokens into settings, prompts, diagnostics, or update artifacts.
-- Conversation context is provider-neutral and bounded to the latest 20 conversational messages and 32 KiB. Errors, deterministic tool cards, and Agent activity are not sent as chat history.
-- ChatGPT Temporary Chat is preferred when the current web UI exposes it. If it is unavailable, the Settings status explains that ChatGPT account history may be used.
-- Search, upload, and image support are detected from the current ChatGPT UI and remain unavailable when compatibility cannot be established.
-- Experimental Agent mode operates only after explicit activation and workspace selection. Typed file tools use Windows handle/reparse validation to stay within that workspace. Approved development commands are unsandboxed current-user processes: they can use the machine and network, but start suspended inside a kill-on-close Job Object with a minimal environment, bounded output, and timeout/Stop handling.
-- Fallback chain, retry with exponential backoff, streaming tokens
+- Provider abstraction: **Ollama** (local), **Grok** (x.ai), **Gemini** (Google), and **OpenAI Codex** via ChatGPT OAuth
+- Codex uses the official bundled `codex-app-server` helper. Sign in with ChatGPT in Settings; credentials stay in the Windows keyring owned by the helper. No `OPENAI_API_KEY` is required or accepted for Codex.
+- Conversation context is provider-neutral and bounded to the latest 20 conversational messages and 32 KiB. Errors, deterministic tool cards, and Agent activity are not sent as chat history. Codex chat additionally resumes an app-server thread so the helper owns durable turn state.
+- Codex Agent mode (when Codex is the selected provider) runs inside the official workspace-write sandbox after explicit workspace selection; network remains opt-in per workspace. Non-Codex Agent mode keeps the legacy typed tool loop with Job Object containment.
+- Codex never participates in generic provider retry/fallback after a request is submitted.
 - Credential scrubbing before send
 - Tool cards: deterministic results render inline (CodeBlockView) + Assistant panel history
 

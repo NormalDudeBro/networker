@@ -3,10 +3,11 @@ using System.IO;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using networker.Services;
+using networker.Services.Codex;
+using Networker.Core.Codex;
 using Networker.Core.Services.NetworkConfig;
 using Networker.Core.Services.NetworkConfig.Parsers;
 using Networker.Core.Workflow;
-using Windows.ApplicationModel.Activation;
 
 namespace networker
 {
@@ -62,8 +63,11 @@ namespace networker
         private static ServiceProvider BuildServiceProvider()
         {
             var services = new ServiceCollection();
-            services.AddSingleton<ChatGptWebSession>();
-            services.AddSingleton<AgentService>();
+            services.AddSingleton<ICodexAppServerClient, CodexAppServerClient>();
+            services.AddSingleton<CodexAccountService>();
+            services.AddSingleton<CodexChatProvider>();
+            services.AddSingleton<CodexAgentService>();
+            services.AddSingleton<AgentService>(sp => new AgentService(sp.GetRequiredService<CodexAgentService>()));
             services.AddSingleton<IConfigGenerator, NetworkConfigGenerator>();
             services.AddSingleton<IConfigValidator, ConfigValidator>();
             services.AddSingleton<IConfigParserFactory, ConfigParserFactory>();
@@ -88,7 +92,6 @@ namespace networker
             _ = Services.GetRequiredService<LaunchHealthService>();
             m_window = new MainWindow();
             m_window.Activate();
-
         }
 
         private Window? m_window;

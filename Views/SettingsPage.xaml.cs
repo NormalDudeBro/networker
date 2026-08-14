@@ -8,6 +8,9 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using networker.NetworkConfig.Views.Tabs;
 using networker.Services;
+using networker.Services.Codex;
+using Networker.Core.Codex;
+using Networker.Core.Llm;
 using Networker.Update.Contracts.State;
 using Networker.Update.Contracts.Versioning;
 using Networker.Core.Workflow;
@@ -19,7 +22,8 @@ namespace networker.Views
         private bool _isInitializing = false;
         private TroubleshootingSession? _troubleshootingSession;
         private readonly LauncherStateStore _launcherState = new();
-        private readonly ChatGptWebSession? _chatGptSession;
+        private readonly CodexAccountService? _codexAccount;
+        private Uri? _pendingCodexAuthUrl;
 
         private static IServiceProvider Services => ((App)Application.Current).Services;
 
@@ -29,7 +33,7 @@ namespace networker.Views
             this.Loaded += SettingsPage_Loaded;
             this.Unloaded += SettingsPage_Unloaded;
             _troubleshootingSession = Services.GetService<TroubleshootingSession>();
-            _chatGptSession = Services.GetService<ChatGptWebSession>();
+            _codexAccount = Services.GetService<CodexAccountService>();
         }
 
         private async void SettingsPage_Loaded(object sender, RoutedEventArgs e)
@@ -40,8 +44,15 @@ namespace networker.Views
             ProviderComboBox.Items.Add("ollama");
             ProviderComboBox.Items.Add("grok");
             ProviderComboBox.Items.Add("gemini");
-            ProviderComboBox.Items.Add("chatgpt");
+            ProviderComboBox.Items.Add("codex");
             ProviderComboBox.SelectedItem = AppSettings.SelectedProvider;
+            if (_codexAccount is not null)
+            {
+                _codexAccount.Changed -= CodexAccount_Changed;
+                _codexAccount.Changed += CodexAccount_Changed;
+                CodexNetworkToggle.IsOn = AppSettings.CodexAgentNetworkEnabled;
+                UpdateCodexPanel();
+            }
 
             ThemeComboBox.Items.Clear();
             ThemeComboBox.Items.Add("System");
@@ -78,6 +89,7 @@ namespace networker.Views
 
         private void SettingsPage_Unloaded(object sender, RoutedEventArgs e)
         {
+            if (_codexAccount is not null) _codexAccount.Changed -= CodexAccount_Changed;
         }
 
         private async void RefreshButton_Click(object sender, RoutedEventArgs e) => await FetchModelsAsync(applyConnection: true);
@@ -119,62 +131,173 @@ namespace networker.Views
 
         private void UpdateProviderPanels()
         {
-            bool chatGpt = string.Equals(LlmSession.Provider, "chatgpt", StringComparison.OrdinalIgnoreCase);
-            ChatGptConnectionPanel.Visibility = chatGpt ? Visibility.Visible : Visibility.Collapsed;
-            EndpointTextBox.IsEnabled = !chatGpt;
-            ApiKeyPasswordBox.IsEnabled = !chatGpt;
-            RefreshButton.Content = chatGpt ? "Refresh status" : "Apply & refresh";
+            bool codex = IsCodexSelected();
+            CodexConnectionPanel.Visibility = codex ? Visibility.Visible : Visibility.Collapsed;
+            EndpointTextBox.IsEnabled = !codex;
+            ApiKeyPasswordBox.IsEnabled = !codex;
+            RefreshButton.Content = codex ? "Refresh status" : "Apply & refresh";
+            if (codex) UpdateCodexPanel();
         }
 
-        private async void ChatGptSignInButton_Click(object sender, RoutedEventArgs e)
+        private bool IsCodexSelected()
+            => LlmConfig.ParseProvider(LlmSession.Provider) == LlmProviderKind.Codex;
+
+        private void CodexAccount_Changed()
         {
-            if (_chatGptSession is null) return;
-            if (!AppSettings.ChatGptDisclosureAccepted)
+            DispatcherQueue.TryEnqueue(() =>
             {
-                var dialog = new ContentDialog
-                {
-                    Title = "Use experimental ChatGPT integration?",
-                    Content = "Networker sends your prompts and selected conversation context to ChatGPT through a dedicated browser profile. Sign-in credentials remain browser-owned. ChatGPT may change this web interface at any time.",
-                    PrimaryButtonText = "Continue",
-                    CloseButtonText = "Cancel",
-                    DefaultButton = ContentDialogButton.Close,
-                    XamlRoot = XamlRoot,
-                };
-                if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-                AppSettings.ChatGptDisclosureAccepted = true;
+                UpdateCodexPanel();
+                if (IsCodexSelected()) _ = FetchModelsAsync(applyConnection: false);
+            });
+        }
+
+        private void UpdateCodexPanel()
+        {
+            if (_codexAccount is null) return;
+            CodexVersionText.Text = $"Codex component {_codexAccount.ComponentVersion}";
+            CodexAccount account = _codexAccount.Account;
+            bool pending = _codexAccount.IsLoginPending;
+            bool connected = account.IsConnected;
+
+            CodexSignInButton.Visibility = connected || pending ? Visibility.Collapsed : Visibility.Visible;
+            CodexCancelButton.Visibility = pending ? Visibility.Visible : Visibility.Collapsed;
+            CodexSignOutButton.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
+            CodexConnectedDetails.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
+
+            if (pending)
+            {
+                CodexStatusText.Text = _pendingCodexAuthUrl is null
+                    ? "Waiting for authorization in your browser…"
+                    : "Waiting for authorization. If the browser did not open, use the sign-in link from diagnostics and keep Cancel available.";
+            }
+            else if (connected)
+            {
+                string email = string.IsNullOrWhiteSpace(account.Email) ? "ChatGPT account" : account.Email!;
+                string plan = string.IsNullOrWhiteSpace(account.PlanType) ? "plan unknown" : account.PlanType!;
+                CodexAccountText.Text = $"{email} · {plan}";
+                CodexUsageText.Text = FormatUsage(_codexAccount.Usage);
+                CodexStatusText.Text = account.Message;
+                PopulateReasoningOptions();
+            }
+            else
+            {
+                CodexStatusText.Text = account.Message;
+                CodexAccountText.Text = string.Empty;
+                CodexUsageText.Text = string.Empty;
+            }
+        }
+
+        private void PopulateReasoningOptions()
+        {
+            if (_codexAccount is null) return;
+            string modelId = AppSettings.SelectedModel;
+            CodexModelDescriptor? model = _codexAccount.Models.FirstOrDefault(item => item.Id == modelId)
+                ?? _codexAccount.Models.FirstOrDefault(item => item.IsDefault)
+                ?? _codexAccount.Models.FirstOrDefault();
+            _isInitializing = true;
+            CodexReasoningComboBox.Items.Clear();
+            if (model is null || model.SupportedReasoningEfforts.Count == 0)
+            {
+                CodexReasoningComboBox.IsEnabled = false;
+                _isInitializing = false;
+                return;
             }
 
+            foreach (CodexReasoningOption effort in model.SupportedReasoningEfforts)
+            {
+                string label = string.IsNullOrWhiteSpace(effort.Description) ? effort.Id : $"{effort.Id} — {effort.Description}";
+                CodexReasoningComboBox.Items.Add(new ComboBoxItem { Content = label, Tag = effort.Id });
+            }
+
+            string selected = AppSettings.CodexReasoningEffort;
+            if (string.IsNullOrWhiteSpace(selected) || model.SupportedReasoningEfforts.All(item => item.Id != selected))
+                selected = model.DefaultReasoningEffort;
+            AppSettings.CodexReasoningEffort = selected;
+            foreach (ComboBoxItem item in CodexReasoningComboBox.Items.OfType<ComboBoxItem>())
+            {
+                if (string.Equals(item.Tag as string, selected, StringComparison.Ordinal))
+                {
+                    CodexReasoningComboBox.SelectedItem = item;
+                    break;
+                }
+            }
+
+            CodexReasoningComboBox.IsEnabled = true;
+            _isInitializing = false;
+        }
+
+        private static string FormatUsage(CodexUsage usage)
+        {
+            if (usage.Primary is null && usage.Secondary is null) return "Usage unavailable.";
+            var parts = new System.Collections.Generic.List<string>();
+            if (usage.Primary is not null) parts.Add($"Primary {usage.Primary.UsedPercent:0.#}%");
+            if (usage.Secondary is not null) parts.Add($"Secondary {usage.Secondary.UsedPercent:0.#}%");
+            if (usage.SpendControlReached == true) parts.Add("Spend control reached");
+            return string.Join(" · ", parts);
+        }
+
+        private async void CodexSignInButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_codexAccount is null) return;
             try
             {
-                await _chatGptSession.ShowLoginAsync();
-                ChatGptStatusText.Text = "Complete sign-in in the browser, then close it and refresh status.";
+                _pendingCodexAuthUrl = await _codexAccount.SignInAsync();
+                UpdateCodexPanel();
             }
-            catch (Exception ex) { ChatGptStatusText.Text = ex.Message; }
+            catch (Exception ex)
+            {
+                CodexStatusText.Text = ex.Message;
+            }
         }
 
-        private async void ChatGptCloseButton_Click(object sender, RoutedEventArgs e)
+        private async void CodexCancelButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_chatGptSession is null) return;
-            await _chatGptSession.HideLoginAsync();
-            await FetchModelsAsync(applyConnection: false);
+            if (_codexAccount is null) return;
+            try
+            {
+                await _codexAccount.CancelSignInAsync();
+                _pendingCodexAuthUrl = null;
+                UpdateCodexPanel();
+            }
+            catch (Exception ex) { CodexStatusText.Text = ex.Message; }
         }
 
-        private async void ChatGptDeleteProfileButton_Click(object sender, RoutedEventArgs e)
+        private async void CodexSignOutButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_chatGptSession is null) return;
+            if (_codexAccount is null) return;
             var dialog = new ContentDialog
             {
-                Title = "Delete ChatGPT browser profile?",
-                Content = "This removes cookies and local browser data from Networker's dedicated ChatGPT profile. Your normal browsers are unaffected.",
-                PrimaryButtonText = "Delete profile",
+                Title = "Sign out of Codex?",
+                Content = "This signs out the ChatGPT account used by Networker's Codex helper. Other apps are not affected when keyring isolation is intact.",
+                PrimaryButtonText = "Sign out",
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Close,
                 XamlRoot = XamlRoot,
             };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-            await _chatGptSession.SignOutAndDeleteProfileAsync();
-            ChatGptStatusText.Text = "Dedicated ChatGPT browser profile cleared.";
-            await FetchModelsAsync(applyConnection: false);
+            try
+            {
+                await _codexAccount.SignOutAsync();
+                _pendingCodexAuthUrl = null;
+                await FetchModelsAsync(applyConnection: false);
+            }
+            catch (Exception ex) { CodexStatusText.Text = ex.Message; }
+        }
+
+        private void CodexReasoningComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || CodexReasoningComboBox.SelectedItem is not ComboBoxItem item) return;
+            if (item.Tag is string effort) AppSettings.CodexReasoningEffort = effort;
+        }
+
+        private void CodexNetworkToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_isInitializing) return;
+            AppSettings.CodexAgentNetworkEnabled = CodexNetworkToggle.IsOn;
+            if (CodexNetworkToggle.IsOn && !string.IsNullOrWhiteSpace(AppSettings.LastAgentWorkspacePath))
+                AppSettings.CodexAgentAuthorizedWorkspace = AppSettings.LastAgentWorkspacePath;
+            else if (!CodexNetworkToggle.IsOn)
+                AppSettings.CodexAgentAuthorizedWorkspace = string.Empty;
         }
 
         private void VendorComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -235,8 +358,8 @@ namespace networker.Views
         {
             string endpoint = (EndpointTextBox.Text ?? "").Trim();
             string apiKey = ApiKeyPasswordBox.Password ?? "";
-            bool chatGpt = string.Equals(LlmSession.Provider, "chatgpt", StringComparison.OrdinalIgnoreCase);
-            if (applyConnection && !chatGpt && string.IsNullOrWhiteSpace(endpoint))
+            bool codex = IsCodexSelected();
+            if (applyConnection && !codex && string.IsNullOrWhiteSpace(endpoint))
             {
                 SetConnectionStatus("Enter an API endpoint before refreshing.", "AppDangerBrush");
                 EndpointTextBox.Focus(FocusState.Programmatic);
@@ -248,7 +371,7 @@ namespace networker.Views
 
             try
             {
-                if (applyConnection && !chatGpt)
+                if (applyConnection && !codex)
                 {
                     bool connectionChanged = endpoint != AppSettings.OllamaEndpoint || apiKey != AppSettings.OllamaApiKey;
                     AppSettings.OllamaEndpoint = endpoint;
@@ -260,18 +383,16 @@ namespace networker.Views
                     }
                 }
 
+                if (codex && _codexAccount is not null)
+                {
+                    await _codexAccount.RefreshAsync();
+                    UpdateCodexPanel();
+                }
+
                 LlmRuntime.ApplyProviderSelection(LlmSession.Provider, LlmSession.Model);
                 await LlmSession.RefreshAsync();
                 var modelIds = LlmSession.Models.ToList();
-
-                if (chatGpt && _chatGptSession is not null)
-                {
-                    var browserStatus = await _chatGptSession.GetStatusAsync();
-                    string capabilities = browserStatus.Capabilities == Networker.Core.Llm.LlmProviderCapabilities.None
-                        ? "No optional capabilities detected."
-                        : $"Detected: {browserStatus.Capabilities}.";
-                    ChatGptStatusText.Text = $"{browserStatus.Message} {capabilities}";
-                }
+                if (codex) PopulateReasoningOptions();
 
                 if (modelIds.Count == 0)
                 {

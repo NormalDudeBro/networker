@@ -87,6 +87,22 @@
     <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
 
+  <!-- Official OpenAI Codex app-server package (staged by scripts/Get-CodexAppServer.ps1). -->
+  <ItemGroup Condition="Exists('artifacts\\codex\\win-x64\\bin\\codex-app-server.exe')">
+    <Content Include="artifacts\codex\win-x64\**\*">
+      <Link>Codex\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <TargetPath>Codex\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </Content>
+  </ItemGroup>
+  <ItemGroup Condition="Exists('THIRD-PARTY-NOTICES.txt')">
+    <Content Include="THIRD-PARTY-NOTICES.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
   <!--
     Release packaging for the production x64 MSIX channel. Local Release builds
     stay unsigned (the release workflow signs with the trusted certificate);

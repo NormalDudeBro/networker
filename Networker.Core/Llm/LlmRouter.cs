@@ -158,12 +158,14 @@ public sealed class LlmRouter
         {
             try
             {
-                var response = await RetryPolicy.ExecuteAsync(
-                    (ct) => provider.CompleteAsync(messages, ct),
-                    _config.RetryCount,
-                    _config.BaseRetryDelay,
-                    _config.Timeout,
-                    cancellationToken).ConfigureAwait(false);
+                var response = provider.Kind == LlmProviderKind.Codex
+                    ? await provider.CompleteAsync(messages, cancellationToken).ConfigureAwait(false)
+                    : await RetryPolicy.ExecuteAsync(
+                        (ct) => provider.CompleteAsync(messages, ct),
+                        _config.RetryCount,
+                        _config.BaseRetryDelay,
+                        _config.Timeout,
+                        cancellationToken).ConfigureAwait(false);
 
                 Emit(provider.Name, "Responded", isError: false);
                 return response;
@@ -176,7 +178,7 @@ public sealed class LlmRouter
             {
                 lastError = ex;
                 Emit(provider.Name, ex.Message, isError: true);
-                if (ex is LlmException { MayHaveSubmittedRequest: true })
+                if (provider.Kind == LlmProviderKind.Codex || ex is LlmException { MayHaveSubmittedRequest: true })
                 {
                     throw;
                 }
@@ -214,7 +216,7 @@ public sealed class LlmRouter
                 {
                     lastError = ex;
                     Emit(provider.Name, ex.Message, isError: true);
-                    if (ex is LlmException { MayHaveSubmittedRequest: true })
+                    if (provider.Kind == LlmProviderKind.Codex || ex is LlmException { MayHaveSubmittedRequest: true })
                     {
                         throw;
                     }

@@ -169,10 +169,14 @@ namespace networker.Views
             if (_changingAgentMode) return;
             if (AgentModeToggle.IsOn && !AppSettings.AgentDisclosureAccepted)
             {
+                bool codex = Networker.Core.Llm.LlmConfig.ParseProvider(AppSettings.SelectedProvider) == Networker.Core.Llm.LlmProviderKind.Codex;
+                string disclosure = codex
+                    ? "Codex Agent mode can automatically read and write files inside the selected workspace and run commands through the official OpenAI Codex Windows sandbox (workspace-write). Network stays restricted unless you enable it for this workspace in Settings. All actions are shown live; review the final local changes when the run finishes. Selecting a workspace is the authorization boundary."
+                    : "Agent mode can automatically read, write, and delete files inside the selected workspace and run approved development commands as your Windows user. Commands use your machine and network access. Review the resulting local changes when the run finishes.";
                 var dialog = new ContentDialog
                 {
                     Title = "Enable Agent mode?",
-                    Content = "Agent mode can automatically read, write, and delete files inside the selected workspace and run approved development commands as your Windows user. Commands use your machine and network access. Review the resulting local changes when the run finishes.",
+                    Content = disclosure,
                     PrimaryButtonText = "Enable Agent mode",
                     CloseButtonText = "Cancel",
                     DefaultButton = ContentDialogButton.Close,
@@ -205,6 +209,10 @@ namespace networker.Views
             Windows.Storage.StorageFolder? folder = await picker.PickSingleFolderAsync();
             if (folder is null) return;
             AppSettings.LastAgentWorkspacePath = folder.Path;
+            if (AppSettings.CodexAgentNetworkEnabled)
+                AppSettings.CodexAgentAuthorizedWorkspace = folder.Path;
+            else
+                AppSettings.CodexAgentAuthorizedWorkspace = string.Empty;
             WorkspacePathText.Text = folder.Path;
         }
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Networker.Core.Llm;
-using Networker.Core.Llm.ChatGpt;
+using networker.Services.Codex;
 using Windows.Storage;
 
 namespace networker.Services
@@ -16,7 +16,7 @@ namespace networker.Services
     public static class LlmRuntime
     {
         private static LlmRouter? _router;
-        private static IChatGptTransport? _chatGptTransport;
+        private static CodexChatProvider? _codexProvider;
 
         public static event Action<LlmRouter>? RouterChanged;
 
@@ -24,9 +24,9 @@ namespace networker.Services
 
         public static LlmConfig Config => Router.Config;
 
-        public static void ConfigureChatGptTransport(IChatGptTransport transport)
+        public static void ConfigureCodex(CodexChatProvider provider)
         {
-            _chatGptTransport = transport;
+            _codexProvider = provider ?? throw new ArgumentNullException(nameof(provider));
             Reset();
         }
 
@@ -87,7 +87,7 @@ namespace networker.Services
             };
 
             var config = LlmConfigLoader.Load(overrides, LocalDataDirectory());
-            config.ChatGptModel = AppSettings.SelectedModel;
+            config.CodexModel = AppSettings.SelectedModel;
             var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(180) };
             var providers = new List<ILlmProvider>
             {
@@ -95,9 +95,9 @@ namespace networker.Services
                 new GrokProvider(config, http),
                 new GeminiProvider(config, http),
             };
-            if (_chatGptTransport is not null)
+            if (_codexProvider is not null)
             {
-                providers.Add(new ChatGptProvider(config, _chatGptTransport));
+                providers.Add(_codexProvider);
             }
 
             var router = new LlmRouter(config, providers);
@@ -118,4 +118,3 @@ namespace networker.Services
         }
     }
 }
-

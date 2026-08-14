@@ -30,11 +30,26 @@ $archive = [IO.Compression.ZipFile]::OpenRead($package)
 $authenticodeDirectory = $null
 try {
     $names = @($archive.Entries | ForEach-Object FullName)
-    foreach ($forbidden in @('ChatGptWebView', 'agent-journal', 'troubleshooting-workspace.json', 'settings.json', '.env')) {
+    foreach ($forbidden in @('ChatGptWebView', 'agent-journal', 'troubleshooting-workspace.json', 'settings.json', '.env', 'auth.json')) {
         if ($names | Where-Object { $_ -like "*$forbidden*" }) { throw "Release ZIP contains local runtime state: $forbidden" }
     }
-    foreach ($required in @('networker.exe', 'Networker.Launcher.exe', 'Networker.UpdateHost.exe', 'version.txt')) {
-        if ($names -notcontains $required) { throw "Release ZIP is missing $required." }
+    foreach ($required in @(
+        'networker.exe',
+        'Networker.Launcher.exe',
+        'Networker.UpdateHost.exe',
+        'version.txt',
+        'Codex/codex-package.json',
+        'Codex/bin/codex-app-server.exe',
+        'Codex/bin/codex-code-mode-host.exe',
+        'Codex/codex-path/rg.exe',
+        'Codex/codex-resources/codex-command-runner.exe',
+        'Codex/codex-resources/codex-windows-sandbox-setup.exe',
+        'THIRD-PARTY-NOTICES.txt'
+    )) {
+        $normalized = $required -replace '\\', '/'
+        if (-not ($names | Where-Object { ($_ -replace '\\', '/') -eq $normalized })) {
+            throw "Release ZIP is missing $required."
+        }
     }
     if ($RequireAuthenticode) {
         $authenticodeDirectory = Join-Path $env:TEMP ('networker-authenticode-' + [guid]::NewGuid().ToString('N'))

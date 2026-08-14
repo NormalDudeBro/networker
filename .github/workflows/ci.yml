@@ -23,6 +23,10 @@ jobs:
       - name: Restore
         run: dotnet restore networker.sln
 
+      - name: Acquire pinned Codex app-server package
+        shell: pwsh
+        run: ./scripts/Get-CodexAppServer.ps1 -OutputDirectory artifacts\codex\win-x64
+
       - name: Run Core tests
         run: dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj -c Debug --no-restore
 
@@ -42,4 +46,13 @@ jobs:
           dotnet build Networker.Bootstrap\Networker.Bootstrap.csproj -c Debug --no-restore
 
       - name: Publish Release x64
-        run: dotnet publish networker.csproj -c Release -p:Platform=x64 -p:WindowsPackageType=None --no-restore
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet publish networker.csproj -c Release -p:Platform=x64 -p:WindowsPackageType=None --no-restore
+          $codexSrc = 'artifacts\codex\win-x64'
+          $codexDst = 'artifacts\publish\app\Codex'
+          if (-not (Test-Path (Join-Path $codexSrc 'bin\codex-app-server.exe'))) { throw 'Codex package missing after acquisition.' }
+          Remove-Item $codexDst -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item $codexSrc $codexDst -Recurse -Force

@@ -128,7 +128,7 @@ public class LlmRouterTests
     [Fact]
     public async Task Complete_DoesNotFallbackAfterPossibleSubmission()
     {
-        var first = new FakeProvider(LlmProviderKind.ChatGpt, () => throw new LlmException("observation failed") { MayHaveSubmittedRequest = true });
+        var first = new FakeProvider(LlmProviderKind.Codex, () => throw new LlmException("observation failed") { MayHaveSubmittedRequest = true });
         var second = new FakeProvider(LlmProviderKind.Ollama, () => new LlmResponse { Provider = "Ollama", Model = "test", Content = "duplicate" });
         var router = new LlmRouter(Config(), new ILlmProvider[] { first, second });
 

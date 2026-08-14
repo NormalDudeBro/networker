@@ -53,10 +53,27 @@ if (-not $NoBuild) {
     if ($LASTEXITCODE) { throw 'Bootstrap publish failed.' }
 }
 
+$codexSource = Join-Path $root 'artifacts\codex\win-x64'
+if (-not (Test-Path (Join-Path $codexSource 'bin\codex-app-server.exe'))) {
+    & (Join-Path $root 'scripts\Get-CodexAppServer.ps1') -OutputDirectory 'artifacts\codex\win-x64'
+    if ($LASTEXITCODE) { throw 'Codex app-server acquisition failed.' }
+}
+if (-not (Test-Path (Join-Path $codexSource 'codex-package.json'))) {
+    throw "Codex package is missing at $codexSource. Run scripts/Get-CodexAppServer.ps1."
+}
+
 Remove-Item $installerStage -Recurse -Force -ErrorAction SilentlyContinue
 New-Item $slotStage -ItemType Directory -Force | Out-Null
 New-Item (Join-Path $installerStage 'root') -ItemType Directory -Force | Out-Null
 Copy-Item (Join-Path $appPublish '*') $slotStage -Recurse -Force
+$codexDest = Join-Path $slotStage 'Codex'
+Remove-Item $codexDest -Recurse -Force -ErrorAction SilentlyContinue
+Copy-Item $codexSource $codexDest -Recurse -Force
+$notices = Join-Path $root 'THIRD-PARTY-NOTICES.txt'
+if (Test-Path $notices) {
+    Copy-Item $notices (Join-Path $slotStage 'THIRD-PARTY-NOTICES.txt') -Force
+    Copy-Item $notices (Join-Path $codexDest 'THIRD-PARTY-NOTICES.txt') -Force
+}
 Get-ChildItem $slotStage -Filter '*.pdb' -Recurse | Remove-Item -Force
 foreach ($pair in @(
     @((Join-Path $launcherPublish 'Networker.Launcher.exe'), (Join-Path $slotStage 'Networker.Launcher.exe')),

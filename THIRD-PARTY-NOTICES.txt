@@ -1,0 +1,38 @@
+THIRD-PARTY NOTICES
+===================
+
+This product bundles components from third parties. Their licenses are
+reproduced or referenced below.
+
+---------------------------------------------------------------------------
+OpenAI Codex (codex-app-server)
+---------------------------------------------------------------------------
+
+This product bundles the official OpenAI Codex application server package
+for Windows x64 (codex-app-server), obtained from the OpenAI Codex GitHub
+releases (Apache License 2.0).
+
+Copyright notices and the Apache License 2.0 text that ship with the
+official package, if present under Codex/LICENSE and Codex/NOTICE, apply
+to those binaries and resources.
+
+Networker is not affiliated with, sponsored by, or endorsed by OpenAI.
+
+Upstream project: https://github.com/openai/codex
+License: Apache License 2.0
+Pinned release (see Services/Codex/CodexAppServerDistribution.cs): rust-v0.147.0
+
+The bundled helper is redistributed unmodified. Networker does not claim
+ownership of OpenAI-signed or OpenAI-published binaries and does not
+re-sign them as Networker-owned Authenticode artifacts.
+
+---------------------------------------------------------------------------
+Reference note (not bundled)
+---------------------------------------------------------------------------
+
+The third-party project numman-ali/opencode-openai-codex-auth was studied
+as an architectural reference for ChatGPT OAuth access patterns. It is
+NOT bundled, NOT required at runtime, and NO substantial portion of its
+source is included in Networker. Networker uses the official Codex
+app-server protocol instead of reimplementing ChatGPT backend OAuth or
+request transforms.

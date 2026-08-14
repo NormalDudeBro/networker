@@ -60,6 +60,7 @@ namespace networker.Services
             if (string.IsNullOrWhiteSpace(provider)) return;
             Provider = provider;
             AppSettings.SelectedProvider = provider;
+            Model = AppSettings.SelectedModel;
             Changed?.Invoke();
         }
 

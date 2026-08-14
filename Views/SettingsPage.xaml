@@ -120,18 +120,31 @@
                                 </StackPanel>
                             </Border>
 
-                            <Border x:Name="ChatGptConnectionPanel" Style="{StaticResource InsetPanelStyle}" Visibility="Collapsed">
+                            <Border x:Name="CodexConnectionPanel" Style="{StaticResource InsetPanelStyle}" Visibility="Collapsed">
                                 <StackPanel Spacing="10">
                                     <StackPanel Spacing="2">
-                                        <TextBlock Text="ChatGPT Plus / Pro" Style="{StaticResource CardTitleTextStyle}"/>
-                                        <TextBlock Text="Experimental browser integration. Sign-in data stays in a dedicated WebView2 profile and is never copied into Networker settings or prompts." Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="OpenAI Codex" Style="{StaticResource CardTitleTextStyle}"/>
+                                        <TextBlock Text="Use your ChatGPT account to access Codex. No OpenAI API key or Platform credits required. Credentials stay in the official Codex helper (Windows keyring)." Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <Button Content="Sign in" Click="ChatGptSignInButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
-                                        <Button Content="Close sign-in" Click="ChatGptCloseButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
-                                        <Button Content="Sign out &amp; delete profile" Click="ChatGptDeleteProfileButton_Click" Style="{StaticResource DangerButtonStyle}"/>
+                                        <Button x:Name="CodexSignInButton" Content="Sign in with ChatGPT" Click="CodexSignInButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                                        <Button x:Name="CodexCancelButton" Content="Cancel" Click="CodexCancelButton_Click" Style="{StaticResource SecondaryButtonStyle}" Visibility="Collapsed"/>
+                                        <Button x:Name="CodexSignOutButton" Content="Sign out" Click="CodexSignOutButton_Click" Style="{StaticResource DangerButtonStyle}" Visibility="Collapsed"/>
                                     </StackPanel>
-                                    <TextBlock x:Name="ChatGptStatusText" Style="{StaticResource InlineStatusTextStyle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+                                    <StackPanel x:Name="CodexConnectedDetails" Spacing="6" Visibility="Collapsed">
+                                        <TextBlock x:Name="CodexAccountText" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
+                                        <TextBlock x:Name="CodexUsageText" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
+                                        <StackPanel Spacing="6">
+                                            <TextBlock x:Name="ReasoningLabel" Text="Reasoning effort" Style="{StaticResource FieldLabelTextStyle}"/>
+                                            <ComboBox x:Name="CodexReasoningComboBox" SelectionChanged="CodexReasoningComboBox_SelectionChanged" HorizontalAlignment="Stretch" AutomationProperties.LabeledBy="{x:Bind ReasoningLabel}"/>
+                                        </StackPanel>
+                                        <StackPanel Spacing="6">
+                                            <ToggleSwitch x:Name="CodexNetworkToggle" Header="Allow network during Agent runs (this workspace)" Toggled="CodexNetworkToggle_Toggled"/>
+                                            <TextBlock Text="File access stays inside the selected workspace (workspace-write sandbox). Network is off by default." Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <TextBlock x:Name="CodexStatusText" Style="{StaticResource InlineStatusTextStyle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+                                    <TextBlock x:Name="CodexVersionText" Style="{StaticResource CaptionTextStyle}"/>
                                 </StackPanel>
                             </Border>
 

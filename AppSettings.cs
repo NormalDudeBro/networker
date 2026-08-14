@@ -24,8 +24,10 @@ namespace networker
 
         public static string SelectedModel
         {
-            get => (LocalSettings.Values["SelectedModel"] as string) ?? "";
-            set => LocalSettings.Values["SelectedModel"] = value;
+            get => IsCodexProvider(SelectedProvider)
+                ? (LocalSettings.Values["CodexSelectedModel"] as string) ?? (LocalSettings.Values["SelectedModel"] as string) ?? ""
+                : (LocalSettings.Values["SelectedModel"] as string) ?? "";
+            set => LocalSettings.Values[IsCodexProvider(SelectedProvider) ? "CodexSelectedModel" : "SelectedModel"] = value;
         }
 
         public static string ThemeMode
@@ -36,8 +38,36 @@ namespace networker
 
         public static string SelectedProvider
         {
-            get => (LocalSettings.Values["SelectedProvider"] as string) ?? "ollama";
+            get
+            {
+                string value = (LocalSettings.Values["SelectedProvider"] as string) ?? "ollama";
+                return IsCodexProvider(value) ? "codex" : value;
+            }
             set => LocalSettings.Values["SelectedProvider"] = value;
+        }
+
+        public static string CodexReasoningEffort
+        {
+            get => (LocalSettings.Values["CodexReasoningEffort"] as string) ?? string.Empty;
+            set => LocalSettings.Values["CodexReasoningEffort"] = value;
+        }
+
+        public static string CodexChatThreadId
+        {
+            get => (LocalSettings.Values["CodexChatThreadId"] as string) ?? string.Empty;
+            set => LocalSettings.Values["CodexChatThreadId"] = value;
+        }
+
+        public static bool CodexAgentNetworkEnabled
+        {
+            get => LocalSettings.Values["CodexAgentNetworkEnabled"] is bool value && value;
+            set => LocalSettings.Values["CodexAgentNetworkEnabled"] = value;
+        }
+
+        public static string CodexAgentAuthorizedWorkspace
+        {
+            get => (LocalSettings.Values["CodexAgentAuthorizedWorkspace"] as string) ?? string.Empty;
+            set => LocalSettings.Values["CodexAgentAuthorizedWorkspace"] = value;
         }
 
         /// <summary>
@@ -60,12 +90,6 @@ namespace networker
         {
             get => (LocalSettings.Values["DefaultVendor"] as string) ?? "Cisco IOS/IOS-XE";
             set => LocalSettings.Values["DefaultVendor"] = value;
-        }
-
-        public static bool ChatGptDisclosureAccepted
-        {
-            get => LocalSettings.Values["ChatGptDisclosureAccepted"] is bool value && value;
-            set => LocalSettings.Values["ChatGptDisclosureAccepted"] = value;
         }
 
         public static string LastAgentWorkspacePath
@@ -187,6 +211,12 @@ namespace networker
         {
             _ = TrySetLocalFileValue(fileName, value, out _);
         }
+
+        private static bool IsCodexProvider(string? value) => value is not null &&
+            (value.Equals("codex", StringComparison.OrdinalIgnoreCase)
+             || value.Equals("openai-codex", StringComparison.OrdinalIgnoreCase)
+             || value.Equals("chatgpt", StringComparison.OrdinalIgnoreCase)
+             || value.Equals("openai-chatgpt", StringComparison.OrdinalIgnoreCase));
 
         public static bool TrySaveGlobalPrompts(string systemPrompt, string customInstructions, out string error)
         {

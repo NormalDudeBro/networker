@@ -13,6 +13,10 @@ public static class MigrationAllowList
         "OllamaEndpoint", "OllamaApiKey", "SelectedModel", "ThemeMode", "SelectedProvider",
         "NetworkConfigDirectory", "DefaultVendor", "SelectedToolKey",
         "AutomaticUpdateChecksEnabled", "IncludePrereleaseUpdates",
+        // Codex UI preferences only — never auth/token/Codex-home paths.
+        "CodexSelectedModel", "CodexReasoningEffort", "CodexChatThreadId",
+        "CodexAgentNetworkEnabled", "CodexAgentAuthorizedWorkspace",
+        "LastAgentWorkspacePath", "AgentDisclosureAccepted",
     };
 
     public static IReadOnlySet<string> Files { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)

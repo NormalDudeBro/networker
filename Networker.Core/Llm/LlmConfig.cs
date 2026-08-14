@@ -16,7 +16,7 @@ public sealed class LlmConfig
     public string? GeminiApiKey { get; set; }
     public string? GeminiModel { get; set; } = "gemini-2.5-flash";
 
-    public string? ChatGptModel { get; set; } = "auto";
+    public string? CodexModel { get; set; }
 
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(120);
     public int RetryCount { get; set; } = 2;
@@ -34,7 +34,7 @@ public sealed class LlmConfig
             "ollama" => LlmProviderKind.Ollama,
             "grok" or "xai" => LlmProviderKind.Grok,
             "gemini" or "google" => LlmProviderKind.Gemini,
-            "chatgpt" or "openai-chatgpt" => LlmProviderKind.ChatGpt,
+            "codex" or "openai-codex" or "chatgpt" or "openai-chatgpt" => LlmProviderKind.Codex,
             _ => LlmProviderKind.Ollama,
         };
     }
@@ -44,7 +44,7 @@ public sealed class LlmConfig
         LlmProviderKind.Ollama => "Ollama",
         LlmProviderKind.Grok => "Grok (xAI)",
         LlmProviderKind.Gemini => "Gemini",
-        LlmProviderKind.ChatGpt => "ChatGPT Plus / Pro (experimental)",
+        LlmProviderKind.Codex => "OpenAI Codex (ChatGPT)",
         _ => kind.ToString(),
     };
 }

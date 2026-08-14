@@ -43,6 +43,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           dotnet restore networker.sln
+          ./scripts/Get-CodexAppServer.ps1 -OutputDirectory artifacts\codex\win-x64
           dotnet test Networker.Core.Tests\Networker.Core.Tests.csproj -c Debug --no-restore
           dotnet test Networker.Update.Tests\Networker.Update.Tests.csproj -c Debug --no-restore
 

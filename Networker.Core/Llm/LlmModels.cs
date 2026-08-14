@@ -5,7 +5,7 @@ public enum LlmProviderKind
     Ollama = 0,
     Grok = 1,
     Gemini = 2,
-    ChatGpt = 3,
+    Codex = 3,
 }
 
 [Flags]

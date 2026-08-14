@@ -1,11 +1,11 @@
 using System.Text.Json;
 using System.Security.Cryptography;
 using System.Text;
+using System.Diagnostics;
 using Networker.Core.Llm;
 
 namespace Networker.Core.Agent;
 
-public sealed record AgentActivity(string Action, string Detail, bool IsError = false);
 public sealed record AgentResult(string Summary, IReadOnlyList<AgentActivity> Activities);
 
 public sealed class AgentOrchestrator
@@ -38,21 +38,26 @@ public sealed class AgentOrchestrator
         int repeatedCalls = 0;
         for (int call = 0; call < MaximumToolCalls; call++)
         {
+            Record(new AgentActivity("thinking", "", Kind: "thinking", State: "running"));
             LlmResponse response = await _complete(messages, cancellationToken).ConfigureAwait(false);
+            Record(new AgentActivity("thinking", "", Kind: "thinking", State: "completed"));
             messages.Add(LlmMessage.Assistant(response.Content));
             AgentInstruction instruction;
             try { instruction = Parse(response.Content); }
             catch (Exception ex)
             {
                 failures++;
-                Record(new AgentActivity("protocol", ex.Message, true));
+                Record(new AgentActivity("protocol", ex.Message, true, Kind: "error", State: "error"));
                 messages.Add(LlmMessage.User("Tool error: Return exactly one valid JSON instruction object."));
                 if (failures >= MaximumConsecutiveFailures) break;
                 continue;
             }
 
             if (instruction.Action.Equals("finish", StringComparison.OrdinalIgnoreCase))
+            {
+                Record(new AgentActivity("finish", instruction.Summary ?? "Agent completed.", Kind: "text", State: "completed"));
                 return new AgentResult(instruction.Summary ?? "Agent completed.", activities);
+            }
 
             string callHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(instruction))));
             repeatedCalls = callHash == previousCallHash ? repeatedCalls + 1 : 0;
@@ -60,22 +65,21 @@ public sealed class AgentOrchestrator
             if (repeatedCalls >= 2)
             {
                 failures++;
-                Record(new AgentActivity("protocol", "Repeated identical tool call denied.", true));
+                Record(new AgentActivity("protocol", "Repeated identical tool call denied.", true, Kind: "error", State: "error"));
                 messages.Add(LlmMessage.User("Tool error: Repeated identical call denied. Inspect the prior result and choose a different action or finish."));
                 continue;
             }
 
             try
             {
-                string output = await ExecuteAsync(instruction, cancellationToken).ConfigureAwait(false);
+                string output = await RunAndRecordAsync(instruction, call, Record, cancellationToken).ConfigureAwait(false);
                 failures = 0;
-                Record(new AgentActivity(instruction.Action, instruction.Path ?? instruction.Executable ?? output));
                 messages.Add(LlmMessage.User("Tool result:\n" + output));
             }
             catch (Exception ex)
             {
                 failures++;
-                Record(new AgentActivity(instruction.Action, ex.Message, true));
+                Record(new AgentActivity(instruction.Action, ex.Message, true, Kind: "error", State: "error"));
                 messages.Add(LlmMessage.User("Tool error: " + ex.Message));
                 if (failures >= MaximumConsecutiveFailures) break;
             }
@@ -83,6 +87,70 @@ public sealed class AgentOrchestrator
         throw new InvalidOperationException("Agent stopped after reaching its bounded action/failure limit.");
 
         void Record(AgentActivity item) { activities.Add(item); Activity?.Invoke(item); }
+    }
+
+    /// <summary>
+    /// Executes an instruction while emitting structured lifecycle events so the
+    /// UI can show a running tool row, a verdict word, and a duration.
+    /// </summary>
+    private async Task<string> RunAndRecordAsync(AgentInstruction instruction, int call, Action<AgentActivity> record, CancellationToken cancellationToken)
+    {
+        string action = instruction.Action.ToLowerInvariant();
+        switch (action)
+        {
+            case "list":
+            case "read":
+            {
+                string output = await ExecuteAsync(instruction, cancellationToken).ConfigureAwait(false);
+                record(new AgentActivity(action, instruction.Path ?? string.Empty, Kind: "activity", State: "completed"));
+                return output;
+            }
+            case "delete":
+            {
+                string output = Delete(instruction);
+                record(new AgentActivity("delete", instruction.Path ?? string.Empty, Kind: "edit", State: "completed", Path: instruction.Path));
+                return output;
+            }
+            case "write":
+            {
+                string callId = $"write-{call}";
+                record(new AgentActivity("write", instruction.Path ?? string.Empty, Kind: "edit", State: "running", Path: instruction.Path, CallId: callId));
+                string output = Write(instruction);
+                record(new AgentActivity("write", instruction.Path ?? string.Empty, Kind: "edit", State: "completed", Path: instruction.Path, CallId: callId, Output: instruction.Content));
+                return output;
+            }
+            case "command":
+            {
+                string callId = $"cmd-{call}";
+                string label = FormatCommand(instruction);
+                var command = new AgentCommand(
+                    Required(instruction.Executable, "executable"),
+                    instruction.Arguments ?? Array.Empty<string>(),
+                    instruction.WorkingDirectory ?? string.Empty,
+                    instruction.TimeoutSeconds ?? 120);
+                record(new AgentActivity("command", label, Kind: "tool", State: "running", Path: command.WorkingDirectory, CallId: callId));
+                long started = Stopwatch.GetTimestamp();
+                AgentCommandResult result = await _commands.RunAsync(command, cancellationToken).ConfigureAwait(false);
+                double seconds = Stopwatch.GetElapsedTime(started).TotalSeconds;
+                string verdict = result.TimedOut ? "stopped" : result.ExitCode == 0 ? "done" : $"exit {result.ExitCode}";
+                string output = JsonSerializer.Serialize(result);
+                record(new AgentActivity("command", label, Kind: "tool", State: "completed", CallId: callId, Output: result.StandardOutput, Verdict: verdict, DurationSeconds: seconds));
+                return output;
+            }
+            default:
+            {
+                string output = await ExecuteAsync(instruction, cancellationToken).ConfigureAwait(false);
+                record(new AgentActivity(action, instruction.Path ?? instruction.Executable ?? output, Kind: "tool", State: "completed"));
+                return output;
+            }
+        }
+    }
+
+    private static string FormatCommand(AgentInstruction instruction)
+    {
+        var parts = new List<string>(1 + (instruction.Arguments?.Length ?? 0)) { instruction.Executable ?? "command" };
+        if (instruction.Arguments is not null) parts.AddRange(instruction.Arguments);
+        return string.Join(' ', parts);
     }
 
     private async Task<string> ExecuteAsync(AgentInstruction instruction, CancellationToken cancellationToken)

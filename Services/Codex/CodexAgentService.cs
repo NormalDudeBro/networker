@@ -152,22 +152,37 @@ public sealed class CodexAgentService
                 case "item/agentMessage/delta":
                 {
                     string? delta = OptionalString(notification.Params, "delta");
-                    if (!string.IsNullOrEmpty(delta)) summary.Append(delta);
+                    if (!string.IsNullOrEmpty(delta))
+                    {
+                        summary.Append(delta);
+                        Emit("agent-message", delta, Kind: "text", State: "running", IsStreaming: true);
+                    }
+                    break;
+                }
+                case "item/reasoning/delta":
+                {
+                    string? delta = OptionalString(notification.Params, "delta");
+                    if (!string.IsNullOrEmpty(delta))
+                    {
+                        string? itemId = OptionalString(notification.Params, "item_id");
+                        Emit("thinking", delta, Kind: "thinking", State: "running", IsStreaming: true, CallId: itemId);
+                    }
                     break;
                 }
                 case "item/started":
                 case "item/completed":
                 {
-                    string detail = DescribeItem(notification.Params);
-                    if (!string.IsNullOrWhiteSpace(detail))
-                        Emit(notification.Method == "item/started" ? "item-start" : "item", detail);
+                    HandleItemNotification(notification.Params, completed: notification.Method == "item/completed");
                     break;
                 }
                 case "item/commandExecution/outputDelta":
                 {
                     string? delta = OptionalString(notification.Params, "delta");
                     if (!string.IsNullOrEmpty(delta) && delta.Length <= 500)
-                        Emit("command-output", Truncate(delta, 500));
+                    {
+                        string? itemId = OptionalString(notification.Params, "item_id");
+                        Emit("command-output", Truncate(delta, 500), Kind: "tool", State: "running", IsStreaming: true, CallId: itemId);
+                    }
                     break;
                 }
                 case "item/fileChange/patchUpdated":
@@ -175,7 +190,9 @@ public sealed class CodexAgentService
                     string path = OptionalString(notification.Params, "path")
                         ?? OptionalNestedString(notification.Params, "item", "path")
                         ?? "file";
-                    Emit("file-change", path);
+                    string? itemId = OptionalString(notification.Params, "item_id")
+                        ?? OptionalNestedString(notification.Params, "item", "id");
+                    Emit("file-change", path, Kind: "edit", State: "running", Path: path, CallId: itemId);
                     break;
                 }
                 case "turn/completed":
@@ -183,6 +200,7 @@ public sealed class CodexAgentService
                     string? status = OptionalString(notification.Params, "status")
                         ?? OptionalNestedString(notification.Params, "turn", "status")
                         ?? "completed";
+                    Emit("turn", status, IsError: status is "failed" or "error", Kind: "turn", State: "completed");
                     if (status is "completed" or "interrupted" or "failed")
                         turnDone.TrySetResult(status);
                     else
@@ -197,6 +215,138 @@ public sealed class CodexAgentService
         }
     }
 
+    /// <summary>
+    /// Maps Codex item notifications onto structured activity events (thinking,
+    /// tool, command, edit, text) that the chat surface renders as turn blocks.
+    /// </summary>
+    private void HandleItemNotification(JsonElement parameters, bool completed)
+    {
+        string state = completed ? "completed" : "running";
+        string type = OptionalNestedString(parameters, "item", "type") ?? OptionalString(parameters, "type") ?? "item";
+        string? itemId = OptionalNestedString(parameters, "item", "id") ?? OptionalString(parameters, "item_id");
+
+        switch (type)
+        {
+            case "reasoning":
+                Emit("thinking", "", Kind: "thinking", State: state, CallId: itemId);
+                break;
+            case "agent_message":
+                Emit("agent-message", "", Kind: "text", State: state, CallId: itemId);
+                break;
+            case "tool_call":
+            {
+                string title = OptionalNestedString(parameters, "item", "title")
+                    ?? OptionalNestedString(parameters, "item", "name")
+                    ?? "tool call";
+                Emit("tool-call", title, Kind: "tool", State: state, CallId: itemId);
+                break;
+            }
+            case "command_execution":
+            {
+                string command = DescribeCommand(parameters);
+                if (completed)
+                {
+                    string status = OptionalNestedString(parameters, "item", "status") ?? "completed";
+                    int? exitCode = OptionalInt(parameters, "exit_code") ?? OptionalNestedInt(parameters, "item", "exit_code");
+                    string verdict = status switch
+                    {
+                        "failed" => exitCode is int failedCode ? $"exit {failedCode}" : "failed",
+                        "interrupted" => "stopped",
+                        _ when exitCode is int code && code != 0 => $"exit {code}",
+                        _ => "done",
+                    };
+                    Emit("command", command, Kind: "tool", State: "completed", CallId: itemId, Verdict: verdict);
+                }
+                else
+                {
+                    Emit("command", command, Kind: "tool", State: "running", CallId: itemId);
+                }
+                break;
+            }
+            case "file_change":
+            {
+                string path = OptionalNestedString(parameters, "item", "path") ?? OptionalString(parameters, "path") ?? "file";
+                string? diff = OptionalNestedString(parameters, "item", "diff");
+                int? additions = null;
+                int? deletions = null;
+                if (diff is not null) ComputeDiffStats(diff, out additions, out deletions);
+                Emit("file-change", path, Kind: "edit", State: state, Output: diff, Path: path, CallId: itemId, Additions: additions, Deletions: deletions);
+                break;
+            }
+            case "user_message":
+                break;
+            default:
+                Emit("item", type, Kind: "activity", State: state, CallId: itemId);
+                break;
+        }
+    }
+
+    private void Emit(
+        string action,
+        string detail,
+        bool IsError = false,
+        string? Kind = null,
+        string? State = null,
+        string? Output = null,
+        string? Path = null,
+        string? CallId = null,
+        int? Additions = null,
+        int? Deletions = null,
+        string? Verdict = null,
+        bool IsStreaming = false)
+        => Activity?.Invoke(new AgentActivity(action, detail, IsError, Kind, State, Output, Path, CallId, Additions, Deletions, Verdict, null, IsStreaming));
+
+    private static string DescribeCommand(JsonElement parameters)
+    {
+        JsonElement item = parameters.TryGetProperty("item", out JsonElement nested) && nested.ValueKind == JsonValueKind.Object
+            ? nested
+            : parameters;
+        if (item.TryGetProperty("command", out JsonElement command))
+        {
+            if (command.ValueKind == JsonValueKind.String) return Truncate(command.GetString() ?? "command", 200);
+            if (command.ValueKind == JsonValueKind.Array)
+            {
+                var parts = new List<string>();
+                foreach (JsonElement element in command.EnumerateArray())
+                {
+                    if (element.ValueKind == JsonValueKind.String) parts.Add(element.GetString()!);
+                    else if (element.ValueKind == JsonValueKind.Object && element.TryGetProperty("text", out JsonElement text) && text.ValueKind == JsonValueKind.String)
+                        parts.Add(text.GetString()!);
+                }
+                if (parts.Count > 0) return Truncate(string.Join(' ', parts), 200);
+            }
+        }
+        return OptionalString(parameters, "command") ?? "command";
+    }
+
+    private static int? OptionalInt(JsonElement element, string name)
+        => element.ValueKind == JsonValueKind.Object
+           && element.TryGetProperty(name, out JsonElement value)
+           && value.ValueKind == JsonValueKind.Number
+           && value.TryGetInt32(out int number)
+            ? number
+            : null;
+
+    private static int? OptionalNestedInt(JsonElement element, string parent, string name)
+        => element.ValueKind == JsonValueKind.Object
+           && element.TryGetProperty(parent, out JsonElement nested)
+            ? OptionalInt(nested, name)
+            : null;
+
+    private static void ComputeDiffStats(string diff, out int? additions, out int? deletions)
+    {
+        int added = 0;
+        int deleted = 0;
+        foreach (string line in diff.Split('\n'))
+        {
+            if (line.StartsWith("+++", StringComparison.Ordinal) || line.StartsWith("---", StringComparison.Ordinal)) continue;
+            if (line.StartsWith("+", StringComparison.Ordinal)) added++;
+            else if (line.StartsWith("-", StringComparison.Ordinal)) deleted++;
+        }
+        additions = added > 0 ? added : null;
+        deletions = deleted > 0 ? deleted : null;
+    }
+
     private async Task InterruptQuietAsync(string threadId, string? turnId)
     {
         if (string.IsNullOrWhiteSpace(turnId)) return;
@@ -207,21 +357,6 @@ public sealed class CodexAgentService
         catch
         {
         }
-    }
-
-    private void Emit(string action, string detail, bool isError = false)
-        => Activity?.Invoke(new AgentActivity(action, detail, isError));
-
-    private static string DescribeItem(JsonElement parameters)
-    {
-        if (parameters.TryGetProperty("item", out JsonElement item) && item.ValueKind == JsonValueKind.Object)
-        {
-            string type = OptionalString(item, "type") ?? "item";
-            string? command = OptionalString(item, "command") ?? OptionalString(item, "path");
-            return string.IsNullOrWhiteSpace(command) ? type : $"{type}: {Truncate(command, 200)}";
-        }
-
-        return OptionalString(parameters, "type") ?? "item";
     }
 
     private static bool MatchesThread(JsonElement parameters, string threadId)

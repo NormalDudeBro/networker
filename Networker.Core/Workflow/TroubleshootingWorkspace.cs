@@ -155,6 +155,16 @@ public sealed class WorkspaceChatMessage
     public WorkspaceChatMessageKind Kind { get; set; } = WorkspaceChatMessageKind.Conversation;
     public string? Provider { get; set; }
     public string? Model { get; set; }
+
+    /// <summary>
+    /// Serialized <see cref="WorkspaceTurnDto"/> payload for structured assistant
+    /// turns (blocks + state + final text). Populated only when
+    /// <see cref="Kind"/> is <see cref="WorkspaceChatMessageKind.Turn"/>.
+    /// </summary>
+    public string? TurnJson { get; set; }
+
+    /// <summary>Turn lifecycle state verb, kept for quick reads of history lists.</summary>
+    public string? TurnState { get; set; }
 }
 
 public enum WorkspaceChatMessageKind
@@ -163,6 +173,37 @@ public enum WorkspaceChatMessageKind
     Tool,
     Error,
     AgentActivity,
+    Turn,
+}
+
+/// <summary>Serializable snapshot of an <see cref="AssistantTurn"/> for history restore.</summary>
+public sealed class WorkspaceTurnDto
+{
+    public string State { get; set; } = "Completed";
+    public string? Provider { get; set; }
+    public string? Model { get; set; }
+    public bool IsAgent { get; set; }
+    public string Text { get; set; } = string.Empty;
+    public string DurationText { get; set; } = string.Empty;
+    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
+    public List<WorkspaceTurnBlockDto> Blocks { get; set; } = new();
+}
+
+public sealed class WorkspaceTurnBlockDto
+{
+    public string Kind { get; set; } = "Activity";
+    public string? Action { get; set; }
+    public string? Detail { get; set; }
+    public string? Output { get; set; }
+    public string? Path { get; set; }
+    public string? CallId { get; set; }
+    public int? Additions { get; set; }
+    public int? Deletions { get; set; }
+    public string State { get; set; } = "Completed";
+    public bool IsError { get; set; }
+    public string? Verdict { get; set; }
+    public DateTimeOffset? StartedAt { get; set; }
+    public DateTimeOffset? EndedAt { get; set; }
 }
 
 public sealed class WorkspaceActivity

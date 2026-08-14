@@ -11,6 +11,10 @@
     Background="{ThemeResource AppBackgroundBrush}">
 
     <Page.Resources>
+        <controls:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <controls:BoolToVisibilityConverter x:Key="BoolToVisInverted" Invert="True"/>
+        <controls:VerdictBrushConverter x:Key="VerdictBrush"/>
+
         <DataTemplate x:Key="UserMessageTemplate" x:DataType="models:ChatMessage">
             <StackPanel HorizontalAlignment="Right" Spacing="4" Margin="0,0,0,12" MaxWidth="720">
                 <Border Style="{StaticResource UserBubbleStyle}">
@@ -65,14 +69,202 @@
             </Border>
         </DataTemplate>
 
+        <!-- ===================== Activity block templates ===================== -->
+
+        <DataTemplate x:Key="ThinkingBlockTemplate" x:DataType="models:ThinkingBlock">
+            <Expander
+                IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Margin="0,0,0,6">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE9CE;" FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Thinking" Style="{StaticResource FieldLabelTextStyle}" FontSize="12" VerticalAlignment="Center"/>
+                        <TextBlock Text="{x:Bind MoreText, Mode=OneWay}" Style="{StaticResource CaptionTextStyle}" FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Expander.Header>
+                <TextBlock
+                    Text="{x:Bind Content, Mode=OneWay}"
+                    Style="{StaticResource MonoSecondaryTextStyle}"
+                    FontSize="12"
+                    TextWrapping="Wrap"
+                    IsTextSelectionEnabled="True"/>
+            </Expander>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ToolBlockTemplate" x:DataType="models:ToolBlock">
+            <Expander
+                IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Margin="0,0,0,6">
+                <Expander.Header>
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
+                        <FontIcon Glyph="{x:Bind Glyph, Mode=OneWay}" FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{x:Bind Action, Mode=OneWay}" Style="{StaticResource FieldLabelTextStyle}" FontSize="12" VerticalAlignment="Center"/>
+                        <TextBlock
+                            Grid.Column="2"
+                            Text="{x:Bind Detail, Mode=OneWay}"
+                            Style="{StaticResource MonoSecondaryTextStyle}"
+                            FontSize="12"
+                            TextTrimming="CharacterEllipsis"
+                            VerticalAlignment="Center"/>
+                        <ProgressRing
+                            Grid.Column="3"
+                            IsActive="True"
+                            Width="12"
+                            Height="12"
+                            VerticalAlignment="Center"
+                            Visibility="{x:Bind IsRunning, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
+                        <TextBlock
+                            Grid.Column="4"
+                            Text="{x:Bind VerdictDisplay, Mode=OneWay}"
+                            FontSize="11"
+                            VerticalAlignment="Center"
+                            Foreground="{x:Bind Verdict, Mode=OneWay, Converter={StaticResource VerdictBrush}}"/>
+                    </Grid>
+                </Expander.Header>
+                <TextBlock
+                    Text="{x:Bind Output, Mode=OneWay}"
+                    Style="{StaticResource MonoTextStyle}"
+                    FontSize="12"
+                    TextWrapping="Wrap"
+                    IsTextSelectionEnabled="True"
+                    Visibility="{x:Bind HasOutput, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
+            </Expander>
+        </DataTemplate>
+
+        <DataTemplate x:Key="EditBlockTemplate" x:DataType="models:EditBlock">
+            <Expander
+                IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Margin="0,0,0,6">
+                <Expander.Header>
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
+                        <FontIcon Glyph="&#xE8AC;" FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Edited" Style="{StaticResource FieldLabelTextStyle}" FontSize="12" VerticalAlignment="Center"/>
+                        <TextBlock
+                            Grid.Column="2"
+                            Text="{x:Bind FilePath, Mode=OneWay}"
+                            Style="{StaticResource MonoSecondaryTextStyle}"
+                            FontSize="12"
+                            TextTrimming="CharacterEllipsis"
+                            VerticalAlignment="Center"/>
+                        <TextBlock
+                            Grid.Column="3"
+                            Text="{x:Bind CountsText, Mode=OneWay}"
+                            FontSize="11"
+                            VerticalAlignment="Center"
+                            Foreground="{ThemeResource AppSuccessBrush}"
+                            Visibility="{x:Bind HasCounts, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
+                    </Grid>
+                </Expander.Header>
+                <TextBlock
+                    Text="{x:Bind Diff, Mode=OneWay}"
+                    Style="{StaticResource MonoTextStyle}"
+                    FontSize="12"
+                    TextWrapping="Wrap"
+                    IsTextSelectionEnabled="True"
+                    Visibility="{x:Bind HasDiff, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
+            </Expander>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ActivityBlockTemplate" x:DataType="models:ActivityLineBlock">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="0,2,0,8">
+                <FontIcon Glyph="&#xE945;" FontSize="12" Foreground="{ThemeResource AppTextDisabledBrush}" VerticalAlignment="Center"/>
+                <TextBlock
+                    Grid.Column="1"
+                    Text="{x:Bind SummaryText, Mode=OneWay}"
+                    Style="{StaticResource CaptionTextStyle}"
+                    FontSize="11"
+                    Foreground="{ThemeResource AppTextDisabledBrush}"
+                    TextWrapping="Wrap"/>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ErrorBlockTemplate" x:DataType="models:ErrorBlock">
+            <Border
+                Background="{ThemeResource BadgeDangerBackgroundBrush}"
+                BorderBrush="{ThemeResource AppDangerBrush}"
+                BorderThickness="1"
+                CornerRadius="{ThemeResource RadiusSM}"
+                Padding="10,8"
+                Margin="0,0,0,6">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{x:Bind Title, Mode=OneWay}" FontWeight="SemiBold" Foreground="{ThemeResource AppDangerBrush}" FontSize="12"/>
+                    <TextBlock
+                        Text="{x:Bind Message, Mode=OneWay}"
+                        Style="{StaticResource MonoSecondaryTextStyle}"
+                        FontSize="12"
+                        TextWrapping="Wrap"
+                        IsTextSelectionEnabled="True"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <controls:BlockTemplateSelector
+            x:Key="BlockSelector"
+            ThinkingTemplate="{StaticResource ThinkingBlockTemplate}"
+            ToolTemplate="{StaticResource ToolBlockTemplate}"
+            EditTemplate="{StaticResource EditBlockTemplate}"
+            ActivityTemplate="{StaticResource ActivityBlockTemplate}"
+            ErrorTemplate="{StaticResource ErrorBlockTemplate}"/>
+
+        <!-- ===================== Structured assistant turn ===================== -->
+
+        <DataTemplate x:Key="TurnTemplate" x:DataType="models:AssistantTurn">
+            <StackPanel Spacing="6" Margin="0,0,0,16" MaxWidth="780" HorizontalAlignment="Left">
+                <TextBlock Style="{StaticResource CaptionTextStyle}" FontSize="11">
+                    <Run Text="Assistant"/>
+                    <Run Text="{x:Bind Provider, Mode=OneWay}" Foreground="{ThemeResource AppAccentBrush}"/>
+                    <Run Text="{x:Bind Model, Mode=OneWay}"/>
+                </TextBlock>
+
+                <ItemsControl
+                    ItemsSource="{x:Bind Blocks, Mode=OneWay}"
+                    ItemTemplateSelector="{StaticResource BlockSelector}"
+                    Visibility="{x:Bind HasBlocks, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
+
+                <StackPanel
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    Visibility="{x:Bind IsBusyActivity, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                    <ProgressRing IsActive="True" Width="12" Height="12"/>
+                    <TextBlock Text="Working: " Style="{StaticResource CaptionTextStyle}"/>
+                    <TextBlock Text="{x:Bind BusyText, Mode=OneWay}" Style="{StaticResource CaptionTextStyle}"/>
+                </StackPanel>
+
+                <TextBlock
+                    Style="{StaticResource AssistantMessageTextStyle}"
+                    Text="{x:Bind Text, Mode=OneWay}"
+                    Visibility="{x:Bind HasText, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
+
+                <StackPanel
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    Visibility="{x:Bind ShowGeneratingIndicator, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                    <ProgressRing IsActive="True" Width="12" Height="12"/>
+                    <TextBlock Text="Generating…" Style="{StaticResource CaptionTextStyle}"/>
+                </StackPanel>
+
+                <TextBlock
+                    Text="{x:Bind FooterText, Mode=OneWay}"
+                    Style="{StaticResource CaptionTextStyle}"
+                    FontSize="11"
+                    Foreground="{ThemeResource AppTextDisabledBrush}"
+                    Visibility="{x:Bind IsStreaming, Mode=OneWay, Converter={StaticResource BoolToVisInverted}}"/>
+            </StackPanel>
+        </DataTemplate>
+
         <controls:MessageTemplateSelector
             x:Key="MessageSelector"
             UserTemplate="{StaticResource UserMessageTemplate}"
             AssistantTemplate="{StaticResource AssistantMessageTemplate}"
             CodeTemplate="{StaticResource CodeMessageTemplate}"
-            ErrorTemplate="{StaticResource ErrorMessageTemplate}"/>
-
-        <controls:BoolToVisibilityConverter x:Key="BoolToVis"/>
+            ErrorTemplate="{StaticResource ErrorMessageTemplate}"
+            TurnTemplate="{StaticResource TurnTemplate}"/>
     </Page.Resources>
 
     <Grid x:Name="MainLayout" SizeChanged="MainLayout_SizeChanged">
@@ -340,7 +532,7 @@
                         <TextBox x:Name="HistorySearchBox" PlaceholderText="Search messages…" TextChanged="HistorySearchBox_TextChanged"/>
                         <ListView x:Name="HistoryList" MaxHeight="160" SelectionMode="Single" ItemClick="HistoryList_ItemClick" IsItemClickEnabled="True">
                             <ListView.ItemTemplate>
-                                <DataTemplate x:DataType="models:ChatMessage">
+                                <DataTemplate x:DataType="models:HistoryEntry">
                                     <TextBlock Text="{x:Bind Text}" TextTrimming="CharacterEllipsis" MaxLines="1" FontSize="13"/>
                                 </DataTemplate>
                             </ListView.ItemTemplate>

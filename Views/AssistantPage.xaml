@@ -436,19 +436,26 @@
                         </Button.Flyout>
                         <FontIcon Glyph="&#xE713;" FontSize="15"/>
                     </Button>
-                    <TextBox
-                        x:Name="InputBox"
+                    <ScrollViewer
                         Grid.Column="1"
-                        PlaceholderText="Ask about network engineering… (Ctrl+Enter to send)"
-                        AcceptsReturn="True"
-                        TextWrapping="Wrap"
-                        TextChanged="InputBox_TextChanged"
-                        KeyDown="InputBox_KeyDown"
-                        MinHeight="36"
                         MaxHeight="160"
-                        ScrollViewer.VerticalScrollBarVisibility="Auto"
-                        BorderThickness="0"
-                        Background="Transparent"/>
+                        HorizontalScrollMode="Disabled"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollMode="Auto"
+                        VerticalScrollBarVisibility="Auto">
+                        <TextBox
+                            x:Name="InputBox"
+                            PlaceholderText="Ask about network engineering… (Enter to send)"
+                            AcceptsReturn="True"
+                            TextWrapping="Wrap"
+                            TextChanged="InputBox_TextChanged"
+                            KeyDown="InputBox_KeyDown"
+                            KeyUp="InputBox_KeyUp"
+                            PreviewKeyDown="InputBox_PreviewKeyDown"
+                            MinHeight="36"
+                            BorderThickness="0"
+                            Background="Transparent"/>
+                    </ScrollViewer>
                     <Button
                         x:Name="CancelButton"
                         Grid.Column="2"

@@ -33,6 +33,7 @@ namespace networker.Views
         private AssistantTurn? _activeTurn;
         private Control? _panelRestoreTarget;
         private bool _isBusy;
+        private bool _shiftDown;
         private bool _isCompactPanel;
         private readonly TroubleshootingSession _session;
         private bool _messagesRestored;
@@ -83,13 +84,23 @@ namespace networker.Views
 
         private void InputBox_KeyDown(object sender, KeyRoutedEventArgs e)
         {
-            if (e.Key == Windows.System.VirtualKey.Enter &&
-                (Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Control)
-                 .HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down)))
-            {
-                e.Handled = true;
-                _ = SendAsync();
-            }
+            if (e.Key == Windows.System.VirtualKey.Shift) _shiftDown = true;
+        }
+
+        private void InputBox_KeyUp(object sender, KeyRoutedEventArgs e)
+        {
+            if (e.Key == Windows.System.VirtualKey.Shift) _shiftDown = false;
+        }
+
+        private void InputBox_PreviewKeyDown(object sender, KeyRoutedEventArgs e)
+        {
+            if (e.Key != Windows.System.VirtualKey.Enter) return;
+
+            // Shift+Enter inserts a newline (AcceptsReturn); plain Enter (and Ctrl+Enter) send.
+            if (_shiftDown) return;
+
+            e.Handled = true;
+            if (!_isBusy) _ = SendAsync();
         }
 
         private async Task SendAsync()
@@ -1002,9 +1013,6 @@ namespace networker.Views
 
         private void InputBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            double lines = InputBox.Text.Split('\n').Length;
-            double height = Math.Clamp(24 + (lines * 20), 36, 160);
-            InputBox.Height = height;
             UpdateSendState();
         }
 

@@ -21,8 +21,14 @@
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <Grid Padding="20,16" ColumnSpacing="14" RowSpacing="14" MaxWidth="1240" HorizontalAlignment="Stretch">
+        <Grid Grid.Row="1">
+            <Grid
+                x:Name="CenteredDashboardCanvas"
+                Width="{Binding ActualWidth, ElementName=DashboardPageRoot}"
+                MaxWidth="1240"
+                HorizontalAlignment="Center">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid Padding="20,16" ColumnSpacing="14" RowSpacing="14" HorizontalAlignment="Stretch">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.5*"/>
                     <ColumnDefinition Width="*"/>
@@ -107,6 +113,8 @@
                     </StackPanel>
                 </Border>
             </Grid>
-        </ScrollViewer>
+            </ScrollViewer>
+            </Grid>
+        </Grid>
     </Grid>
 </Page>

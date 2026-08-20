@@ -125,6 +125,8 @@ public sealed class CodexAccountService
         Models = Array.Empty<CodexModelDescriptor>();
         Usage = CodexUsage.Empty;
         AppSettings.CodexChatThreadId = string.Empty;
+        AppSettings.CodexAssistThreadId = string.Empty;
+        AppSettings.CodexAssistModel = string.Empty;
         Changed?.Invoke();
     }
 

@@ -65,6 +65,18 @@
             <Color x:Key="BadgeWarningBackgroundColor">#FFF2D5</Color>
             <Color x:Key="BadgeDangerBackgroundColor">#FFE3E2</Color>
 
+            <!-- Terminal (always a dark surface, same in both themes) -->
+            <Color x:Key="TerminalBackgroundColor">#0B1218</Color>
+            <Color x:Key="TerminalHeaderColor">#131E28</Color>
+            <Color x:Key="TerminalTextColor">#D9E2EA</Color>
+            <Color x:Key="TerminalPromptColor">#58BBD2</Color>
+            <Color x:Key="TerminalCaptionColor">#8B949E</Color>
+
+            <!-- Diff (translucent so they layer over either theme) -->
+            <Color x:Key="DiffAddedBackgroundColor">#2A1A7F37</Color>
+            <Color x:Key="DiffRemovedBackgroundColor">#2ACF222E</Color>
+            <Color x:Key="DiffHeaderBackgroundColor">#1F0A7188</Color>
+
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Dark">
@@ -122,6 +134,18 @@
             <Color x:Key="BadgeWarningBackgroundColor">#2C2413</Color>
             <Color x:Key="BadgeDangerBackgroundColor">#2B1A1A</Color>
 
+            <!-- Terminal (always a dark surface, same in both themes) -->
+            <Color x:Key="TerminalBackgroundColor">#0B1218</Color>
+            <Color x:Key="TerminalHeaderColor">#131E28</Color>
+            <Color x:Key="TerminalTextColor">#D9E2EA</Color>
+            <Color x:Key="TerminalPromptColor">#58BBD2</Color>
+            <Color x:Key="TerminalCaptionColor">#8B949E</Color>
+
+            <!-- Diff (translucent so they layer over either theme) -->
+            <Color x:Key="DiffAddedBackgroundColor">#2A1A7F37</Color>
+            <Color x:Key="DiffRemovedBackgroundColor">#2ACF222E</Color>
+            <Color x:Key="DiffHeaderBackgroundColor">#1F0A7188</Color>
+
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
@@ -175,5 +199,17 @@
     <SolidColorBrush x:Key="BadgeSuccessBackgroundBrush" Color="{ThemeResource BadgeSuccessBackgroundColor}" />
     <SolidColorBrush x:Key="BadgeWarningBackgroundBrush" Color="{ThemeResource BadgeWarningBackgroundColor}" />
     <SolidColorBrush x:Key="BadgeDangerBackgroundBrush" Color="{ThemeResource BadgeDangerBackgroundColor}" />
+
+    <!-- ===================== Terminal ===================== -->
+    <SolidColorBrush x:Key="TerminalBackgroundBrush" Color="{ThemeResource TerminalBackgroundColor}" />
+    <SolidColorBrush x:Key="TerminalHeaderBrush" Color="{ThemeResource TerminalHeaderColor}" />
+    <SolidColorBrush x:Key="TerminalTextBrush" Color="{ThemeResource TerminalTextColor}" />
+    <SolidColorBrush x:Key="TerminalPromptBrush" Color="{ThemeResource TerminalPromptColor}" />
+    <SolidColorBrush x:Key="TerminalCaptionBrush" Color="{ThemeResource TerminalCaptionColor}" />
+
+    <!-- ===================== Diff ===================== -->
+    <SolidColorBrush x:Key="DiffAddedBackgroundBrush" Color="{ThemeResource DiffAddedBackgroundColor}" />
+    <SolidColorBrush x:Key="DiffRemovedBackgroundBrush" Color="{ThemeResource DiffRemovedBackgroundColor}" />
+    <SolidColorBrush x:Key="DiffHeaderBackgroundBrush" Color="{ThemeResource DiffHeaderBackgroundColor}" />
 
 </ResourceDictionary>

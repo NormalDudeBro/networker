@@ -182,7 +182,6 @@ public sealed class WorkspaceTurnDto
     public string State { get; set; } = "Completed";
     public string? Provider { get; set; }
     public string? Model { get; set; }
-    public bool IsAgent { get; set; }
     public string Text { get; set; } = string.Empty;
     public string DurationText { get; set; } = string.Empty;
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
@@ -204,6 +203,20 @@ public sealed class WorkspaceTurnBlockDto
     public string? Verdict { get; set; }
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? EndedAt { get; set; }
+
+    // Terminal-style command tool fields (optional; older workspaces lack them).
+    public string? CommandLine { get; set; }
+    public int? ExitCode { get; set; }
+    public bool IsTerminalStyle { get; set; }
+
+    // Plan block rows (optional).
+    public List<WorkspacePlanItemDto>? Plan { get; set; }
+}
+
+public sealed class WorkspacePlanItemDto
+{
+    public string Title { get; set; } = string.Empty;
+    public string Status { get; set; } = "Pending";
 }
 
 public sealed class WorkspaceActivity

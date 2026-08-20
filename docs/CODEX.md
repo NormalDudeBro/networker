@@ -19,8 +19,8 @@ Networker integrates **OpenAI Codex** through the official bundled `codex-app-se
 1. Settings → provider **codex** → **Sign in with ChatGPT**
 2. System browser opens; app-server owns OAuth callback and token storage
 3. Select model and reasoning effort from account-aware `model/list`
-4. Chat uses app-server threads/turns (no WebView)
-5. Agent mode: select a workspace → full automation inside **workspace-write** sandbox; network is opt-in per workspace
+4. Assist uses a persistent app-server thread (no WebView)
+5. Questions, global file changes, and commands share one default conversation. Tool actions are auto-approved and run as the current Windows user with `danger-full-access`.
 
 ## Packaging
 
@@ -35,7 +35,8 @@ CI/release runs this before publish. `New-NetworkerPackage.ps1` copies the verif
 - No API-key auth UI or silent key fallback
 - No OpenCode / Node / Bun / npm dependency
 - No VS Code client impersonation (`--session-source networker`)
-- No `danger-full-access`, unsandboxed shell RPC, remote plugins, or MCP in v1
+- No separate workspace picker or Chat/Agent mode. Codex's native Windows workspace sandbox is not used because it can deadlock during setup on supported Windows configurations.
+- No remote plugins or MCP in v1
 - Public redistribution still requires OpenAI terms / client-identification disposition
 
 ## Attribution

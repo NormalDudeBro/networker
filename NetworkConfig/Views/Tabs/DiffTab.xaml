@@ -28,8 +28,13 @@
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
 
-        <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
-            <Grid Padding="{StaticResource TabContentPadding}" ColumnSpacing="12" RowSpacing="12" MaxWidth="1200" HorizontalAlignment="Stretch">
+        <Grid>
+            <Grid
+                Width="{Binding ActualWidth, ElementName=DiffLayout}"
+                MaxWidth="1200"
+                HorizontalAlignment="Center">
+                <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+                    <Grid Padding="{StaticResource TabContentPadding}" ColumnSpacing="12" RowSpacing="12" HorizontalAlignment="Stretch">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1.1*"/>
                     <ColumnDefinition x:Name="DiffOutputColumn" Width="*"/>
@@ -72,6 +77,8 @@
                     </StackPanel>
                 </Border>
             </Grid>
-        </ScrollViewer>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
     </Grid>
 </UserControl>

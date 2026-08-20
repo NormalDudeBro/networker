@@ -31,8 +31,13 @@
         </VisualStateGroup>
     </VisualStateManager.VisualStateGroups>
 
-    <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
-    <Grid Padding="{StaticResource TabContentPadding}" ColumnSpacing="12" RowSpacing="12" MaxWidth="1200" HorizontalAlignment="Stretch">
+    <Grid>
+        <Grid
+            Width="{Binding ActualWidth, ElementName=TemplatesRoot}"
+            MaxWidth="1200"
+            HorizontalAlignment="Center">
+            <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+                <Grid Padding="{StaticResource TabContentPadding}" ColumnSpacing="12" RowSpacing="12" HorizontalAlignment="Stretch">
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="TemplateListColumn" Width="320"/>
             <ColumnDefinition x:Name="TemplateDetailColumn" Width="*"/>
@@ -86,5 +91,7 @@
             </StackPanel>
         </Border>
     </Grid>
-    </ScrollViewer>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
 </UserControl>

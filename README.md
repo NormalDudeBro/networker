@@ -53,11 +53,12 @@ operations run locally; selected workflows can optionally ask the configured mod
 - **Templates** — built-in template gallery with preview; custom templates are deletable and persist
   to `%LOCALAPPDATA%\Networker\custom_templates.json`
 
-### AI Chat
+### AI Assist
 - Provider abstraction: **Ollama** (local), **Grok** (x.ai), **Gemini** (Google), and **OpenAI Codex** via ChatGPT OAuth
 - Codex uses the official bundled `codex-app-server` helper. Sign in with ChatGPT in Settings; credentials stay in the Windows keyring owned by the helper. No `OPENAI_API_KEY` is required or accepted for Codex.
-- Conversation context is provider-neutral and bounded to the latest 20 conversational messages and 32 KiB. Errors, deterministic tool cards, and Agent activity are not sent as chat history. Codex chat additionally resumes an app-server thread so the helper owns durable turn state.
-- Codex Agent mode (when Codex is the selected provider) runs inside the official workspace-write sandbox after explicit workspace selection; network remains opt-in per workspace. Non-Codex Agent mode keeps the legacy typed tool loop with Job Object containment.
+- Assist is one continuous command-capable conversation: normal questions, global file operations, and commands share the same transcript and structured activity surface without a Chat/Agent mode switch.
+- Tools run globally as the current Windows user and are auto-approved. Codex uses `danger-full-access`; non-Codex providers use Networker's typed file/command loop with bounded I/O, timeouts, and Job Object process-tree containment.
+- Codex resumes a dedicated app-server Assist thread. Non-Codex providers retain user, assistant, and tool-result context for the current app session; New Chat clears the active conversation.
 - Codex never participates in generic provider retry/fallback after a request is submitted.
 - Credential scrubbing before send
 - Tool cards: deterministic results render inline (CodeBlockView) + Assistant panel history

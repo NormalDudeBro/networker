@@ -60,13 +60,18 @@
             </StackPanel>
         </Border>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel
-                x:Name="SettingsContent"
-                Padding="{StaticResource PagePadding}"
-                Spacing="0"
+        <Grid Grid.Row="1">
+            <Grid
+                x:Name="CenteredSettingsCanvas"
+                Width="{Binding ActualWidth, ElementName=SettingsLayout}"
                 MaxWidth="{StaticResource SettingsMaxWidth}"
-                HorizontalAlignment="Stretch">
+                HorizontalAlignment="Center">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel
+                        x:Name="SettingsContent"
+                        Padding="{StaticResource PagePadding}"
+                        Spacing="0"
+                        HorizontalAlignment="Stretch">
 
                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
                     <Button Content="General" Tag="general" Click="SettingsSection_Click" Style="{StaticResource SecondaryButtonStyle}"/>
@@ -137,10 +142,6 @@
                                         <StackPanel Spacing="6">
                                             <TextBlock x:Name="ReasoningLabel" Text="Reasoning effort" Style="{StaticResource FieldLabelTextStyle}"/>
                                             <ComboBox x:Name="CodexReasoningComboBox" SelectionChanged="CodexReasoningComboBox_SelectionChanged" HorizontalAlignment="Stretch" AutomationProperties.LabeledBy="{x:Bind ReasoningLabel}"/>
-                                        </StackPanel>
-                                        <StackPanel Spacing="6">
-                                            <ToggleSwitch x:Name="CodexNetworkToggle" Header="Allow network during Agent runs (this workspace)" Toggled="CodexNetworkToggle_Toggled"/>
-                                            <TextBlock Text="File access stays inside the selected workspace (workspace-write sandbox). Network is off by default." Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"/>
                                         </StackPanel>
                                     </StackPanel>
                                     <TextBlock x:Name="CodexStatusText" Style="{StaticResource InlineStatusTextStyle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
@@ -298,6 +299,8 @@
                     <configTabs:VaultTab/>
                 </Grid>
             </StackPanel>
-        </ScrollViewer>
+            </ScrollViewer>
+            </Grid>
+        </Grid>
     </Grid>
 </Page>

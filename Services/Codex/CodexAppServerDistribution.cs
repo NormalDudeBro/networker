@@ -6,15 +6,15 @@ namespace networker.Services.Codex;
 /// </summary>
 public static class CodexAppServerDistribution
 {
-    public const string Version = "0.147.0";
-    public const string ReleaseTag = "rust-v0.147.0";
+    public const string Version = "0.149.0";
+    public const string ReleaseTag = "rust-v0.149.0";
     public const string Target = "x86_64-pc-windows-msvc";
     public const string Variant = "codex-app-server";
     public const int LayoutVersion = 1;
 
     public const string PackageAsset = "codex-app-server-package-x86_64-pc-windows-msvc.tar.gz";
-    public const long PackageSizeBytes = 110_054_928;
-    public const string PackageSha256 = "c8908d687cf7caa3074921479726db32f96a295372c3544f1e96919a7254951f";
+    public const long PackageSizeBytes = 116_042_307;
+    public const string PackageSha256 = "580207baa5ecabb8e42fd734bdb774ffcd82709ccd60bff8fa812b1b83962e28";
 
     public const string PackageRootRelative = "Codex";
     public const string EntrypointRelative = "bin/codex-app-server.exe";

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -13,6 +14,7 @@ namespace networker.Models
         Activity,
         Tool,
         Edit,
+        Plan,
         Error,
     }
 
@@ -92,6 +94,7 @@ namespace networker.Models
                     _content = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(PreviewText));
+                    OnPropertyChanged(nameof(DisplayText));
                     OnPropertyChanged(nameof(IsOverflow));
                     OnPropertyChanged(nameof(MoreLines));
                 }
@@ -114,6 +117,10 @@ namespace networker.Models
         }
 
         public string PreviewText => Preview(Content, PreviewLineCount);
+
+        public string DisplayText => string.IsNullOrWhiteSpace(Content)
+            ? "Reasoning summary unavailable; follow the live agent activity below."
+            : Content;
 
         public bool IsOverflow => LineCount(Content) > PreviewLineCount;
 
@@ -151,6 +158,23 @@ namespace networker.Models
         public string Glyph { get; init; } = "\uE713";
 
         public string? Detail { get; set; }
+
+        /// <summary>
+        /// The full command line as typed (e.g. "git status"), distinct from the
+        /// short action label. Populated for terminal-style command blocks.
+        /// </summary>
+        public string? CommandLine { get; set; }
+
+        public int? ExitCode { get; set; }
+
+        /// <summary>
+        /// True for live command blocks that render through the "$ cmd" terminal
+        /// style rather than the generic tool row.
+        /// </summary>
+        public bool IsTerminalStyle { get; set; }
+
+        /// <summary>Header caption shown by the terminal renderer: the command line.</summary>
+        public string HeaderText => !string.IsNullOrWhiteSpace(CommandLine) ? CommandLine! : Detail ?? string.Empty;
 
         private BlockState _state = BlockState.Pending;
 
@@ -331,6 +355,141 @@ namespace networker.Models
             if (string.IsNullOrEmpty(value)) return string.Empty;
             string[] parts = value.Split('\n');
             return parts.Length <= lines ? value : string.Join('\n', parts, 0, lines) + "\n…";
+        }
+    }
+
+    /// <summary>Lifecycle of a single plan/todo item inside a <see cref="PlanBlock"/>.</summary>
+    public enum PlanStatus
+    {
+        Pending,
+        Running,
+        Completed,
+        Skipped,
+        Failed,
+    }
+
+    /// <summary>
+    /// One todo row. Rendered as a temperature list: running items are bold and
+    /// accented, completed items sink to dim, pending items stay muted.
+    /// </summary>
+    public sealed class PlanItem : INotifyPropertyChanged
+    {
+        private string _title = string.Empty;
+
+        public string Title
+        {
+            get => _title;
+            set
+            {
+                if (_title != value)
+                {
+                    _title = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private PlanStatus _status = PlanStatus.Pending;
+
+        public PlanStatus Status
+        {
+            get => _status;
+            set
+            {
+                if (_status != value)
+                {
+                    _status = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsRunning));
+                    OnPropertyChanged(nameof(IsCompleted));
+                    OnPropertyChanged(nameof(IsPending));
+                    OnPropertyChanged(nameof(StatusGlyph));
+                }
+            }
+        }
+
+        public bool IsRunning => _status == PlanStatus.Running;
+        public bool IsCompleted => _status == PlanStatus.Completed;
+        public bool IsPending => _status == PlanStatus.Pending;
+
+        /// <summary>Check / clock / dash / warning glyph per status.</summary>
+        public string StatusGlyph => _status switch
+        {
+            PlanStatus.Completed => "\uE73E", // CheckMark
+            PlanStatus.Running => "\uE823",   // Sync
+            PlanStatus.Failed => "\uE711",    // Cancel
+            PlanStatus.Skipped => "\uE74D",   // Delete
+            _ => "\uE9A8",                    // CircleRing
+        };
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    }
+
+    /// <summary>
+    /// An agent todo/plan list. The list accumulates in place: later plan events
+    /// upsert rows by title so status changes stream through without duplicates.
+    /// </summary>
+    public sealed class PlanBlock : ActivityBlock
+    {
+        public PlanBlock() => Kind = ActivityBlockKind.Plan;
+
+        public ObservableCollection<PlanItem> Items { get; } = new();
+
+        private BlockState _state = BlockState.Running;
+
+        public BlockState State
+        {
+            get => _state;
+            set
+            {
+                if (_state != value)
+                {
+                    _state = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>Compact header summary, e.g. "2/5 done · 1 running".</summary>
+        public string SummaryText
+        {
+            get
+            {
+                if (Items.Count == 0) return "plan…";
+                int completed = Items.Count(item => item.Status == PlanStatus.Completed);
+                int running = Items.Count(item => item.Status == PlanStatus.Running);
+                string body = $"{completed}/{Items.Count} done";
+                if (running > 0) body += $" · {running} running";
+                return body;
+            }
+        }
+
+        public bool IsRunning => _state == BlockState.Running;
+
+        /// <summary>Adds or updates a row by title, preserving first-seen order.</summary>
+        public void UpsertItem(string title, PlanStatus status)
+        {
+            PlanItem? existing = Items.FirstOrDefault(item => item.Title == title);
+            if (existing is not null)
+            {
+                existing.Status = status;
+            }
+            else
+            {
+                Items.Add(new PlanItem { Title = title, Status = status });
+            }
+            OnPropertyChanged(nameof(SummaryText));
+        }
+
+        /// <summary>Replaces the whole list (orchestrator plan snapshots).</summary>
+        public void SetItems(IEnumerable<PlanItem> items)
+        {
+            Items.Clear();
+            foreach (PlanItem item in items) Items.Add(item);
+            OnPropertyChanged(nameof(SummaryText));
         }
     }
 

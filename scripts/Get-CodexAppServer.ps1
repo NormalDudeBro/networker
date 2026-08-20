@@ -17,11 +17,11 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$Version = '0.147.0'
-$ReleaseTag = 'rust-v0.147.0'
+$Version = '0.149.0'
+$ReleaseTag = 'rust-v0.149.0'
 $PackageAsset = 'codex-app-server-package-x86_64-pc-windows-msvc.tar.gz'
-$PackageSizeBytes = 110054928
-$PackageSha256 = 'c8908d687cf7caa3074921479726db32f96a295372c3544f1e96919a7254951f'
+$PackageSizeBytes = 116042307
+$PackageSha256 = '580207baa5ecabb8e42fd734bdb774ffcd82709ccd60bff8fa812b1b83962e28'
 $RequiredRelativePaths = @(
     'bin/codex-app-server.exe'
     'bin/codex-code-mode-host.exe'

@@ -15,7 +15,11 @@ namespace networker.Controls
 
         public DataTemplate? ToolTemplate { get; set; }
 
+        public DataTemplate? TerminalTemplate { get; set; }
+
         public DataTemplate? EditTemplate { get; set; }
+
+        public DataTemplate? PlanTemplate { get; set; }
 
         public DataTemplate? ActivityTemplate { get; set; }
 
@@ -25,6 +29,11 @@ namespace networker.Controls
 
         protected override DataTemplate SelectTemplateCore(object item, DependencyObject? container)
         {
+            if (item is ToolBlock { IsTerminalStyle: true } && TerminalTemplate is not null)
+            {
+                return TerminalTemplate;
+            }
+
             if (item is ActivityBlock block)
             {
                 return block.Kind switch
@@ -32,6 +41,7 @@ namespace networker.Controls
                     ActivityBlockKind.Thinking => ThinkingTemplate ?? ToolTemplate!,
                     ActivityBlockKind.Tool => ToolTemplate ?? ErrorTemplate!,
                     ActivityBlockKind.Edit => EditTemplate ?? ToolTemplate!,
+                    ActivityBlockKind.Plan => PlanTemplate ?? ToolTemplate!,
                     ActivityBlockKind.Activity => ActivityTemplate ?? ToolTemplate!,
                     ActivityBlockKind.Error => ErrorTemplate ?? ToolTemplate!,
                     _ => ToolTemplate ?? ErrorTemplate!,
@@ -57,6 +67,39 @@ namespace networker.Controls
             if (verdict == "failed" || verdict.StartsWith("exit ", System.StringComparison.Ordinal)) return resources["AppDangerBrush"];
             return resources["AppTextSecondaryBrush"];
         }
+
+        public object ConvertBack(object value, System.Type targetType, object parameter, string language)
+            => throw new System.NotImplementedException();
+    }
+
+    /// <summary>
+    /// Maps a <see cref="PlanStatus"/> to its temperature brush: running items
+    /// pop in accent, completed items sink to disabled, failures turn danger.
+    /// </summary>
+    public sealed class PlanStatusBrushConverter : IValueConverter
+    {
+        public object Convert(object value, System.Type targetType, object parameter, string language)
+        {
+            var resources = Application.Current.Resources;
+            return value switch
+            {
+                Models.PlanStatus.Running => resources["AppAccentBrush"],
+                Models.PlanStatus.Completed => resources["AppTextDisabledBrush"],
+                Models.PlanStatus.Failed => resources["AppDangerBrush"],
+                Models.PlanStatus.Skipped => resources["AppTextDisabledBrush"],
+                _ => resources["AppTextSecondaryBrush"],
+            };
+        }
+
+        public object ConvertBack(object value, System.Type targetType, object parameter, string language)
+            => throw new System.NotImplementedException();
+    }
+
+    /// <summary>Bold for the running row, normal weight for the rest.</summary>
+    public sealed class PlanRunningWeightConverter : IValueConverter
+    {
+        public object Convert(object value, System.Type targetType, object parameter, string language)
+            => value is Models.PlanStatus.Running ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
 
         public object ConvertBack(object value, System.Type targetType, object parameter, string language)
             => throw new System.NotImplementedException();

@@ -5,51 +5,29 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Networker.Core.Agent;
 
-public sealed record AgentCommand(string Executable, IReadOnlyList<string> Arguments, string WorkingDirectory = "", int TimeoutSeconds = 120);
+public sealed record AgentCommand(string Executable, IReadOnlyList<string> Arguments, int TimeoutSeconds = 120);
 public sealed record AgentCommandResult(int ExitCode, string StandardOutput, string StandardError, bool TimedOut, bool OutputTruncated = false);
 
-public sealed class CommandPolicy
+/// <summary>One incremental slice of a command's live output.</summary>
+public sealed record CommandOutputChunk(string Text, CommandOutputChannel Channel);
+
+public enum CommandOutputChannel
 {
-    private static readonly HashSet<string> Allowed = new(StringComparer.OrdinalIgnoreCase)
-    { "git", "dotnet", "node", "cargo", "go", "python", "python3", "pytest", "cmake", "ctest", "msbuild", "java", "javac", "gradle", "mvn" };
-
-    private static readonly char[] ShellMetacharacters = { '&', '|', '<', '>', '`', '\r', '\n' };
-
-    public void Validate(AgentCommand command)
-    {
-        string executable = command.Executable.Trim();
-        if (executable.Length == 0 || executable.Contains('/') || executable.Contains('\\') || executable.Contains(':'))
-            throw new UnauthorizedAccessException("Commands must use an approved executable name without a path.");
-        string name = Path.GetFileNameWithoutExtension(executable);
-        if (!Allowed.Contains(name)) throw new UnauthorizedAccessException($"Executable '{name}' is not allowed in Agent mode.");
-        if (command.Arguments.Count > 100) throw new InvalidOperationException("Command has too many arguments.");
-        foreach (string argument in command.Arguments)
-        {
-            if (argument.Length > 8192 || argument.IndexOf('\0') >= 0 || argument.IndexOfAny(ShellMetacharacters) >= 0 || argument.Contains("$(", StringComparison.Ordinal))
-                throw new InvalidOperationException("Command contains a denied argument form.");
-            if (Path.IsPathRooted(argument) || argument.StartsWith("\\\\", StringComparison.Ordinal) || argument.StartsWith("\\?\\", StringComparison.Ordinal))
-                throw new UnauthorizedAccessException("Command arguments cannot name paths outside the workspace.");
-        }
-        if (name.Equals("git", StringComparison.OrdinalIgnoreCase) && command.Arguments.FirstOrDefault() is string verb &&
-            verb is "config" or "credential" or "clean" or "reset")
-            throw new UnauthorizedAccessException($"git {verb} is not allowed in Agent mode.");
-    }
+    StdOut,
+    StdErr,
 }
 
 public sealed class CommandRunner
 {
     private const int MaximumOutputCharacters = 131_072;
-    private readonly WorkspaceService _workspace;
-    private readonly CommandPolicy _policy;
 
-    public CommandRunner(WorkspaceService workspace, CommandPolicy? policy = null) { _workspace = workspace; _policy = policy ?? new CommandPolicy(); }
-
-    public async Task<AgentCommandResult> RunAsync(AgentCommand command, CancellationToken cancellationToken = default)
+    public async Task<AgentCommandResult> RunAsync(
+        AgentCommand command,
+        IProgress<CommandOutputChunk>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Agent commands require the Windows Job Object boundary.");
-        _policy.Validate(command);
-        string workingDirectory = _workspace.Resolve(command.WorkingDirectory, mustExist: true);
-        if (!Directory.Exists(workingDirectory)) throw new InvalidOperationException("Command working directory is not a directory.");
+        Validate(command);
         string executable = ResolveExecutable(command.Executable);
         string commandLine = BuildCommandLine(executable, command.Arguments);
 
@@ -68,7 +46,7 @@ public sealed class CommandRunner
         try
         {
             if (!CreateProcess(executable, new StringBuilder(commandLine), IntPtr.Zero, IntPtr.Zero, true, 0x00000004 | 0x00000400 | 0x08000000,
-                environment, workingDirectory, ref startup, out processInfo))
+                environment, AgentFileSystem.GetDefaultDirectory(), ref startup, out processInfo))
                 throw new IOException("Unable to create the agent command process.", Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error()));
         }
         finally { Marshal.FreeHGlobal(environment); }
@@ -84,8 +62,8 @@ public sealed class CommandRunner
 
             using var stdoutReader = new StreamReader(new FileStream(stdout.Read, FileAccess.Read, 4096, isAsync: false), Encoding.UTF8, true);
             using var stderrReader = new StreamReader(new FileStream(stderr.Read, FileAccess.Read, 4096, isAsync: false), Encoding.UTF8, true);
-            Task<BoundedOutput> stdoutTask = ReadBoundedAsync(stdoutReader);
-            Task<BoundedOutput> stderrTask = ReadBoundedAsync(stderrReader);
+            Task<BoundedOutput> stdoutTask = ReadBoundedAsync(stdoutReader, progress, CommandOutputChannel.StdOut);
+            Task<BoundedOutput> stderrTask = ReadBoundedAsync(stderrReader, progress, CommandOutputChannel.StdErr);
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(command.TimeoutSeconds, 1, 900)));
             bool timedOut = false;
@@ -108,28 +86,93 @@ public sealed class CommandRunner
         }
     }
 
-    private static async Task<BoundedOutput> ReadBoundedAsync(StreamReader reader)
+    /// <summary>
+    /// Reads a stream to the output cap, reporting live line-buffered chunks through
+    /// <paramref name="progress"/> as they arrive. Chunks split at newlines (or the cap
+    /// on pathological single lines), so consumers can render output incrementally.
+    /// </summary>
+    private static async Task<BoundedOutput> ReadBoundedAsync(StreamReader reader, IProgress<CommandOutputChunk>? progress, CommandOutputChannel channel)
     {
-        var result = new StringBuilder(); char[] buffer = new char[4096]; bool truncated = false;
+        var result = new StringBuilder();
+        var line = new StringBuilder();
+        char[] buffer = new char[4096];
+        bool truncated = false;
+        int remaining = MaximumOutputCharacters;
+
+        void AppendChar(char character)
+        {
+            if (remaining > 0) { result.Append(character); remaining--; }
+            else truncated = true;
+        }
+
+        void FlushLine(bool endLine)
+        {
+            if (progress is not null)
+            {
+                string text = line.ToString();
+                if (endLine) text += "\n";
+                int capped = Math.Min(text.Length, remaining);
+                if (capped < text.Length) truncated = true;
+                if (capped > 0) progress.Report(new CommandOutputChunk(text.Substring(0, capped), channel));
+            }
+            line.Clear();
+        }
+
         while (true)
         {
-            int read = await reader.ReadAsync(buffer).ConfigureAwait(false); if (read == 0) break;
-            int remaining = MaximumOutputCharacters - result.Length;
-            if (remaining > 0) result.Append(buffer, 0, Math.Min(read, remaining));
-            if (read > remaining) truncated = true;
+            int read = await reader.ReadAsync(buffer).ConfigureAwait(false);
+            if (read == 0) break;
+            for (int i = 0; i < read; i++)
+            {
+                char character = buffer[i];
+                AppendChar(character);
+                if (character == '\n')
+                {
+                    FlushLine(endLine: true);
+                }
+                else
+                {
+                    line.Append(character);
+                    if (line.Length >= MaximumOutputCharacters) FlushLine(endLine: false);
+                }
+            }
         }
+        if (line.Length > 0) FlushLine(endLine: false);
         if (truncated) result.Append("\n[output truncated]");
         return new BoundedOutput(result.ToString(), truncated);
     }
 
     private static string ResolveExecutable(string executable)
     {
-        string fileName = Path.HasExtension(executable) ? executable : executable + ".exe";
+        executable = executable.Trim();
+        if (Path.IsPathRooted(executable) || executable.Contains(Path.DirectorySeparatorChar) || executable.Contains(Path.AltDirectorySeparatorChar))
+        {
+            string explicitPath = Path.GetFullPath(executable);
+            if (File.Exists(explicitPath)) return explicitPath;
+            throw new FileNotFoundException($"Executable '{explicitPath}' was not found.", explicitPath);
+        }
+
+        string[] names = Path.HasExtension(executable) ? new[] { executable } : new[] { executable, executable + ".exe" };
         foreach (string folder in (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
         {
-            try { string candidate = Path.GetFullPath(Path.Combine(folder.Trim('"'), fileName)); if (File.Exists(candidate)) return candidate; } catch { }
+            foreach (string name in names)
+            {
+                try { string candidate = Path.GetFullPath(Path.Combine(folder.Trim('"'), name)); if (File.Exists(candidate)) return candidate; } catch { }
+            }
         }
-        throw new FileNotFoundException($"Approved executable '{executable}' was not found as a deterministic .exe on PATH.");
+        throw new FileNotFoundException($"Executable '{executable}' was not found on PATH.");
+    }
+
+    private static void Validate(AgentCommand command)
+    {
+        if (string.IsNullOrWhiteSpace(command.Executable) || command.Executable.Length > 32_768 || command.Executable.IndexOf('\0') >= 0)
+            throw new InvalidOperationException("Command executable is missing or invalid.");
+        if (command.Arguments.Count > 100) throw new InvalidOperationException("Command has too many arguments.");
+        foreach (string argument in command.Arguments)
+        {
+            if (argument is null || argument.Length > 32_768 || argument.IndexOf('\0') >= 0)
+                throw new InvalidOperationException("Command contains an invalid argument.");
+        }
     }
 
     private static string BuildCommandLine(string executable, IReadOnlyList<string> arguments) => string.Join(' ', new[] { Quote(executable) }.Concat(arguments.Select(Quote)));

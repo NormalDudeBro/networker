@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="networker.Controls.PromptHistoryControl"
+    x:Name="PromptHistoryRoot"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ItemsControl x:Name="Chips">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="6"/>
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+                <Button
+                    Margin="0,0,6,6"
+                    Style="{StaticResource ChipButtonStyle}"
+                    Content="{x:Bind}"
+                    Click="Chip_Click"/>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>

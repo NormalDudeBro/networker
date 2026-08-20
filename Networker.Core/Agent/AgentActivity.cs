@@ -1,9 +1,12 @@
 namespace Networker.Core.Agent;
 
+/// <summary>One todo entry carried by a plan activity.</summary>
+public sealed record AgentPlanItem(string Title, string Status = "pending");
+
 /// <summary>
 /// A structured activity event raised during an agent run. The chat surface
-/// maps these to turn blocks (thinking / tool / edit / activity / text) so the
-/// user can see what the agent is doing, distinct from its final answer.
+/// maps these to turn blocks (thinking / plan / tool / edit / activity / text)
+/// so the user can see what the agent is doing, distinct from its final answer.
 /// </summary>
 public sealed record AgentActivity(
     string Action,
@@ -18,4 +21,8 @@ public sealed record AgentActivity(
     int? Deletions = null,
     string? Verdict = null,
     double? DurationSeconds = null,
-    bool IsStreaming = false);
+    bool IsStreaming = false,
+    string? CommandLine = null,
+    int? ExitCode = null,
+    bool IsTerminalStyle = false,
+    IReadOnlyList<AgentPlanItem>? Plan = null);

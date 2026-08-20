@@ -16,8 +16,8 @@
         <controls:VerdictBrushConverter x:Key="VerdictBrush"/>
 
         <DataTemplate x:Key="UserMessageTemplate" x:DataType="models:ChatMessage">
-            <StackPanel HorizontalAlignment="Right" Spacing="4" Margin="0,0,0,12" MaxWidth="720">
-                <Border Style="{StaticResource UserBubbleStyle}">
+            <StackPanel HorizontalAlignment="Right" Spacing="4" Margin="0,0,0,14" MaxWidth="720">
+                <Border Style="{StaticResource UserBubbleStyle}" CornerRadius="16,16,4,16">
                     <TextBlock Style="{StaticResource UserBubbleTextStyle}" Text="{x:Bind Text}"/>
                 </Border>
                 <TextBlock Style="{StaticResource CaptionTextStyle}" HorizontalAlignment="Right" FontSize="11">
@@ -27,14 +27,18 @@
         </DataTemplate>
 
         <DataTemplate x:Key="AssistantMessageTemplate" x:DataType="models:ChatMessage">
-            <StackPanel Spacing="6" Margin="0,0,0,16" MaxWidth="760" HorizontalAlignment="Left">
-                <TextBlock Style="{StaticResource CaptionTextStyle}" FontSize="11">
-                    <Run Text="Assistant"/>
-                    <Run Text="{x:Bind Provider, Mode=OneWay}" Foreground="{ThemeResource AppAccentBrush}"/>
-                    <Run Text="{x:Bind Model, Mode=OneWay}"/>
-                </TextBlock>
-                <TextBlock
-                    Style="{StaticResource AssistantMessageTextStyle}"
+            <StackPanel Spacing="8" Margin="0,0,0,16" MaxWidth="780" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Border Width="26" Height="26" CornerRadius="8" Background="{ThemeResource AppAccentMutedBrush}">
+                        <FontIcon Glyph="&#xE8BD;" FontSize="12" Foreground="{ThemeResource AppAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Style="{StaticResource CaptionTextStyle}" FontSize="11" VerticalAlignment="Center">
+                        <Run Text="Assistant"/>
+                        <Run Text="{x:Bind Provider, Mode=OneWay}" Foreground="{ThemeResource AppAccentBrush}"/>
+                        <Run Text="{x:Bind Model, Mode=OneWay}"/>
+                    </TextBlock>
+                </StackPanel>
+                <controls:MarkdownTextView
                     Text="{x:Bind Text, Mode=OneWay}"/>
                 <StackPanel
                     Orientation="Horizontal"
@@ -72,107 +76,115 @@
         <!-- ===================== Activity block templates ===================== -->
 
         <DataTemplate x:Key="ThinkingBlockTemplate" x:DataType="models:ThinkingBlock">
-            <Expander
-                IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}"
-                HorizontalAlignment="Stretch"
-                HorizontalContentAlignment="Stretch"
-                Margin="0,0,0,6">
-                <Expander.Header>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE9CE;" FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="Thinking" Style="{StaticResource FieldLabelTextStyle}" FontSize="12" VerticalAlignment="Center"/>
-                        <TextBlock Text="{x:Bind MoreText, Mode=OneWay}" Style="{StaticResource CaptionTextStyle}" FontSize="11" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Expander.Header>
-                <TextBlock
-                    Text="{x:Bind Content, Mode=OneWay}"
-                    Style="{StaticResource MonoSecondaryTextStyle}"
-                    FontSize="12"
-                    TextWrapping="Wrap"
-                    IsTextSelectionEnabled="True"/>
-            </Expander>
+            <Border Style="{StaticResource BlockCardStyle}">
+                <Expander
+                    Style="{StaticResource BlockExpanderStyle}"
+                    IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}">
+                    <Expander.Header>
+                        <StackPanel Orientation="Horizontal" Spacing="8" Padding="12,9">
+                            <FontIcon Glyph="&#xE9CE;" FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="Thinking" Style="{StaticResource FieldLabelTextStyle}" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBlock Text="{x:Bind MoreText, Mode=OneWay}" Style="{StaticResource CaptionTextStyle}" FontSize="11" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Expander.Header>
+                    <Border Style="{StaticResource BlockOutputPanelStyle}">
+                        <TextBlock
+                            Text="{x:Bind DisplayText, Mode=OneWay}"
+                            Style="{StaticResource MonoSecondaryTextStyle}"
+                            FontSize="12"
+                            TextWrapping="Wrap"
+                            IsTextSelectionEnabled="True"/>
+                    </Border>
+                </Expander>
+            </Border>
         </DataTemplate>
 
         <DataTemplate x:Key="ToolBlockTemplate" x:DataType="models:ToolBlock">
-            <Expander
-                IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}"
-                HorizontalAlignment="Stretch"
-                HorizontalContentAlignment="Stretch"
-                Margin="0,0,0,6">
-                <Expander.Header>
-                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
-                        <FontIcon Glyph="{x:Bind Glyph, Mode=OneWay}" FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="{x:Bind Action, Mode=OneWay}" Style="{StaticResource FieldLabelTextStyle}" FontSize="12" VerticalAlignment="Center"/>
+            <Border Style="{StaticResource BlockCardStyle}">
+                <Expander
+                    Style="{StaticResource BlockExpanderStyle}"
+                    IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}">
+                    <Expander.Header>
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8" Padding="12,9">
+                            <FontIcon Glyph="{x:Bind Glyph, Mode=OneWay}" FontSize="12" Foreground="{ThemeResource AppAccentBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{x:Bind Action, Mode=OneWay}" Style="{StaticResource FieldLabelTextStyle}" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="{x:Bind Detail, Mode=OneWay}"
+                                Style="{StaticResource MonoSecondaryTextStyle}"
+                                FontSize="12"
+                                TextTrimming="CharacterEllipsis"
+                                VerticalAlignment="Center"/>
+                            <ProgressRing
+                                Grid.Column="3"
+                                IsActive="True"
+                                Width="12"
+                                Height="12"
+                                VerticalAlignment="Center"
+                                Visibility="{x:Bind IsRunning, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
+                            <TextBlock
+                                Grid.Column="4"
+                                Text="{x:Bind VerdictDisplay, Mode=OneWay}"
+                                FontSize="11"
+                                VerticalAlignment="Center"
+                                Foreground="{x:Bind Verdict, Mode=OneWay, Converter={StaticResource VerdictBrush}}"/>
+                        </Grid>
+                    </Expander.Header>
+                    <Border
+                        Style="{StaticResource BlockOutputPanelStyle}"
+                        Visibility="{x:Bind HasOutput, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                         <TextBlock
-                            Grid.Column="2"
-                            Text="{x:Bind Detail, Mode=OneWay}"
-                            Style="{StaticResource MonoSecondaryTextStyle}"
+                            Text="{x:Bind Output, Mode=OneWay}"
+                            Style="{StaticResource MonoTextStyle}"
                             FontSize="12"
-                            TextTrimming="CharacterEllipsis"
-                            VerticalAlignment="Center"/>
-                        <ProgressRing
-                            Grid.Column="3"
-                            IsActive="True"
-                            Width="12"
-                            Height="12"
-                            VerticalAlignment="Center"
-                            Visibility="{x:Bind IsRunning, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
-                        <TextBlock
-                            Grid.Column="4"
-                            Text="{x:Bind VerdictDisplay, Mode=OneWay}"
-                            FontSize="11"
-                            VerticalAlignment="Center"
-                            Foreground="{x:Bind Verdict, Mode=OneWay, Converter={StaticResource VerdictBrush}}"/>
-                    </Grid>
-                </Expander.Header>
-                <TextBlock
-                    Text="{x:Bind Output, Mode=OneWay}"
-                    Style="{StaticResource MonoTextStyle}"
-                    FontSize="12"
-                    TextWrapping="Wrap"
-                    IsTextSelectionEnabled="True"
-                    Visibility="{x:Bind HasOutput, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
-            </Expander>
+                            TextWrapping="Wrap"
+                            IsTextSelectionEnabled="True"/>
+                    </Border>
+                </Expander>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="TerminalBlockTemplate" x:DataType="models:ToolBlock">
+            <controls:TerminalOutputView/>
         </DataTemplate>
 
         <DataTemplate x:Key="EditBlockTemplate" x:DataType="models:EditBlock">
-            <Expander
-                IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}"
-                HorizontalAlignment="Stretch"
-                HorizontalContentAlignment="Stretch"
-                Margin="0,0,0,6">
-                <Expander.Header>
-                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
-                        <FontIcon Glyph="&#xE8AC;" FontSize="12" Foreground="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="Edited" Style="{StaticResource FieldLabelTextStyle}" FontSize="12" VerticalAlignment="Center"/>
-                        <TextBlock
-                            Grid.Column="2"
-                            Text="{x:Bind FilePath, Mode=OneWay}"
-                            Style="{StaticResource MonoSecondaryTextStyle}"
-                            FontSize="12"
-                            TextTrimming="CharacterEllipsis"
-                            VerticalAlignment="Center"/>
-                        <TextBlock
-                            Grid.Column="3"
-                            Text="{x:Bind CountsText, Mode=OneWay}"
-                            FontSize="11"
-                            VerticalAlignment="Center"
-                            Foreground="{ThemeResource AppSuccessBrush}"
-                            Visibility="{x:Bind HasCounts, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
-                    </Grid>
-                </Expander.Header>
-                <TextBlock
-                    Text="{x:Bind Diff, Mode=OneWay}"
-                    Style="{StaticResource MonoTextStyle}"
-                    FontSize="12"
-                    TextWrapping="Wrap"
-                    IsTextSelectionEnabled="True"
-                    Visibility="{x:Bind HasDiff, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
-            </Expander>
+            <Border Style="{StaticResource BlockCardStyle}">
+                <Expander
+                    Style="{StaticResource BlockExpanderStyle}"
+                    IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}">
+                    <Expander.Header>
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8" Padding="12,9">
+                            <FontIcon Glyph="&#xE8AC;" FontSize="12" Foreground="{ThemeResource AppAccentBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="Edited" Style="{StaticResource FieldLabelTextStyle}" FontSize="12" VerticalAlignment="Center"/>
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="{x:Bind FilePath, Mode=OneWay}"
+                                Style="{StaticResource MonoSecondaryTextStyle}"
+                                FontSize="12"
+                                TextTrimming="CharacterEllipsis"
+                                VerticalAlignment="Center"/>
+                            <TextBlock
+                                Grid.Column="3"
+                                Text="{x:Bind CountsText, Mode=OneWay}"
+                                FontSize="11"
+                                VerticalAlignment="Center"
+                                Foreground="{ThemeResource AppSuccessBrush}"
+                                Visibility="{x:Bind HasCounts, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
+                        </Grid>
+                    </Expander.Header>
+                    <controls:DiffBlockView
+                        Visibility="{x:Bind HasDiff, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
+                </Expander>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="PlanBlockTemplate" x:DataType="models:PlanBlock">
+            <controls:PlanBlockView/>
         </DataTemplate>
 
         <DataTemplate x:Key="ActivityBlockTemplate" x:DataType="models:ActivityLineBlock">
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="0,2,0,8">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" Margin="2,4,2,8">
                 <FontIcon Glyph="&#xE945;" FontSize="12" Foreground="{ThemeResource AppTextDisabledBrush}" VerticalAlignment="Center"/>
                 <TextBlock
                     Grid.Column="1"
@@ -189,9 +201,9 @@
                 Background="{ThemeResource BadgeDangerBackgroundBrush}"
                 BorderBrush="{ThemeResource AppDangerBrush}"
                 BorderThickness="1"
-                CornerRadius="{ThemeResource RadiusSM}"
-                Padding="10,8"
-                Margin="0,0,0,6">
+                CornerRadius="{ThemeResource RadiusMD}"
+                Padding="12,10"
+                Margin="0,0,0,8">
                 <StackPanel Spacing="4">
                     <TextBlock Text="{x:Bind Title, Mode=OneWay}" FontWeight="SemiBold" Foreground="{ThemeResource AppDangerBrush}" FontSize="12"/>
                     <TextBlock
@@ -208,19 +220,26 @@
             x:Key="BlockSelector"
             ThinkingTemplate="{StaticResource ThinkingBlockTemplate}"
             ToolTemplate="{StaticResource ToolBlockTemplate}"
+            TerminalTemplate="{StaticResource TerminalBlockTemplate}"
             EditTemplate="{StaticResource EditBlockTemplate}"
+            PlanTemplate="{StaticResource PlanBlockTemplate}"
             ActivityTemplate="{StaticResource ActivityBlockTemplate}"
             ErrorTemplate="{StaticResource ErrorBlockTemplate}"/>
 
         <!-- ===================== Structured assistant turn ===================== -->
 
         <DataTemplate x:Key="TurnTemplate" x:DataType="models:AssistantTurn">
-            <StackPanel Spacing="6" Margin="0,0,0,16" MaxWidth="780" HorizontalAlignment="Left">
-                <TextBlock Style="{StaticResource CaptionTextStyle}" FontSize="11">
-                    <Run Text="Assistant"/>
-                    <Run Text="{x:Bind Provider, Mode=OneWay}" Foreground="{ThemeResource AppAccentBrush}"/>
-                    <Run Text="{x:Bind Model, Mode=OneWay}"/>
-                </TextBlock>
+            <StackPanel Spacing="8" Margin="0,0,0,20" MaxWidth="780" HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Border Width="26" Height="26" CornerRadius="8" Background="{ThemeResource AppAccentMutedBrush}">
+                        <FontIcon Glyph="&#xE8BD;" FontSize="12" Foreground="{ThemeResource AppAccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Style="{StaticResource CaptionTextStyle}" FontSize="11" VerticalAlignment="Center">
+                        <Run Text="Assistant"/>
+                        <Run Text="{x:Bind Provider, Mode=OneWay}" Foreground="{ThemeResource AppAccentBrush}"/>
+                        <Run Text="{x:Bind Model, Mode=OneWay}"/>
+                    </TextBlock>
+                </StackPanel>
 
                 <ItemsControl
                     ItemsSource="{x:Bind Blocks, Mode=OneWay}"
@@ -236,8 +255,7 @@
                     <TextBlock Text="{x:Bind BusyText, Mode=OneWay}" Style="{StaticResource CaptionTextStyle}"/>
                 </StackPanel>
 
-                <TextBlock
-                    Style="{StaticResource AssistantMessageTextStyle}"
+                <controls:MarkdownTextView
                     Text="{x:Bind Text, Mode=OneWay}"
                     Visibility="{x:Bind HasText, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
 
@@ -298,70 +316,87 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- ======================= Header ======================= -->
         <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource WorkspaceHeaderStyle}">
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-            <StackPanel Grid.Column="0" Style="{StaticResource PageHeaderStackStyle}" VerticalAlignment="Center">
-                <TextBlock Text="STEP 8 OF 9" Style="{StaticResource PageEyebrowTextStyle}"/>
-                <TextBlock Text="Assist" Style="{StaticResource PageTitleTextStyle}"/>
-                <TextBlock
-                    Style="{StaticResource PageSubtitleTextStyle}"
-                    Text="Escalate unresolved findings with optional evidence from the current troubleshooting workspace."/>
-            </StackPanel>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel Grid.Column="0" Style="{StaticResource PageHeaderStackStyle}" VerticalAlignment="Center">
+                    <TextBlock Text="NETWORKER ASSIST" Style="{StaticResource PageEyebrowTextStyle}"/>
+                    <TextBlock Text="Assist" Style="{StaticResource PageTitleTextStyle}"/>
+                    <TextBlock
+                        Style="{StaticResource PageSubtitleTextStyle}"
+                        Text="Ask about network engineering, inspect files, or run commands with live activity."/>
+                </StackPanel>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                <Button
-                    x:Name="HeaderModelButton"
-                    Style="{StaticResource SecondaryButtonStyle}"
-                    Click="PanelToggleButton_Click"
-                    ToolTipService.ToolTip="Open session settings"
-                    AutomationProperties.Name="Open session settings">
-                    <StackPanel Orientation="Horizontal" Spacing="7">
-                        <Ellipse x:Name="HeaderModelDot" Style="{StaticResource StatusDotStyle}" Fill="{ThemeResource AppOfflineBrush}"/>
-                        <TextBlock x:Name="HeaderModelText" Text="Select a model" MaxWidth="180" TextTrimming="CharacterEllipsis"/>
-                    </StackPanel>
-                </Button>
-                <Button
-                    x:Name="PanelToggleButton"
-                    Style="{StaticResource IconButtonStyle}"
-                    Click="PanelToggleButton_Click"
-                    ToolTipService.ToolTip="Toggle history panel"
-                    AutomationProperties.Name="Toggle history panel">
-                    <FontIcon Glyph="&#xE8E7;" FontSize="16"/>
-                </Button>
-                <Button
-                    x:Name="NewChatButton"
-                    Style="{StaticResource IconButtonStyle}"
-                    Click="NewChatButton_Click"
-                    ToolTipService.ToolTip="New chat"
-                    AutomationProperties.Name="New chat">
-                    <FontIcon Glyph="&#xE8BD;" FontSize="16"/>
-                </Button>
-                <Button
-                    x:Name="ClearHistoryButton"
-                    Style="{StaticResource IconButtonStyle}"
-                    Click="ClearHistoryButton_Click"
-                    ToolTipService.ToolTip="Clear history"
-                    AutomationProperties.Name="Clear history">
-                    <FontIcon Glyph="&#xE74D;" FontSize="16"/>
-                </Button>
-            </StackPanel>
-        </Grid>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button
+                        x:Name="HeaderModelButton"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        CornerRadius="{ThemeResource RadiusPill}"
+                        Click="PanelToggleButton_Click"
+                        ToolTipService.ToolTip="Open session settings"
+                        AutomationProperties.Name="Open session settings">
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <Ellipse x:Name="HeaderModelDot" Style="{StaticResource StatusDotStyle}" Fill="{ThemeResource AppOfflineBrush}"/>
+                            <TextBlock x:Name="HeaderModelText" Text="Select a model" MaxWidth="180" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </Button>
+                    <Border
+                        Background="{ThemeResource AppInsetBrush}"
+                        CornerRadius="{ThemeResource RadiusPill}"
+                        Padding="2">
+                        <StackPanel Orientation="Horizontal" Spacing="2">
+                            <Button
+                                x:Name="PanelToggleButton"
+                                Style="{StaticResource IconButtonStyle}"
+                                Click="PanelToggleButton_Click"
+                                ToolTipService.ToolTip="Toggle history panel"
+                                AutomationProperties.Name="Toggle history panel">
+                                <FontIcon Glyph="&#xE8E7;" FontSize="16"/>
+                            </Button>
+                            <Button
+                                x:Name="TerminalToggleButton"
+                                Style="{StaticResource IconButtonStyle}"
+                                Click="TerminalToggleButton_Click"
+                                ToolTipService.ToolTip="Toggle terminal"
+                                AutomationProperties.Name="Toggle terminal">
+                                <FontIcon Glyph="&#xE756;" FontSize="16"/>
+                            </Button>
+                            <Button
+                                x:Name="NewChatButton"
+                                Style="{StaticResource IconButtonStyle}"
+                                Click="NewChatButton_Click"
+                                ToolTipService.ToolTip="New chat"
+                                AutomationProperties.Name="New chat">
+                                <FontIcon Glyph="&#xE8BD;" FontSize="16"/>
+                            </Button>
+                            <Button
+                                x:Name="ClearHistoryButton"
+                                Style="{StaticResource IconButtonStyle}"
+                                Click="ClearHistoryButton_Click"
+                                ToolTipService.ToolTip="Clear history"
+                                AutomationProperties.Name="Clear history">
+                                <FontIcon Glyph="&#xE74D;" FontSize="16"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
         </Border>
 
         <!-- ======================= Chat area ======================= -->
         <Grid Grid.Row="1" Grid.Column="0">
             <Border x:Name="EmptyState" Style="{StaticResource EmptyStatePanelStyle}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20">
-                <StackPanel Spacing="10" HorizontalAlignment="Center">
+                <StackPanel Spacing="12" HorizontalAlignment="Center" MaxWidth="480">
                     <Border
-                        Width="42" Height="42"
-                        CornerRadius="{ThemeResource RadiusSM}"
+                        Width="48" Height="48"
+                        CornerRadius="{ThemeResource RadiusXL}"
                         Background="{ThemeResource AppAccentMutedBrush}"
                         HorizontalAlignment="Center">
                         <FontIcon
-                            Glyph="&#xE8BD;" FontSize="20"
+                            Glyph="&#xE8BD;" FontSize="22"
                             Foreground="{ThemeResource AppAccentBrush}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"/>
@@ -370,9 +405,8 @@
                     <TextBlock
                         Style="{StaticResource CaptionTextStyle}"
                         TextAlignment="Center"
-                        MaxWidth="480"
-                        Text="Ask about configuration behavior, troubleshooting, routing, logs, or an operational change. Local tools remain available beside the composer."/>
-                    <ItemsControl HorizontalAlignment="Center" MaxWidth="480" Margin="0,8,0,0">
+                        Text="Ask about configuration behavior, troubleshooting, routing, logs, or an operational change. Local tools stay one click away beside the composer."/>
+                    <ItemsControl HorizontalAlignment="Center" Margin="0,4,0,0">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <ItemsWrapGrid Orientation="Horizontal"/>
@@ -382,112 +416,196 @@
                         <Button Margin="0,0,8,8" Style="{StaticResource ChipButtonStyle}" Content="Generate OSPF config" Click="QuickStart_Click" Tag="ospf"/>
                         <Button Margin="0,0,8,8" Style="{StaticResource ChipButtonStyle}" Content="Audit a config" Click="QuickStart_Click" Tag="audit"/>
                     </ItemsControl>
+                    <Border
+                        Background="{ThemeResource AppSurfaceBrush}"
+                        BorderBrush="{ThemeResource AppBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{ThemeResource RadiusSM}"
+                        Padding="12,8"
+                        Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Border Style="{StaticResource KbdStyle}">
+                                    <TextBlock Text="Enter" FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Text="send" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Border Style="{StaticResource KbdStyle}">
+                                    <TextBlock Text="Shift+Enter" FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Text="new line" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Border Style="{StaticResource KbdStyle}">
+                                    <TextBlock Text="!" FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Text="terminal mode" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
 
             <ListView
                 x:Name="MessagesList"
+                MaxWidth="920"
+                HorizontalAlignment="Center"
                 Visibility="Collapsed"
                 SelectionMode="None"
                 IsItemClickEnabled="False"
                 ItemTemplateSelector="{StaticResource MessageSelector}"
                 Padding="20,16,20,8"
                 Background="Transparent"/>
+
+            <!-- Floating chip: visible when the user has scrolled away from the
+                 bottom so new agent output stops auto-following. -->
+            <Button
+                x:Name="JumpToLatestButton"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Margin="0,0,0,12"
+                Style="{StaticResource ChipButtonStyle}"
+                Visibility="Collapsed"
+                Click="JumpToLatestButton_Click"
+                ToolTipService.ToolTip="Jump to latest"
+                AutomationProperties.Name="Jump to latest">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE76D;" FontSize="12"/>
+                    <TextBlock Text="Jump to latest"/>
+                </StackPanel>
+            </Button>
         </Grid>
 
+        <!-- ======================= Terminal ======================= -->
+        <controls:TerminalPane
+            x:Name="TerminalPaneHost"
+            Grid.Row="2"
+            Grid.Column="0"
+            Margin="20,0,20,4"
+            Visibility="Collapsed"/>
+
         <!-- ======================= Input ======================= -->
-        <Grid Grid.Row="2" Grid.Column="0" Padding="20,8,20,16" RowDefinitions="Auto,Auto" RowSpacing="6">
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
-                <ToggleSwitch x:Name="AgentModeToggle" Header="Mode" OffContent="Chat" OnContent="Agent" Toggled="AgentModeToggle_Toggled"/>
-                <Button x:Name="WorkspaceButton" Grid.Column="1" Content="Choose workspace" Click="WorkspaceButton_Click" Style="{StaticResource SecondaryButtonStyle}" Visibility="Collapsed"/>
-                <TextBlock x:Name="WorkspacePathText" Grid.Column="2" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Visibility="Collapsed"/>
-                <CheckBox x:Name="IncludeEvidenceCheckBox" Grid.Column="3" Content="Include workspace evidence" VerticalAlignment="Center"/>
-            </Grid>
-            <StackPanel Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
-                <TextBlock x:Name="EvidenceSummaryText" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-            </StackPanel>
-            <Border
-                Grid.Row="1"
-                Background="{ThemeResource AppSurfaceBrush}"
-                BorderBrush="{ThemeResource AppBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="{ThemeResource RadiusMD}"
-                Padding="8,6">
-                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                    <Button
-                        x:Name="LocalToolsButton"
-                        Grid.Column="0"
-                        Margin="0,0,4,0"
-                        Style="{StaticResource IconButtonStyle}"
-                        ToolTipService.ToolTip="Run a local tool"
-                        AutomationProperties.Name="Run a local deterministic tool">
-                        <Button.Flyout>
-                            <MenuFlyout Placement="TopEdgeAlignedLeft">
-                                <MenuFlyoutItem Text="Subnet calculator" Tag="ip" Click="RunTool_Click"/>
-                                <MenuFlyoutItem Text="OSPF configuration" Tag="ospf" Click="RunTool_Click"/>
-                                <MenuFlyoutItem Text="BGP configuration" Tag="bgp" Click="RunTool_Click"/>
-                                <MenuFlyoutItem Text="Configuration audit" Tag="audit" Click="RunTool_Click"/>
-                                <MenuFlyoutSeparator/>
-                                <MenuFlyoutItem Text="Log analysis" Tag="logs" Click="RunTool_Click"/>
-                                <MenuFlyoutItem Text="Topology discovery" Tag="topology" Click="RunTool_Click"/>
-                                <MenuFlyoutItem Text="Configuration translation" Tag="translate" Click="RunTool_Click"/>
-                                <MenuFlyoutItem Text="Troubleshooting playbook" Tag="playbook" Click="RunTool_Click"/>
-                            </MenuFlyout>
-                        </Button.Flyout>
-                        <FontIcon Glyph="&#xE713;" FontSize="15"/>
-                    </Button>
-                    <ScrollViewer
-                        Grid.Column="1"
-                        MaxHeight="160"
-                        HorizontalScrollMode="Disabled"
-                        HorizontalScrollBarVisibility="Disabled"
-                        VerticalScrollMode="Auto"
-                        VerticalScrollBarVisibility="Auto">
-                        <TextBox
-                            x:Name="InputBox"
-                            PlaceholderText="Ask about network engineering… (Enter to send)"
-                            AcceptsReturn="True"
-                            TextWrapping="Wrap"
-                            TextChanged="InputBox_TextChanged"
-                            KeyDown="InputBox_KeyDown"
-                            KeyUp="InputBox_KeyUp"
-                            PreviewKeyDown="InputBox_PreviewKeyDown"
-                            MinHeight="36"
-                            BorderThickness="0"
-                            Background="Transparent"/>
-                    </ScrollViewer>
-                    <Button
-                        x:Name="CancelButton"
-                        Grid.Column="2"
-                        Visibility="Collapsed"
-                        Style="{StaticResource IconButtonStyle}"
-                        Click="CancelButton_Click"
-                        ToolTipService.ToolTip="Stop generation"
-                        AutomationProperties.Name="Stop generation">
-                        <FontIcon Glyph="&#xE711;" FontSize="14"/>
-                    </Button>
-                    <Button
-                        x:Name="SendButton"
-                        Grid.Column="3"
-                        Margin="4,0,0,0"
-                        IsEnabled="False"
-                        Click="SendButton_Click"
-                        ToolTipService.ToolTip="Send (Ctrl+Enter)"
-                        AutomationProperties.Name="Send message"
-                        Style="{StaticResource PrimaryButtonStyle}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon Glyph="&#xE724;" FontSize="14"/>
-                            <TextBlock Text="Send" FontWeight="SemiBold"/>
-                        </StackPanel>
-                    </Button>
+        <Grid Grid.Row="3" Grid.Column="0" Padding="20,8,20,16">
+            <StackPanel Spacing="8">
+                <!-- Context strip: optional locally generated troubleshooting evidence -->
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <TextBlock
+                        x:Name="EvidenceSummaryText"
+                        Style="{StaticResource CaptionTextStyle}"
+                        VerticalAlignment="Center"
+                        TextTrimming="CharacterEllipsis"
+                        Visibility="Collapsed"/>
+                    <CheckBox Grid.Column="1" x:Name="IncludeEvidenceCheckBox" Content="Include troubleshooting evidence" VerticalAlignment="Center"/>
                 </Grid>
-            </Border>
+
+                <!-- Composer card -->
+                <Border
+                    Background="{ThemeResource AppSurfaceBrush}"
+                    BorderBrush="{ThemeResource AppBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{ThemeResource RadiusMD}"
+                    Padding="8,6">
+                    <StackPanel Spacing="4">
+                        <controls:PromptHistoryControl
+                            x:Name="PromptHistoryChips"
+                            Visibility="Collapsed"
+                            PromptSelected="PromptHistoryChip_Click"/>
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
+                            <Button
+                                x:Name="LocalToolsButton"
+                                Grid.Column="0"
+                                Margin="0,0,4,0"
+                                Style="{StaticResource IconButtonStyle}"
+                                ToolTipService.ToolTip="Run a local tool"
+                                AutomationProperties.Name="Run a local deterministic tool">
+                                <Button.Flyout>
+                                    <MenuFlyout Placement="TopEdgeAlignedLeft">
+                                        <MenuFlyoutItem Text="Subnet calculator" Tag="ip" Click="RunTool_Click"/>
+                                        <MenuFlyoutItem Text="OSPF configuration" Tag="ospf" Click="RunTool_Click"/>
+                                        <MenuFlyoutItem Text="BGP configuration" Tag="bgp" Click="RunTool_Click"/>
+                                        <MenuFlyoutItem Text="Configuration audit" Tag="audit" Click="RunTool_Click"/>
+                                        <MenuFlyoutSeparator/>
+                                        <MenuFlyoutItem Text="Log analysis" Tag="logs" Click="RunTool_Click"/>
+                                        <MenuFlyoutItem Text="Topology discovery" Tag="topology" Click="RunTool_Click"/>
+                                        <MenuFlyoutItem Text="Configuration translation" Tag="translate" Click="RunTool_Click"/>
+                                        <MenuFlyoutItem Text="Troubleshooting playbook" Tag="playbook" Click="RunTool_Click"/>
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                                <FontIcon Glyph="&#xE713;" FontSize="15"/>
+                            </Button>
+                            <ToggleButton
+                                x:Name="TerminalModeToggle"
+                                Grid.Column="1"
+                                Margin="0,0,8,0"
+                                Width="34"
+                                Height="34"
+                                Padding="0"
+                                CornerRadius="{ThemeResource RadiusSM}"
+                                Background="Transparent"
+                                ToolTipService.ToolTip="Terminal mode (!)"
+                                AutomationProperties.Name="Toggle terminal mode"
+                                Checked="TerminalModeToggle_Checked"
+                                Unchecked="TerminalModeToggle_Unchecked">
+                                <FontIcon Glyph="&#xE756;" FontSize="15"/>
+                            </ToggleButton>
+                            <ScrollViewer
+                                Grid.Column="2"
+                                MaxHeight="160"
+                                HorizontalScrollMode="Disabled"
+                                HorizontalScrollBarVisibility="Disabled"
+                                VerticalScrollMode="Auto"
+                                VerticalScrollBarVisibility="Auto">
+                                <TextBox
+                                    x:Name="InputBox"
+                                    PlaceholderText="Ask about network engineering… (Enter to send)"
+                                    AcceptsReturn="True"
+                                    TextWrapping="Wrap"
+                                    TextChanged="InputBox_TextChanged"
+                                    KeyDown="InputBox_KeyDown"
+                                    KeyUp="InputBox_KeyUp"
+                                    PreviewKeyDown="InputBox_PreviewKeyDown"
+                                    GotFocus="InputBox_GotFocus"
+                                    MinHeight="36"
+                                    BorderThickness="0"
+                                    Background="Transparent"/>
+                            </ScrollViewer>
+                            <Button
+                                x:Name="CancelButton"
+                                Grid.Column="3"
+                                Visibility="Collapsed"
+                                Style="{StaticResource IconButtonStyle}"
+                                Click="CancelButton_Click"
+                                ToolTipService.ToolTip="Stop generation"
+                                AutomationProperties.Name="Stop generation">
+                                <FontIcon Glyph="&#xE711;" FontSize="14"/>
+                            </Button>
+                            <Button
+                                x:Name="SendButton"
+                                Grid.Column="4"
+                                Margin="4,0,0,0"
+                                IsEnabled="False"
+                                Click="SendButton_Click"
+                                CornerRadius="{ThemeResource RadiusPill}"
+                                Padding="16,6"
+                                ToolTipService.ToolTip="Send (Ctrl+Enter)"
+                                AutomationProperties.Name="Send message"
+                                Style="{StaticResource PrimaryButtonStyle}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE724;" FontSize="14"/>
+                                    <TextBlock Text="Send" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
         </Grid>
 
         <!-- ======================= Session panel ======================= -->
         <Button
             x:Name="SessionScrim"
-            Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2"
+            Grid.Row="1" Grid.RowSpan="3" Grid.Column="0" Grid.ColumnSpan="2"
             Visibility="Collapsed"
             Background="{ThemeResource AppScrimBrush}"
             BorderThickness="0"
@@ -497,7 +615,7 @@
             AutomationProperties.AccessibilityView="Raw"/>
         <Grid
             x:Name="AssistantPanel"
-            Grid.Row="1" Grid.RowSpan="2" Grid.Column="1"
+            Grid.Row="1" Grid.RowSpan="3" Grid.Column="1"
             Width="320"
             Visibility="Collapsed"
             Background="{ThemeResource AppSurfaceBrush}"
@@ -522,13 +640,17 @@
                         </Button>
                     </Grid>
 
-                    <Grid ColumnDefinitions="Auto,*">
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                            <Ellipse x:Name="PanelHealthDot" Width="8" Height="8" Fill="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center" AutomationProperties.Name="AI provider status"/>
-                            <TextBlock x:Name="PanelHealthText" Text="Not checked" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <Button Grid.Column="1" Style="{StaticResource ChipButtonStyle}" Content="Check" Click="HealthCheckButton_Click" HorizontalAlignment="Right" Padding="10,4"/>
-                    </Grid>
+                    <Border
+                        Style="{StaticResource InsetPanelStyle}"
+                        Padding="12,10">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                <Ellipse x:Name="PanelHealthDot" Width="8" Height="8" Fill="{ThemeResource AppTextSecondaryBrush}" VerticalAlignment="Center" AutomationProperties.Name="AI provider status"/>
+                                <TextBlock x:Name="PanelHealthText" Text="Not checked" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="160"/>
+                            </StackPanel>
+                            <Button Grid.Column="2" Style="{StaticResource ChipButtonStyle}" Content="Check" Click="HealthCheckButton_Click" Padding="10,4"/>
+                        </Grid>
+                    </Border>
 
                     <Button Content="Configure AI in Settings" Style="{StaticResource SecondaryButtonStyle}" Click="ConfigureAiButton_Click" HorizontalAlignment="Stretch"/>
 

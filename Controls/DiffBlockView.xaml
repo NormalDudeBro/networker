@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="networker.Controls.DiffBlockView"
+    x:Name="DiffViewRoot"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer
+        MaxHeight="340"
+        Padding="0"
+        HorizontalScrollMode="Enabled"
+        HorizontalScrollBarVisibility="Auto"
+        VerticalScrollBarVisibility="Auto">
+        <StackPanel x:Name="DiffBody" Padding="12,10"/>
+    </ScrollViewer>
+</UserControl>

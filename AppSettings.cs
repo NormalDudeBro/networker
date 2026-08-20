@@ -58,16 +58,16 @@ namespace networker
             set => LocalSettings.Values["CodexChatThreadId"] = value;
         }
 
-        public static bool CodexAgentNetworkEnabled
+        public static string CodexAssistThreadId
         {
-            get => LocalSettings.Values["CodexAgentNetworkEnabled"] is bool value && value;
-            set => LocalSettings.Values["CodexAgentNetworkEnabled"] = value;
+            get => (LocalSettings.Values["CodexAssistThreadId"] as string) ?? string.Empty;
+            set => LocalSettings.Values["CodexAssistThreadId"] = value;
         }
 
-        public static string CodexAgentAuthorizedWorkspace
+        public static string CodexAssistModel
         {
-            get => (LocalSettings.Values["CodexAgentAuthorizedWorkspace"] as string) ?? string.Empty;
-            set => LocalSettings.Values["CodexAgentAuthorizedWorkspace"] = value;
+            get => (LocalSettings.Values["CodexAssistModel"] as string) ?? string.Empty;
+            set => LocalSettings.Values["CodexAssistModel"] = value;
         }
 
         /// <summary>
@@ -90,18 +90,6 @@ namespace networker
         {
             get => (LocalSettings.Values["DefaultVendor"] as string) ?? "Cisco IOS/IOS-XE";
             set => LocalSettings.Values["DefaultVendor"] = value;
-        }
-
-        public static string LastAgentWorkspacePath
-        {
-            get => (LocalSettings.Values["LastAgentWorkspacePath"] as string) ?? string.Empty;
-            set => LocalSettings.Values["LastAgentWorkspacePath"] = value;
-        }
-
-        public static bool AgentDisclosureAccepted
-        {
-            get => LocalSettings.Values["AgentDisclosureAccepted"] is bool value && value;
-            set => LocalSettings.Values["AgentDisclosureAccepted"] = value;
         }
 
         public static string SelectedToolKey

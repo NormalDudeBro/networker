@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -55,7 +56,13 @@ public sealed class CodexAppServerClient : ICodexAppServerClient
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
-                WorkingDirectory = codexHome,
+                WorkingDirectory = UserProfileDirectory(),
+                // codex-app-server speaks UTF-8 on all three pipes. Without these pins the
+                // redirected streams are decoded with the console code page, which turns
+                // UTF-8 apostrophes (U+2019 = E2 80 99) into "â€™"-style mojibake.
+                StandardInputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                StandardOutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                StandardErrorEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
             };
             start.ArgumentList.Add("--listen");
             start.ArgumentList.Add("stdio://");
@@ -184,7 +191,12 @@ public sealed class CodexAppServerClient : ICodexAppServerClient
     {
         object response = method switch
         {
-            "item/commandExecution/requestApproval" or "item/fileChange/requestApproval" => new { id = JsonId(id), result = new { decision = "cancel" } },
+            // Command-capable Assist is explicitly user-authorized; Workflow chat remains read-only and
+            // never enters this approval flow.
+            "item/commandExecution/requestApproval" or "item/fileChange/requestApproval" => new { id = JsonId(id), result = new { decision = "accept" } },
+            // Older app-server builds use these legacy approval names and expect
+            // a boolean result rather than the modern decision enum.
+            "execCommandApproval" or "applyPatchApproval" => new { id = JsonId(id), result = new { approved = true } },
             _ => new { id = JsonId(id), error = new { code = -32601, message = "Networker does not support this Codex request." } },
         };
         await SendAsync(response, cancellationToken).ConfigureAwait(false);
@@ -263,7 +275,9 @@ public sealed class CodexAppServerClient : ICodexAppServerClient
         {
             // Never forward provider secrets even if a proxy var name collides.
             if (LooksLikeSecret(item.Name) || LooksLikeSecret(item.Value!)) continue;
-            start.Environment[item.Name] = item.Value!;
+            start.Environment[item.Name] = item.Name.Equals("PATH", StringComparison.OrdinalIgnoreCase)
+                ? RemoveWindowsAppExecutionAliases(item.Value!)
+                : item.Value!;
         }
         start.Environment["CODEX_HOME"] = codexHome;
         start.Environment["RUST_LOG"] = "error";
@@ -271,6 +285,17 @@ public sealed class CodexAppServerClient : ICodexAppServerClient
         start.Environment.Remove("OPENAI_API_KEY");
         start.Environment.Remove("CODEX_API_KEY");
         start.Environment.Remove("CHATGPT_API_KEY");
+    }
+
+    private static string RemoveWindowsAppExecutionAliases(string path)
+        => string.Join(Path.PathSeparator, path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Where(entry => !entry.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                .EndsWith(Path.Combine("Microsoft", "WindowsApps"), StringComparison.OrdinalIgnoreCase)));
+
+    private static string UserProfileDirectory()
+    {
+        string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return Directory.Exists(profile) ? profile : AppContext.BaseDirectory;
     }
 
     private static bool LooksLikeSecret(string value)

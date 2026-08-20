@@ -29,8 +29,13 @@
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
 
-        <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
-            <StackPanel Style="{StaticResource DenseTabContentStackStyle}">
+        <Grid>
+            <Grid
+                Width="{Binding ActualWidth, ElementName=VaultLayout}"
+                MaxWidth="1200"
+                HorizontalAlignment="Center">
+                <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+                    <StackPanel Style="{StaticResource DenseTabContentStackStyle}">
                 <Border Style="{StaticResource ToolInputPanelStyle}">
                     <StackPanel Spacing="10">
                         <Grid ColumnDefinitions="*,Auto">
@@ -159,6 +164,8 @@
                     </Border>
                 </Grid>
             </StackPanel>
-        </ScrollViewer>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
     </Grid>
 </UserControl>

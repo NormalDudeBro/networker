@@ -78,6 +78,7 @@ namespace networker
             services.AddSingleton(_ => new TroubleshootingWorkspaceStore(
                 Path.Combine(AppSettings.GetLocalDataDirectory(), "troubleshooting-workspace.json")));
             services.AddSingleton<TroubleshootingSession>();
+            services.AddSingleton<Networker.Core.Terminal.TerminalSession>();
 
             services.AddSingleton<LaunchHealthService>();
             return services.BuildServiceProvider();

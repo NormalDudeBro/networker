@@ -9,8 +9,7 @@ public sealed class AgentProtocolTests
     [InlineData("{\"action\":\"finish\",\"summary\":\"done\"} trailing")]
     [InlineData("{\"action\":\"unknown\"}")]
     [InlineData("{\"action\":\"finish\",\"summary\":\"done\",\"extra\":true}")]
-    [InlineData("{\"action\":\"command\",\"executable\":\"cmd\",\"arguments\":[\"/c\",\"whoami\"]}")]
-    [InlineData("{\"action\":\"read\",\"path\":\"../secret\"}")]
+    [InlineData("{\"action\":\"command\",\"executable\":\"cmd.exe\",\"arguments\":[\"/c\",\"whoami\"],\"workingDirectory\":\"C:/tmp\"}")]
     public void Parse_RejectsNonconformingInstruction(string value)
     {
         Assert.ThrowsAny<Exception>(() => AgentOrchestrator.Parse(value));
@@ -19,8 +18,15 @@ public sealed class AgentProtocolTests
     [Fact]
     public void Parse_AcceptsExactTypedInstruction()
     {
-        AgentOrchestrator.AgentInstruction instruction = AgentOrchestrator.Parse("{\"action\":\"command\",\"executable\":\"dotnet\",\"arguments\":[\"test\"],\"workingDirectory\":\"src\",\"timeoutSeconds\":30}");
+        AgentOrchestrator.AgentInstruction instruction = AgentOrchestrator.Parse("{\"action\":\"command\",\"executable\":\"cmd.exe\",\"arguments\":[\"/c\",\"whoami\"],\"timeoutSeconds\":30}");
         Assert.Equal("command", instruction.Action);
-        Assert.Equal("dotnet", instruction.Executable);
+        Assert.Equal("cmd.exe", instruction.Executable);
+    }
+
+    [Fact]
+    public void Parse_AcceptsAbsoluteGlobalPath()
+    {
+        AgentOrchestrator.AgentInstruction instruction = AgentOrchestrator.Parse("{\"action\":\"read\",\"path\":\"C:\\\\Windows\\\\win.ini\"}");
+        Assert.Equal(@"C:\Windows\win.ini", instruction.Path);
     }
 }

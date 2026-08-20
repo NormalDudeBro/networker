@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -11,8 +10,7 @@ using Networker.Core.Codex;
 namespace networker.Services.Codex;
 
 /// <summary>
-/// Workspace Agent turns via official codex-app-server with workspace-write sandbox
-/// and approvalPolicy never. Network remains an explicit workspace capability.
+/// Continuous command-capable Assist turns via official codex-app-server.
 /// </summary>
 public sealed class CodexAgentService
 {
@@ -22,6 +20,7 @@ public sealed class CodexAgentService
     private CancellationTokenSource? _activeRun;
     private string? _activeThreadId;
     private string? _activeTurnId;
+    private readonly HashSet<string> _reasoningItemsWithDeltas = new(StringComparer.Ordinal);
 
     public CodexAgentService(ICodexAppServerClient client, CodexAccountService account)
     {
@@ -31,21 +30,12 @@ public sealed class CodexAgentService
 
     public event Action<AgentActivity>? Activity;
 
-    public async Task<AgentResult> RunAsync(string workspacePath, string goal, CancellationToken cancellationToken = default)
+    public async Task<AgentResult> RunAsync(string goal, string? clientContext = null, CancellationToken cancellationToken = default)
     {
         if (!_account.Account.IsConnected || !string.Equals(_account.Account.AuthMode, "chatgpt", StringComparison.Ordinal))
             throw new InvalidOperationException(_account.Account.IsConnected
-                ? "Codex must be signed in with ChatGPT before Agent mode."
+                ? "Codex must be signed in with ChatGPT before using Assist."
                 : _account.Account.Message);
-
-        string[] protectedRoots =
-        {
-            AppSettings.GetLocalDataDirectory(),
-            AppContext.BaseDirectory,
-            Path.Combine(AppSettings.GetLocalDataDirectory(), "Codex"),
-        };
-        using var workspace = new WorkspaceService(workspacePath, protectedRoots);
-        string cwd = workspace.Root;
 
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         lock (_sync)
@@ -58,22 +48,23 @@ public sealed class CodexAgentService
         var summary = new StringBuilder();
         try
         {
+            _reasoningItemsWithDeltas.Clear();
             await _client.StartAsync(linked.Token).ConfigureAwait(false);
-            string threadId = await StartThreadAsync(cwd, linked.Token).ConfigureAwait(false);
+            string threadId = await EnsureThreadAsync(linked.Token).ConfigureAwait(false);
             _activeThreadId = threadId;
 
             var turnDone = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             handler = notification => HandleNotification(notification, threadId, summary, turnDone);
             _client.Notification += handler;
 
-            bool network = IsNetworkEnabledFor(cwd);
+            string input = string.IsNullOrWhiteSpace(clientContext)
+                ? goal
+                : clientContext + "\n\nUser request:\n" + goal;
             object turnParams = CodexProtocolPayloads.AgentTurnStart(
                 threadId,
-                goal,
+                input,
                 AppSettings.SelectedModel,
-                AppSettings.CodexReasoningEffort,
-                cwd,
-                network);
+                AppSettings.CodexReasoningEffort);
 
             JsonElement started = await _client.RequestAsync("turn/start", turnParams, linked.Token).ConfigureAwait(false);
             _activeTurnId = OptionalString(started, "turnId")
@@ -102,6 +93,7 @@ public sealed class CodexAgentService
                 _activeRun = null;
                 _activeThreadId = null;
                 _activeTurnId = null;
+                _reasoningItemsWithDeltas.Clear();
             }
         }
     }
@@ -121,21 +113,48 @@ public sealed class CodexAgentService
             _ = InterruptQuietAsync(threadId, turnId);
     }
 
-    private async Task<string> StartThreadAsync(string cwd, CancellationToken cancellationToken)
+    public void ResetConversation()
     {
-        bool network = IsNetworkEnabledFor(cwd);
-        object start = CodexProtocolPayloads.AgentThreadStart(AppSettings.SelectedModel, cwd, network);
-
-        Emit("thread", $"Starting Codex agent in {cwd} (sandbox=workspace-write, network={(network ? "enabled" : "restricted")}).");
-        JsonElement created = await _client.RequestAsync("thread/start", start, cancellationToken).ConfigureAwait(false);
-        return OptionalString(created, "threadId")
-            ?? (created.TryGetProperty("thread", out JsonElement thread) ? OptionalString(thread, "id") : null)
-            ?? throw new CodexProtocolException("Codex did not return an agent thread.");
+        AppSettings.CodexAssistThreadId = string.Empty;
+        AppSettings.CodexAssistModel = string.Empty;
     }
 
-    private static bool IsNetworkEnabledFor(string cwd)
-        => AppSettings.CodexAgentNetworkEnabled
-           && string.Equals(AppSettings.CodexAgentAuthorizedWorkspace, cwd, StringComparison.OrdinalIgnoreCase);
+    private async Task<string> EnsureThreadAsync(CancellationToken cancellationToken)
+    {
+        string model = AppSettings.SelectedModel;
+        string existing = AppSettings.CodexAssistThreadId;
+        if (!string.Equals(AppSettings.CodexAssistModel, model, StringComparison.Ordinal))
+        {
+            existing = string.Empty;
+            ResetConversation();
+        }
+
+        if (!string.IsNullOrWhiteSpace(existing))
+        {
+            try
+            {
+                JsonElement resumed = await _client.RequestAsync("thread/resume", new { threadId = existing }, cancellationToken).ConfigureAwait(false);
+                string? resumedId = OptionalString(resumed, "threadId")
+                    ?? (resumed.TryGetProperty("thread", out JsonElement resumedThread) ? OptionalString(resumedThread, "id") : null);
+                if (!string.IsNullOrWhiteSpace(resumedId)) return resumedId!;
+            }
+            catch
+            {
+                ResetConversation();
+            }
+        }
+
+        object start = CodexProtocolPayloads.AgentThreadStart(model);
+
+        Emit("thread", "Starting command-capable Codex Assist session.");
+        JsonElement created = await _client.RequestAsync("thread/start", start, cancellationToken).ConfigureAwait(false);
+        string threadId = OptionalString(created, "threadId")
+            ?? (created.TryGetProperty("thread", out JsonElement thread) ? OptionalString(thread, "id") : null)
+            ?? throw new CodexProtocolException("Codex did not return an agent thread.");
+        AppSettings.CodexAssistThreadId = threadId;
+        AppSettings.CodexAssistModel = model;
+        return threadId;
+    }
 
     private void HandleNotification(
         CodexNotification notification,
@@ -160,11 +179,14 @@ public sealed class CodexAgentService
                     break;
                 }
                 case "item/reasoning/delta":
+                case "item/reasoning/summaryTextDelta":
                 {
                     string? delta = OptionalString(notification.Params, "delta");
                     if (!string.IsNullOrEmpty(delta))
                     {
-                        string? itemId = OptionalString(notification.Params, "item_id");
+                        string? itemId = OptionalString(notification.Params, "itemId")
+                            ?? OptionalString(notification.Params, "item_id");
+                        if (itemId is not null) _reasoningItemsWithDeltas.Add(itemId);
                         Emit("thinking", delta, Kind: "thinking", State: "running", IsStreaming: true, CallId: itemId);
                     }
                     break;
@@ -180,7 +202,8 @@ public sealed class CodexAgentService
                     string? delta = OptionalString(notification.Params, "delta");
                     if (!string.IsNullOrEmpty(delta) && delta.Length <= 500)
                     {
-                        string? itemId = OptionalString(notification.Params, "item_id");
+                        string? itemId = OptionalString(notification.Params, "itemId")
+                            ?? OptionalString(notification.Params, "item_id");
                         Emit("command-output", Truncate(delta, 500), Kind: "tool", State: "running", IsStreaming: true, CallId: itemId);
                     }
                     break;
@@ -190,7 +213,8 @@ public sealed class CodexAgentService
                     string path = OptionalString(notification.Params, "path")
                         ?? OptionalNestedString(notification.Params, "item", "path")
                         ?? "file";
-                    string? itemId = OptionalString(notification.Params, "item_id")
+                    string? itemId = OptionalString(notification.Params, "itemId")
+                        ?? OptionalString(notification.Params, "item_id")
                         ?? OptionalNestedString(notification.Params, "item", "id");
                     Emit("file-change", path, Kind: "edit", State: "running", Path: path, CallId: itemId);
                     break;
@@ -223,16 +247,30 @@ public sealed class CodexAgentService
     {
         string state = completed ? "completed" : "running";
         string type = OptionalNestedString(parameters, "item", "type") ?? OptionalString(parameters, "type") ?? "item";
-        string? itemId = OptionalNestedString(parameters, "item", "id") ?? OptionalString(parameters, "item_id");
+        string? itemId = OptionalNestedString(parameters, "item", "id")
+            ?? OptionalString(parameters, "itemId")
+            ?? OptionalString(parameters, "item_id");
 
         switch (type)
         {
             case "reasoning":
+            {
+                // Some app-server versions provide the readable reasoning only
+                // on item/completed instead of streaming summaryTextDelta.
+                string reasoning = ExtractReasoningSummary(parameters);
+                if (completed && reasoning.Length > 0
+                    && (itemId is null || !_reasoningItemsWithDeltas.Contains(itemId)))
+                {
+                    Emit("thinking", reasoning, Kind: "thinking", State: "running", IsStreaming: true, CallId: itemId);
+                }
                 Emit("thinking", "", Kind: "thinking", State: state, CallId: itemId);
                 break;
+            }
+            case "agentMessage":
             case "agent_message":
                 Emit("agent-message", "", Kind: "text", State: state, CallId: itemId);
                 break;
+            case "toolCall":
             case "tool_call":
             {
                 string title = OptionalNestedString(parameters, "item", "title")
@@ -241,13 +279,17 @@ public sealed class CodexAgentService
                 Emit("tool-call", title, Kind: "tool", State: state, CallId: itemId);
                 break;
             }
+            case "commandExecution":
             case "command_execution":
             {
                 string command = DescribeCommand(parameters);
                 if (completed)
                 {
                     string status = OptionalNestedString(parameters, "item", "status") ?? "completed";
-                    int? exitCode = OptionalInt(parameters, "exit_code") ?? OptionalNestedInt(parameters, "item", "exit_code");
+                    int? exitCode = OptionalInt(parameters, "exitCode")
+                        ?? OptionalNestedInt(parameters, "item", "exitCode")
+                        ?? OptionalInt(parameters, "exit_code")
+                        ?? OptionalNestedInt(parameters, "item", "exit_code");
                     string verdict = status switch
                     {
                         "failed" => exitCode is int failedCode ? $"exit {failedCode}" : "failed",
@@ -255,14 +297,35 @@ public sealed class CodexAgentService
                         _ when exitCode is int code && code != 0 => $"exit {code}",
                         _ => "done",
                     };
-                    Emit("command", command, Kind: "tool", State: "completed", CallId: itemId, Verdict: verdict);
+                    // Best-effort stdout capture from the protocol when present (some
+                    // app-server builds attach it to the completed command item).
+                    string? output = OptionalNestedString(parameters, "item", "output")
+                        ?? OptionalNestedString(parameters, "item", "aggregatedOutput")
+                        ?? OptionalNestedString(parameters, "item", "output_text")
+                        ?? OptionalNestedString(parameters, "item", "stdout");
+                    int? durationMs = OptionalNestedInt(parameters, "item", "durationMs");
+                    Emit("command", command, Kind: "tool", State: "completed", CallId: itemId,
+                        Verdict: verdict, Output: output, CommandLine: command, ExitCode: exitCode,
+                        DurationSeconds: durationMs is int milliseconds ? milliseconds / 1000d : null,
+                        IsTerminalStyle: true);
                 }
                 else
                 {
-                    Emit("command", command, Kind: "tool", State: "running", CallId: itemId);
+                    Emit("command", command, Kind: "tool", State: "running", CallId: itemId,
+                        CommandLine: command, IsTerminalStyle: true);
                 }
                 break;
             }
+            case "todos":
+            case "plan":
+            {
+                // Codex todo/plan items map onto the same plan protocol as the local
+                // orchestrator so the UI renders one coalesced PlanBlock per turn.
+                AgentPlanItem[]? plan = ExtractPlan(parameters);
+                Emit("plan", "Plan", Kind: "activity", State: state, Plan: plan, CallId: itemId);
+                break;
+            }
+            case "fileChange":
             case "file_change":
             {
                 string path = OptionalNestedString(parameters, "item", "path") ?? OptionalString(parameters, "path") ?? "file";
@@ -273,6 +336,7 @@ public sealed class CodexAgentService
                 Emit("file-change", path, Kind: "edit", State: state, Output: diff, Path: path, CallId: itemId, Additions: additions, Deletions: deletions);
                 break;
             }
+            case "userMessage":
             case "user_message":
                 break;
             default:
@@ -293,8 +357,36 @@ public sealed class CodexAgentService
         int? Additions = null,
         int? Deletions = null,
         string? Verdict = null,
-        bool IsStreaming = false)
-        => Activity?.Invoke(new AgentActivity(action, detail, IsError, Kind, State, Output, Path, CallId, Additions, Deletions, Verdict, null, IsStreaming));
+        AgentPlanItem[]? Plan = null,
+        bool IsStreaming = false,
+        string? CommandLine = null,
+        int? ExitCode = null,
+        double? DurationSeconds = null,
+        bool IsTerminalStyle = false)
+        => Activity?.Invoke(new AgentActivity(action, detail, IsError, Kind, State, Output, Path, CallId,
+            Additions, Deletions, Verdict, DurationSeconds, IsStreaming, CommandLine, ExitCode,
+            IsTerminalStyle, Plan));
+
+    /// <summary>
+    /// Best-effort extraction of a codex-app-server <c>todos</c> item into the plan
+    /// protocol. Returns null when the payload has no usable todo array.
+    /// </summary>
+    private static AgentPlanItem[]? ExtractPlan(JsonElement parameters)
+    {
+        JsonElement item = parameters.TryGetProperty("item", out JsonElement nested) && nested.ValueKind == JsonValueKind.Object
+            ? nested
+            : parameters;
+        if (!item.TryGetProperty("todos", out JsonElement todos) || todos.ValueKind != JsonValueKind.Array) return null;
+        var items = new List<AgentPlanItem>();
+        foreach (JsonElement entry in todos.EnumerateArray())
+        {
+            if (entry.ValueKind != JsonValueKind.Object) continue;
+            string? title = OptionalString(entry, "title");
+            string status = OptionalString(entry, "status") ?? "pending";
+            if (!string.IsNullOrWhiteSpace(title)) items.Add(new AgentPlanItem(title, status));
+        }
+        return items.Count > 0 ? items.ToArray() : null;
+    }
 
     private static string DescribeCommand(JsonElement parameters)
     {
@@ -317,6 +409,27 @@ public sealed class CodexAgentService
             }
         }
         return OptionalString(parameters, "command") ?? "command";
+    }
+
+    private static string ExtractReasoningSummary(JsonElement parameters)
+    {
+        JsonElement item = parameters.TryGetProperty("item", out JsonElement nested)
+            && nested.ValueKind == JsonValueKind.Object ? nested : parameters;
+        if (!item.TryGetProperty("summary", out JsonElement summary) || summary.ValueKind != JsonValueKind.Array)
+            return string.Empty;
+
+        var parts = new List<string>();
+        foreach (JsonElement entry in summary.EnumerateArray())
+        {
+            if (entry.ValueKind == JsonValueKind.Object
+                && entry.TryGetProperty("text", out JsonElement text)
+                && text.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(text.GetString()))
+            {
+                parts.Add(text.GetString()!);
+            }
+        }
+        return string.Join("\n\n", parts);
     }
 
     private static int? OptionalInt(JsonElement element, string name)

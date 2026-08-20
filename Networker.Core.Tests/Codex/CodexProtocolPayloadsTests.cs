@@ -26,25 +26,15 @@ public sealed class CodexProtocolPayloadsTests
     }
 
     [Fact]
-    public void AgentThreadStart_UsesWorkspaceWriteAndConfigNetwork()
+    public void AgentThreadStart_UsesAuthorizedGlobalExecution()
     {
-        string json = Serialize(CodexProtocolPayloads.AgentThreadStart("gpt-test", @"C:\work", networkEnabled: true));
+        string json = Serialize(CodexProtocolPayloads.AgentThreadStart("gpt-test"));
         using var doc = JsonDocument.Parse(json);
         JsonElement root = doc.RootElement;
-        Assert.Equal("workspace-write", root.GetProperty("sandbox").GetString());
-        Assert.Equal("never", root.GetProperty("approvalPolicy").GetString());
-        Assert.Equal(@"C:\work", root.GetProperty("cwd").GetString());
-        Assert.True(root.GetProperty("config").GetProperty("sandbox_workspace_write").GetProperty("network_access").GetBoolean());
-        Assert.False(root.TryGetProperty("networkAccessEnabled", out _));
-        Assert.False(root.TryGetProperty("danger-full-access", out _));
-    }
-
-    [Fact]
-    public void AgentThreadStart_NetworkRestrictedByDefaultShape()
-    {
-        string json = Serialize(CodexProtocolPayloads.AgentThreadStart("m", @"D:\repo", networkEnabled: false));
-        using var doc = JsonDocument.Parse(json);
-        Assert.False(doc.RootElement.GetProperty("config").GetProperty("sandbox_workspace_write").GetProperty("network_access").GetBoolean());
+        Assert.Equal("danger-full-access", root.GetProperty("sandbox").GetString());
+        Assert.Equal("on-request", root.GetProperty("approvalPolicy").GetString());
+        Assert.False(root.TryGetProperty("cwd", out _));
+        Assert.False(root.TryGetProperty("config", out _));
     }
 
     [Fact]
@@ -63,18 +53,17 @@ public sealed class CodexProtocolPayloadsTests
     }
 
     [Fact]
-    public void AgentTurnStart_IncludesWorkspaceWriteSandboxPolicy()
+    public void AgentTurnStart_RepeatsAuthorizedExecutionPolicyPerTurn()
     {
         string json = Serialize(CodexProtocolPayloads.AgentTurnStart(
-            "t1", "goal", "model", "medium", @"C:\ws", networkEnabled: false));
+            "t1", "goal", "model", "medium"));
         using var doc = JsonDocument.Parse(json);
         JsonElement policy = doc.RootElement.GetProperty("sandboxPolicy");
-        Assert.Equal("workspaceWrite", policy.GetProperty("type").GetString());
-        Assert.False(policy.GetProperty("networkAccess").GetBoolean());
-        Assert.Equal(JsonValueKind.Array, policy.GetProperty("writableRoots").ValueKind);
-        Assert.Equal("never", doc.RootElement.GetProperty("approvalPolicy").GetString());
+        Assert.Equal("dangerFullAccess", policy.GetProperty("type").GetString());
+        Assert.Single(policy.EnumerateObject());
+        Assert.Equal("on-request", doc.RootElement.GetProperty("approvalPolicy").GetString());
         Assert.Equal("medium", doc.RootElement.GetProperty("effort").GetString());
-        Assert.Equal(@"C:\ws", doc.RootElement.GetProperty("cwd").GetString());
+        Assert.False(doc.RootElement.TryGetProperty("cwd", out _));
     }
 
     [Fact]
@@ -83,9 +72,9 @@ public sealed class CodexProtocolPayloadsTests
         string[] payloads =
         {
             Serialize(CodexProtocolPayloads.ChatThreadStart("m", "low", null)),
-            Serialize(CodexProtocolPayloads.AgentThreadStart("m", @"C:\a", false)),
+            Serialize(CodexProtocolPayloads.AgentThreadStart("m")),
             Serialize(CodexProtocolPayloads.TurnStart("t", "hi", "m", "low")),
-            Serialize(CodexProtocolPayloads.AgentTurnStart("t", "g", "m", "low", @"C:\a", true)),
+            Serialize(CodexProtocolPayloads.AgentTurnStart("t", "g", "m", "low")),
         };
         foreach (string json in payloads)
         {

@@ -32,8 +32,6 @@ namespace networker.Models
         public string? Model { get; set; }
 
         /// <summary>True when this turn came from an agent run rather than chat mode.</summary>
-        public bool IsAgent { get; init; }
-
         public ObservableCollection<ActivityBlock> Blocks { get; } = new();
 
         private TurnState _state = TurnState.Running;
@@ -129,6 +127,8 @@ namespace networker.Models
                     {
                         case ThinkingBlock:
                             return "thinking…";
+                        case PlanBlock:
+                            return "planning…";
                         case ToolBlock tool when tool.IsRunning:
                             return $"{tool.Action} {tool.Detail}".Trim();
                         case EditBlock:

@@ -20,6 +20,7 @@ namespace networker.Views
     public sealed partial class SettingsPage : Page
     {
         private bool _isInitializing = false;
+        private bool _hasLoaded;
         private TroubleshootingSession? _troubleshootingSession;
         private readonly LauncherStateStore _launcherState = new();
         private readonly CodexAccountService? _codexAccount;
@@ -50,7 +51,6 @@ namespace networker.Views
             {
                 _codexAccount.Changed -= CodexAccount_Changed;
                 _codexAccount.Changed += CodexAccount_Changed;
-                CodexNetworkToggle.IsOn = AppSettings.CodexAgentNetworkEnabled;
                 UpdateCodexPanel();
             }
 
@@ -84,7 +84,11 @@ namespace networker.Views
             _isInitializing = false;
             UpdateProviderPanels();
 
-            await FetchModelsAsync(applyConnection: false);
+            if (!_hasLoaded)
+            {
+                _hasLoaded = true;
+                await FetchModelsAsync(applyConnection: false);
+            }
         }
 
         private void SettingsPage_Unloaded(object sender, RoutedEventArgs e)
@@ -288,16 +292,6 @@ namespace networker.Views
         {
             if (_isInitializing || CodexReasoningComboBox.SelectedItem is not ComboBoxItem item) return;
             if (item.Tag is string effort) AppSettings.CodexReasoningEffort = effort;
-        }
-
-        private void CodexNetworkToggle_Toggled(object sender, RoutedEventArgs e)
-        {
-            if (_isInitializing) return;
-            AppSettings.CodexAgentNetworkEnabled = CodexNetworkToggle.IsOn;
-            if (CodexNetworkToggle.IsOn && !string.IsNullOrWhiteSpace(AppSettings.LastAgentWorkspacePath))
-                AppSettings.CodexAgentAuthorizedWorkspace = AppSettings.LastAgentWorkspacePath;
-            else if (!CodexNetworkToggle.IsOn)
-                AppSettings.CodexAgentAuthorizedWorkspace = string.Empty;
         }
 
         private void VendorComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

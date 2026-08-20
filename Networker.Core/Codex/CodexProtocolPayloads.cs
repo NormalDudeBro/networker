@@ -2,7 +2,7 @@ namespace Networker.Core.Codex;
 
 /// <summary>
 /// Stable v2 app-server request shapes. Field names match official generated schemas
-/// (ThreadStartParams, TurnStartParams, SandboxPolicy, UserInput).
+/// (ThreadStartParams, TurnStartParams, UserInput).
 /// </summary>
 public static class CodexProtocolPayloads
 {
@@ -21,22 +21,16 @@ public static class CodexProtocolPayloads
         return body;
     }
 
-    public static object AgentThreadStart(string model, string cwd, bool networkEnabled)
+    public static object AgentThreadStart(string model)
     {
         var body = new Dictionary<string, object?>
         {
             ["model"] = NullIfEmpty(model),
-            ["cwd"] = cwd,
-            ["approvalPolicy"] = "never",
-            ["sandbox"] = "workspace-write",
-            // Official config.toml equivalent: [sandbox_workspace_write] network_access = bool
-            ["config"] = new Dictionary<string, object?>
-            {
-                ["sandbox_workspace_write"] = new Dictionary<string, object?>
-                {
-                    ["network_access"] = networkEnabled,
-                },
-            },
+            // Assist is explicitly user-authorized.
+            // The native Windows workspace sandbox can deadlock during account setup,
+            // so command execution uses Codex's unsandboxed policy and approval flow.
+            ["approvalPolicy"] = "on-request",
+            ["sandbox"] = "danger-full-access",
         };
         return body;
     }
@@ -66,22 +60,13 @@ public static class CodexProtocolPayloads
         string threadId,
         string text,
         string? model,
-        string? effort,
-        string cwd,
-        bool networkEnabled)
+        string? effort)
     {
         var body = (Dictionary<string, object?>)TurnStart(threadId, text, model, effort);
-        body["cwd"] = cwd;
-        body["approvalPolicy"] = "never";
-        body["sandboxPolicy"] = new Dictionary<string, object?>
-        {
-            ["type"] = "workspaceWrite",
-            // Additional roots beyond cwd; cwd is already the thread working directory.
-            ["writableRoots"] = Array.Empty<object>(),
-            ["networkAccess"] = networkEnabled,
-            ["excludeTmpdirEnvVar"] = false,
-            ["excludeSlashTmp"] = false,
-        };
+        body["approvalPolicy"] = "on-request";
+        // Repeat the policy per turn because app-server resolves execution mode
+        // from turn overrides as well as thread defaults.
+        body["sandboxPolicy"] = new Dictionary<string, object?> { ["type"] = "dangerFullAccess" };
         return body;
     }
 

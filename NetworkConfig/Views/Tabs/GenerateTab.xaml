@@ -127,8 +127,13 @@
         </Grid>
     </Border>
 
-    <ScrollViewer Grid.Row="1" Style="{StaticResource WorkflowScrollViewerStyle}">
-        <Grid Padding="{StaticResource TabContentPadding}" ColumnSpacing="12" RowSpacing="12" MaxWidth="1200" HorizontalAlignment="Stretch">
+    <Grid Grid.Row="1">
+        <Grid
+            Width="{Binding ActualWidth, ElementName=GenerateLayout}"
+            MaxWidth="1200"
+            HorizontalAlignment="Center">
+            <ScrollViewer Style="{StaticResource WorkflowScrollViewerStyle}">
+                <Grid Padding="{StaticResource TabContentPadding}" ColumnSpacing="12" RowSpacing="12" HorizontalAlignment="Stretch">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition x:Name="GenerateOutputColumn" Width="420"/>
@@ -496,6 +501,8 @@
                 </StackPanel>
             </Border>
         </Grid>
-    </ScrollViewer>
+            </ScrollViewer>
+        </Grid>
+        </Grid>
     </Grid>
 </UserControl>

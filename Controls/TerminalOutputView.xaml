@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="networker.Controls.TerminalOutputView"
+    x:Name="TerminalViewRoot"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:networker.Controls">
+
+    <UserControl.Resources>
+        <local:VerdictBrushConverter x:Key="VerdictBrush"/>
+        <local:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <local:BoolToVisibilityConverter x:Key="BoolToVisInverted" Invert="True"/>
+    </UserControl.Resources>
+
+    <Border
+        Background="{StaticResource TerminalBackgroundBrush}"
+        BorderBrush="{ThemeResource AppBorderBrush}"
+        BorderThickness="1"
+        CornerRadius="8"
+        Margin="0,0,0,8">
+        <StackPanel>
+
+            <!-- Command header: $ prompt + command line + verdict/duration -->
+            <Grid
+                ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto"
+                ColumnSpacing="8"
+                Padding="12,8"
+                Background="{StaticResource TerminalHeaderBrush}"
+                CornerRadius="7,7,0,0">
+                <TextBlock
+                    Text="$"
+                    FontFamily="{ThemeResource CodeFontFamily}"
+                    Foreground="{StaticResource TerminalPromptBrush}"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    VerticalAlignment="Center"/>
+                <TextBlock
+                    Grid.Column="1"
+                    Text="{Binding HeaderText, Mode=OneWay}"
+                    FontFamily="{ThemeResource CodeFontFamily}"
+                    Foreground="{StaticResource TerminalTextBrush}"
+                    FontSize="13"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center"/>
+                <ProgressRing
+                    Grid.Column="3"
+                    IsActive="{Binding IsRunning, Mode=OneWay}"
+                    Width="12"
+                    Height="12"
+                    VerticalAlignment="Center"
+                    Visibility="{Binding IsRunning, Mode=OneWay, Converter={StaticResource BoolToVis}}"/>
+                <TextBlock
+                    Grid.Column="4"
+                    Text="{Binding VerdictDisplay, Mode=OneWay}"
+                    FontFamily="{ThemeResource CodeFontFamily}"
+                    Foreground="{Binding Verdict, Mode=OneWay, Converter={StaticResource VerdictBrush}}"
+                    FontSize="11"
+                    VerticalAlignment="Center"/>
+                <Button
+                    Grid.Column="5"
+                    Click="CopyButton_Click"
+                    Style="{StaticResource IconButtonStyle}"
+                    ToolTipService.ToolTip="Copy full output"
+                    AutomationProperties.Name="Copy full output"
+                    Visibility="{Binding HasOutput, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                    <FontIcon Glyph="&#xE8C8;" FontSize="12"/>
+                </Button>
+            </Grid>
+
+            <!-- Output body: dark terminal scroll area, no text wrap -->
+            <ScrollViewer
+                x:Name="OutputScroll"
+                MaxHeight="340"
+                Padding="12,10"
+                HorizontalScrollMode="Enabled"
+                HorizontalScrollBarVisibility="Auto"
+                VerticalScrollBarVisibility="Auto"
+                Visibility="{Binding IsExpanded, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                <TextBlock
+                    x:Name="OutputText"
+                    FontFamily="{ThemeResource CodeFontFamily}"
+                    Foreground="{StaticResource TerminalTextBrush}"
+                    FontSize="12.5"
+                    TextWrapping="NoWrap"
+                    IsTextSelectionEnabled="True"/>
+            </ScrollViewer>
+
+            <!-- Whisper when the displayed window is capped to the last N lines -->
+            <TextBlock
+                x:Name="DisplayCapCaption"
+                Foreground="{StaticResource TerminalCaptionBrush}"
+                FontFamily="{ThemeResource CodeFontFamily}"
+                FontSize="11"
+                Padding="12,0,12,6"
+                Visibility="Collapsed"/>
+
+            <!-- Collapsed whisper: "N more lines" -->
+            <TextBlock
+                x:Name="MoreWhisper"
+                Text="{Binding MoreText, Mode=OneWay}"
+                Foreground="{StaticResource TerminalCaptionBrush}"
+                FontFamily="{ThemeResource CodeFontFamily}"
+                FontSize="11"
+                Padding="12,0,12,6"
+                Visibility="{Binding IsExpanded, Mode=OneWay, Converter={StaticResource BoolToVisInverted}}"/>
+        </StackPanel>
+    </Border>
+</UserControl>

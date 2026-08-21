@@ -307,6 +307,8 @@
                         <Setter Target="TerminalPaneHost.Height" Value="200"/>
                         <Setter Target="ComposerGrid.ColumnSpacing" Value="4"/>
                         <Setter Target="InputArea.Padding" Value="12,6,12,10"/>
+                        <Setter Target="AssistantPageHeader.Padding" Value="{StaticResource CompactPageHeaderPadding}"/>
+                        <Setter Target="AssistantPageSubtitle.Visibility" Value="Collapsed"/>
                     </VisualState.Setters>
                 </VisualState>
                 <VisualState x:Name="WideAssistant">
@@ -322,6 +324,8 @@
                         <Setter Target="TerminalPaneHost.Height" Value="260"/>
                         <Setter Target="ComposerGrid.ColumnSpacing" Value="8"/>
                         <Setter Target="InputArea.Padding" Value="20,8,20,16"/>
+                        <Setter Target="AssistantPageHeader.Padding" Value="{StaticResource WorkbenchHeaderPadding}"/>
+                        <Setter Target="AssistantPageSubtitle.Visibility" Value="Visible"/>
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
@@ -338,12 +342,12 @@
         </Grid.RowDefinitions>
 
         <!-- ======================= Header ======================= -->
-        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource WorkspaceHeaderStyle}">
+        <Border x:Name="AssistantPageHeader" Grid.Row="0" Grid.Column="0" Style="{StaticResource WorkspaceHeaderStyle}">
             <Grid x:Name="AssistantHeaderGrid" ColumnDefinitions="*,Auto" ColumnSpacing="16">
                 <StackPanel x:Name="AssistantHeaderInfo" Grid.Column="0" Style="{StaticResource PageHeaderStackStyle}" VerticalAlignment="Center">
                     <TextBlock Text="NETWORKER ASSIST" Style="{StaticResource PageEyebrowTextStyle}"/>
                     <TextBlock Text="Assist" Style="{StaticResource PageTitleTextStyle}"/>
-                    <TextBlock
+                    <TextBlock x:Name="AssistantPageSubtitle"
                         Style="{StaticResource PageSubtitleTextStyle}"
                         Text="Ask about network engineering, inspect files, or run commands with live activity."/>
                 </StackPanel>

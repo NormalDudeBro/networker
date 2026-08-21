@@ -42,6 +42,8 @@
                         <Setter Target="UpdateForm.(Grid.Row)" Value="1"/>
                         <Setter Target="UpdateForm.(Grid.Column)" Value="0"/>
                         <Setter Target="UpdateForm.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="SettingsPageHeader.Padding" Value="{StaticResource CompactPageHeaderPadding}"/>
+                        <Setter Target="SettingsSubtitle.Visibility" Value="Collapsed"/>
                     </VisualState.Setters>
                 </VisualState>
                 <VisualState x:Name="WideSettings">
@@ -74,16 +76,18 @@
                         <Setter Target="UpdateForm.(Grid.Row)" Value="0"/>
                         <Setter Target="UpdateForm.(Grid.Column)" Value="1"/>
                         <Setter Target="UpdateForm.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="SettingsPageHeader.Padding" Value="{StaticResource WorkbenchHeaderPadding}"/>
+                        <Setter Target="SettingsSubtitle.Visibility" Value="Visible"/>
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
 
-        <Border Grid.Row="0" Style="{StaticResource WorkspaceHeaderStyle}">
+        <Border x:Name="SettingsPageHeader" Grid.Row="0" Style="{StaticResource WorkspaceHeaderStyle}">
             <StackPanel Style="{StaticResource PageHeaderStackStyle}">
                  <TextBlock Text="STEP 9 OF 9" Style="{StaticResource PageEyebrowTextStyle}"/>
                 <TextBlock Text="Settings" Style="{StaticResource PageTitleTextStyle}"/>
-                <TextBlock Text="Configure the AI runtime, prompt defaults, configuration workspace, appearance, and application updates." Style="{StaticResource PageSubtitleTextStyle}"/>
+                 <TextBlock x:Name="SettingsSubtitle" Text="Configure the AI runtime, prompt defaults, configuration workspace, appearance, and application updates." Style="{StaticResource PageSubtitleTextStyle}"/>
             </StackPanel>
         </Border>
 

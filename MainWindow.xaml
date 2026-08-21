@@ -29,6 +29,9 @@
                             <Setter Target="WorkflowAnnouncement.Margin" Value="12,0,12,4"/>
                             <Setter Target="ShellFooter.Padding" Value="{StaticResource PagePaddingCompact}"/>
                             <Setter Target="FooterHints.Visibility" Value="Collapsed"/>
+                            <Setter Target="GlobalHeader.Padding" Value="{StaticResource WorkbenchHeaderPaddingCompact}"/>
+                            <Setter Target="BrandTextStack.Visibility" Value="Collapsed"/>
+                            <Setter Target="StatusText.Visibility" Value="Collapsed"/>
                         </VisualState.Setters>
                     </VisualState>
                     <VisualState x:Name="WideShell">
@@ -39,6 +42,9 @@
                             <Setter Target="WorkflowTabs.Visibility" Value="Visible"/>
                             <Setter Target="CompactWorkflowBar.Visibility" Value="Collapsed"/>
                             <Setter Target="FooterHints.Visibility" Value="Visible"/>
+                            <Setter Target="GlobalHeader.Padding" Value="{StaticResource WorkbenchHeaderPadding}"/>
+                            <Setter Target="BrandTextStack.Visibility" Value="Visible"/>
+                            <Setter Target="StatusText.Visibility" Value="Visible"/>
                         </VisualState.Setters>
                     </VisualState>
                 </VisualStateGroup>
@@ -59,7 +65,7 @@
                 </VisualStateGroup>
             </VisualStateManager.VisualStateGroups>
             <!-- Compact global header. Workflow titles live in the numbered strip. -->
-            <Border
+            <Border x:Name="GlobalHeader"
                 Grid.Row="0"
                 Padding="16,8"
                 Background="{ThemeResource AppShellBrush}"
@@ -70,7 +76,7 @@
                         <Border Width="30" Height="30" CornerRadius="{ThemeResource RadiusSM}" Background="{ThemeResource AppAccentMutedBrush}">
                             <FontIcon Glyph="&#xE968;" FontSize="16" Foreground="{ThemeResource AppAccentBrush}"/>
                         </Border>
-                        <StackPanel Spacing="0">
+                        <StackPanel x:Name="BrandTextStack" Spacing="0">
                             <TextBlock Text="NETWORKER" Style="{StaticResource SectionLabelTextStyle}" Foreground="{ThemeResource AppTextPrimaryBrush}"/>
                             <TextBlock Text="Troubleshooting workspace" Style="{StaticResource CaptionTextStyle}"/>
                         </StackPanel>

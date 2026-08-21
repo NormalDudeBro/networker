@@ -26,6 +26,13 @@
                         <Setter Target="DashboardSidePanel.(Grid.Column)" Value="0"/>
                         <Setter Target="DashboardSidePanel.(Grid.ColumnSpan)" Value="2"/>
                         <Setter Target="DashboardGrid.Padding" Value="{StaticResource DashboardPagePaddingCompact}"/>
+                        <Setter Target="DashboardPageHeader.Padding" Value="{StaticResource CompactPageHeaderPadding}"/>
+                        <Setter Target="DashboardSubtitle.Visibility" Value="Collapsed"/>
+                        <Setter Target="IncidentPanel.Padding" Value="{StaticResource SectionPanelPaddingCompact}"/>
+                        <Setter Target="SymptomsInput.MinHeight" Value="72"/>
+                        <Setter Target="SymptomsInput.MaxHeight" Value="120"/>
+                        <Setter Target="ContextInput.MinHeight" Value="52"/>
+                        <Setter Target="ContextInput.MaxHeight" Value="96"/>
                     </VisualState.Setters>
                 </VisualState>
                 <VisualState x:Name="WideDashboard">
@@ -42,16 +49,23 @@
                         <Setter Target="DashboardSidePanel.(Grid.Column)" Value="1"/>
                         <Setter Target="DashboardSidePanel.(Grid.ColumnSpan)" Value="1"/>
                         <Setter Target="DashboardGrid.Padding" Value="{StaticResource DashboardPagePadding}"/>
+                        <Setter Target="DashboardPageHeader.Padding" Value="{StaticResource WorkbenchHeaderPadding}"/>
+                        <Setter Target="DashboardSubtitle.Visibility" Value="Visible"/>
+                        <Setter Target="IncidentPanel.Padding" Value="{StaticResource SectionPanelPadding}"/>
+                        <Setter Target="SymptomsInput.MinHeight" Value="120"/>
+                        <Setter Target="SymptomsInput.MaxHeight" Value="240"/>
+                        <Setter Target="ContextInput.MinHeight" Value="76"/>
+                        <Setter Target="ContextInput.MaxHeight" Value="160"/>
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
-        <Border Style="{StaticResource WorkspaceHeaderStyle}">
+        <Border x:Name="DashboardPageHeader" Style="{StaticResource WorkspaceHeaderStyle}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                 <StackPanel Style="{StaticResource PageHeaderStackStyle}">
                     <TextBlock Text="STEP 1 OF 9" Style="{StaticResource PageEyebrowTextStyle}"/>
                     <TextBlock Text="Start" Style="{StaticResource PageTitleTextStyle}"/>
-                    <TextBlock Text="Capture the incident once, then carry its evidence through the troubleshooting workflow." Style="{StaticResource PageSubtitleTextStyle}"/>
+                    <TextBlock x:Name="DashboardSubtitle" Text="Capture the incident once, then carry its evidence through the troubleshooting workflow." Style="{StaticResource PageSubtitleTextStyle}"/>
                 </StackPanel>
                 <Button Grid.Column="1" Content="Clear workspace" Style="{StaticResource DangerButtonStyle}" Click="ClearWorkspace_Click" VerticalAlignment="Center"/>
             </Grid>

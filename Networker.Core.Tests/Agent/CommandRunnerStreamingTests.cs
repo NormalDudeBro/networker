@@ -6,11 +6,20 @@ namespace Networker.Core.Tests.Agent;
 internal sealed class CollectingProgress<T> : IProgress<T>
 {
     public readonly List<(T Item, DateTimeOffset ArrivedAt)> Items = new();
-    public void Report(T value) => Items.Add((value, DateTimeOffset.UtcNow));
+    public TaskCompletionSource<(T Item, DateTimeOffset ArrivedAt)> First { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public void Report(T value)
+    {
+        var item = (value, DateTimeOffset.UtcNow);
+        Items.Add(item);
+        First.TrySetResult(item);
+    }
 }
 
 public sealed class CommandRunnerStreamingTests
 {
+    private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(20);
+
     [Fact]
     public async Task RunAsync_ReportsIncrementalLineChunks_BeforeCompletion()
     {
@@ -18,13 +27,14 @@ public sealed class CommandRunnerStreamingTests
         var runner = new CommandRunner();
         var progress = new CollectingProgress<CommandOutputChunk>();
 
-        DateTimeOffset completedAt;
-        AgentCommandResult result = await runner.RunAsync(new AgentCommand("python", new[]
+        Task<AgentCommandResult> run = runner.RunAsync(new AgentCommand("python", new[]
         {
             "-u", "-c",
             "import sys,time; sys.stdout.reconfigure(newline='\\n'); print('one', flush=True); time.sleep(0.5); print('two', flush=True)",
         }, TimeoutSeconds: 30), progress);
-        completedAt = DateTimeOffset.UtcNow;
+        (CommandOutputChunk FirstItem, DateTimeOffset FirstArrivedAt) = await progress.First.Task.WaitAsync(TestTimeout);
+        Assert.False(run.IsCompleted, "The first output chunk must arrive while the command is still running.");
+        AgentCommandResult result = await run;
 
         Assert.Equal(0, result.ExitCode);
         Assert.Equal("one\ntwo\n", result.StandardOutput);
@@ -35,8 +45,7 @@ public sealed class CommandRunnerStreamingTests
 
         // The first line must have streamed while the process was still running,
         // i.e. well before RunAsync returned, not at process exit.
-        Assert.True(completedAt - progress.Items[0].ArrivedAt >= TimeSpan.FromMilliseconds(300),
-            $"first chunk arrived {completedAt - progress.Items[0].ArrivedAt} before completion; output was not streamed");
+        Assert.Equal("one\n", FirstItem.Text);
     }
 
     [Fact]

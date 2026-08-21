@@ -11,7 +11,7 @@
         <VisualStateGroup x:Name="TemplateWidthStates">
                 <VisualState x:Name="NarrowTemplates">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind TemplatesRoot}" MaxWidth="759.999"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind TemplatesRoot}" MaxWidth="1099.999"/>
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="TemplateListColumn.Width" Value="*"/>
@@ -25,7 +25,7 @@
             </VisualState>
                 <VisualState x:Name="WideTemplates">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind TemplatesRoot}" MinWidth="760"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind TemplatesRoot}" MinWidth="1100"/>
                 </VisualState.StateTriggers>
             </VisualState>
         </VisualStateGroup>

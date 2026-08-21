@@ -11,7 +11,7 @@
             <VisualStateGroup x:Name="ImportWidthStates">
                 <VisualState x:Name="NarrowImport">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind ImportLayout}" MaxWidth="899.999"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind ImportLayout}" MaxWidth="1099.999"/>
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="ImportOutputColumn.Width" Value="0*"/>
@@ -22,8 +22,14 @@
                 </VisualState>
                 <VisualState x:Name="WideImport">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind ImportLayout}" MinWidth="900"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind ImportLayout}" MinWidth="1100"/>
                     </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="ImportOutputColumn.Width" Value="*"/>
+                        <Setter Target="ImportResultsPanel.(Grid.Row)" Value="0"/>
+                        <Setter Target="ImportResultsPanel.(Grid.Column)" Value="1"/>
+                        <Setter Target="ImportResultsPanel.(Grid.ColumnSpan)" Value="1"/>
+                    </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>

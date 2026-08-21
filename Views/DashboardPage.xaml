@@ -9,7 +9,43 @@
     xmlns:models="using:networker.Models"
     Background="{ThemeResource AppBackgroundBrush}">
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid x:Name="DashboardLayout" RowDefinitions="Auto,*">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="DashboardWidthStates">
+                <VisualState x:Name="CompactDashboard">
+                    <VisualState.StateTriggers>
+                        <controls:ElementWidthTrigger Source="{x:Bind DashboardLayout}" MaxWidth="1099.999"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="DashboardMainColumn.Width" Value="*"/>
+                        <Setter Target="DashboardSideColumn.Width" Value="*"/>
+                        <Setter Target="IncidentPanel.(Grid.Row)" Value="0"/>
+                        <Setter Target="IncidentPanel.(Grid.Column)" Value="0"/>
+                        <Setter Target="IncidentPanel.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="DashboardSidePanel.(Grid.Row)" Value="1"/>
+                        <Setter Target="DashboardSidePanel.(Grid.Column)" Value="0"/>
+                        <Setter Target="DashboardSidePanel.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="DashboardGrid.Padding" Value="{StaticResource DashboardPagePaddingCompact}"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="WideDashboard">
+                    <VisualState.StateTriggers>
+                        <controls:ElementWidthTrigger Source="{x:Bind DashboardLayout}" MinWidth="1100"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="DashboardMainColumn.Width" Value="1.5*"/>
+                        <Setter Target="DashboardSideColumn.Width" Value="*"/>
+                        <Setter Target="IncidentPanel.(Grid.Row)" Value="0"/>
+                        <Setter Target="IncidentPanel.(Grid.Column)" Value="0"/>
+                        <Setter Target="IncidentPanel.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="DashboardSidePanel.(Grid.Row)" Value="0"/>
+                        <Setter Target="DashboardSidePanel.(Grid.Column)" Value="1"/>
+                        <Setter Target="DashboardSidePanel.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="DashboardGrid.Padding" Value="{StaticResource DashboardPagePadding}"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
         <Border Style="{StaticResource WorkspaceHeaderStyle}">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                 <StackPanel Style="{StaticResource PageHeaderStackStyle}">
@@ -28,14 +64,14 @@
                 MaxWidth="1240"
                 HorizontalAlignment="Center">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <Grid Padding="20,16" ColumnSpacing="14" RowSpacing="14" HorizontalAlignment="Stretch">
+                    <Grid x:Name="DashboardGrid" Padding="20,16" ColumnSpacing="14" RowSpacing="14" HorizontalAlignment="Stretch">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.5*"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition x:Name="DashboardMainColumn" Width="1.5*"/>
+                    <ColumnDefinition x:Name="DashboardSideColumn" Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
 
-                <Border Style="{StaticResource ToolInputPanelStyle}">
+                <Border x:Name="IncidentPanel" Style="{StaticResource ToolInputPanelStyle}">
                     <StackPanel Spacing="12">
                         <StackPanel Spacing="2">
                             <TextBlock Text="INCIDENT INTAKE" Style="{StaticResource SectionLabelTextStyle}"/>
@@ -62,7 +98,7 @@
                     </StackPanel>
                 </Border>
 
-                <StackPanel Grid.Column="1" Spacing="14">
+                <StackPanel x:Name="DashboardSidePanel" Grid.Column="1" Spacing="14">
                     <Border Style="{StaticResource InsetPanelStyle}">
                         <StackPanel Spacing="9">
                             <TextBlock Text="WORKSPACE STATUS" Style="{StaticResource SectionLabelTextStyle}"/>

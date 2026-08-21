@@ -13,7 +13,7 @@
         <VisualStateGroup x:Name="GenerateWidthStates">
             <VisualState x:Name="NarrowGenerate">
                 <VisualState.StateTriggers>
-                    <controls:ElementWidthTrigger Source="{x:Bind GenerateRoot}" MaxWidth="759.999"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind GenerateRoot}" MaxWidth="1099.999"/>
                 </VisualState.StateTriggers>
                 <VisualState.Setters>
                     <Setter Target="TemplateSelector.(Grid.ColumnSpan)" Value="3"/>
@@ -90,14 +90,14 @@
             </VisualState>
             <VisualState x:Name="WideGenerate">
                 <VisualState.StateTriggers>
-                    <controls:ElementWidthTrigger Source="{x:Bind GenerateRoot}" MinWidth="760"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind GenerateRoot}" MinWidth="1100"/>
                 </VisualState.StateTriggers>
             </VisualState>
         </VisualStateGroup>
         <VisualStateGroup x:Name="GenerateWorkbenchStates">
             <VisualState x:Name="StackedGenerateWorkbench">
                 <VisualState.StateTriggers>
-                    <controls:ElementWidthTrigger Source="{x:Bind GenerateLayout}" MaxWidth="1049.999"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind GenerateLayout}" MaxWidth="1099.999"/>
                 </VisualState.StateTriggers>
                 <VisualState.Setters>
                     <Setter Target="GenerateOutputColumn.Width" Value="0*"/>
@@ -108,8 +108,14 @@
             </VisualState>
             <VisualState x:Name="SplitGenerateWorkbench">
                 <VisualState.StateTriggers>
-                    <controls:ElementWidthTrigger Source="{x:Bind GenerateLayout}" MinWidth="1050"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind GenerateLayout}" MinWidth="1100"/>
                 </VisualState.StateTriggers>
+                <VisualState.Setters>
+                    <Setter Target="GenerateOutputColumn.Width" Value="420"/>
+                    <Setter Target="OutputWorkbench.(Grid.Row)" Value="0"/>
+                    <Setter Target="OutputWorkbench.(Grid.Column)" Value="1"/>
+                    <Setter Target="OutputWorkbench.(Grid.ColumnSpan)" Value="1"/>
+                </VisualState.Setters>
             </VisualState>
         </VisualStateGroup>
     </VisualStateManager.VisualStateGroups>

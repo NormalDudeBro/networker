@@ -16,7 +16,48 @@
             <KeyboardAccelerator Key="F5" Invoked="RefreshHealthAccelerator_Invoked"/>
         </Grid.KeyboardAccelerators>
 
-        <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <Grid x:Name="ShellLayout" RowDefinitions="Auto,Auto,*,Auto">
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup x:Name="ShellWidthStates">
+                    <VisualState x:Name="CompactShell">
+                        <VisualState.StateTriggers>
+                            <controls:ElementWidthTrigger Source="{x:Bind ShellLayout}" MaxWidth="1099.999"/>
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Target="WorkflowTabs.Visibility" Value="Collapsed"/>
+                            <Setter Target="CompactWorkflowBar.Visibility" Value="Visible"/>
+                            <Setter Target="WorkflowAnnouncement.Margin" Value="12,0,12,4"/>
+                            <Setter Target="ShellFooter.Padding" Value="{StaticResource PagePaddingCompact}"/>
+                            <Setter Target="FooterHints.Visibility" Value="Collapsed"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="WideShell">
+                        <VisualState.StateTriggers>
+                            <controls:ElementWidthTrigger Source="{x:Bind ShellLayout}" MinWidth="1100"/>
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Target="WorkflowTabs.Visibility" Value="Visible"/>
+                            <Setter Target="CompactWorkflowBar.Visibility" Value="Collapsed"/>
+                            <Setter Target="FooterHints.Visibility" Value="Visible"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+                <VisualStateGroup x:Name="ShellHeightStates">
+                    <VisualState x:Name="ShortShell">
+                        <VisualState.StateTriggers>
+                            <controls:ElementHeightTrigger Source="{x:Bind ShellLayout}" MaxHeight="639.999"/>
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Target="WorkflowTabs.Padding" Value="{StaticResource TabContentPaddingCompact}"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="TallShell">
+                        <VisualState.StateTriggers>
+                            <controls:ElementHeightTrigger Source="{x:Bind ShellLayout}" MinHeight="640"/>
+                        </VisualState.StateTriggers>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
             <!-- Compact global header. Workflow titles live in the numbered strip. -->
             <Border
                 Grid.Row="0"
@@ -52,6 +93,19 @@
             <!-- The full sequence stays visible and scrollable at the 720px minimum. -->
             <Border Grid.Row="1" Background="{ThemeResource AppSurfaceBrush}" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,0,0,1">
                 <Grid RowDefinitions="Auto,Auto">
+                    <StackPanel x:Name="CompactWorkflowBar" Orientation="Horizontal" Spacing="8" Padding="12,8" Visibility="Collapsed">
+                        <TextBlock Text="Stage" Style="{StaticResource FieldLabelTextStyle}" VerticalAlignment="Center"/>
+                        <ComboBox
+                            x:Name="CompactWorkflowSelector"
+                            ItemsSource="{x:Bind WorkflowItems}"
+                            DisplayMemberPath="Label"
+                            HorizontalAlignment="Stretch"
+                            MinWidth="0"
+                            Width="240"
+                            SelectionChanged="CompactWorkflowSelector_SelectionChanged"
+                            AutomationProperties.Name="Select workflow stage"/>
+                        <TextBlock x:Name="CompactStageStatus" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
                     <ListView
                         x:Name="WorkflowTabs"
                         ItemsSource="{x:Bind WorkflowItems}"
@@ -114,7 +168,7 @@
 
             <Frame x:Name="ContentFrame" Grid.Row="2"/>
 
-            <Border Grid.Row="3" Background="{ThemeResource AppShellBrush}" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,1,0,0" Padding="10,6,12,6">
+            <Border x:Name="ShellFooter" Grid.Row="3" Background="{ThemeResource AppShellBrush}" BorderBrush="{ThemeResource AppBorderBrush}" BorderThickness="0,1,0,0" Padding="10,6,12,6">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Button x:Name="PreviousButton" Style="{StaticResource SecondaryButtonStyle}" Click="PreviousButton_Click">
@@ -125,7 +179,7 @@
                         </Button>
                     </StackPanel>
                     <TextBlock x:Name="StageDescription" Grid.Column="1" Style="{StaticResource CaptionTextStyle}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <StackPanel x:Name="FooterHints" Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                         <Border Style="{StaticResource KbdStyle}"><TextBlock Text="1-9  Stages" Style="{StaticResource CaptionTextStyle}"/></Border>
                         <Border Style="{StaticResource KbdStyle}"><TextBlock Text="Ctrl K  Commands" Style="{StaticResource CaptionTextStyle}"/></Border>
                     </StackPanel>

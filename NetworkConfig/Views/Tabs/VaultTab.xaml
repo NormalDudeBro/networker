@@ -12,7 +12,7 @@
             <VisualStateGroup x:Name="VaultWidthStates">
                 <VisualState x:Name="NarrowVault">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind VaultLayout}" MaxWidth="819.999"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind VaultLayout}" MaxWidth="1099.999"/>
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="VaultVariableColumn.Width" Value="0*"/>
@@ -23,8 +23,14 @@
                 </VisualState>
                 <VisualState x:Name="WideVault">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind VaultLayout}" MinWidth="820"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind VaultLayout}" MinWidth="1100"/>
                     </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="VaultVariableColumn.Width" Value="*"/>
+                        <Setter Target="VariablesPanel.(Grid.Row)" Value="0"/>
+                        <Setter Target="VariablesPanel.(Grid.Column)" Value="1"/>
+                        <Setter Target="VariablesPanel.(Grid.ColumnSpan)" Value="1"/>
+                    </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>

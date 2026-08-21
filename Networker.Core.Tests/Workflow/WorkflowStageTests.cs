@@ -60,4 +60,13 @@ public sealed class WorkflowStageTests
     public void NavigationPolicy_OnlyAcceptsUnmodifiedNumbersOutsideTextEntry(
         int number, bool textEntry, bool modifier, bool expected) =>
         Assert.Equal(expected, WorkflowNavigationPolicy.TryGetStageForNumber(number, textEntry, modifier, out _));
+
+    [Theory]
+    [InlineData(720, ResponsiveWidthMode.Compact)]
+    [InlineData(1099, ResponsiveWidthMode.Compact)]
+    [InlineData(1100, ResponsiveWidthMode.Standard)]
+    [InlineData(1399, ResponsiveWidthMode.Standard)]
+    [InlineData(1400, ResponsiveWidthMode.Wide)]
+    public void ResponsiveWidthMode_UsesLogicalWidth(double width, ResponsiveWidthMode expected)
+        => Assert.Equal(expected, ResponsiveLayout.WidthMode(width));
 }

@@ -14,7 +14,7 @@
             <VisualStateGroup x:Name="SettingsWidthStates">
                 <VisualState x:Name="NarrowSettings">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind SettingsContent}" MaxWidth="759.999"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind SettingsContent}" MaxWidth="1099.999"/>
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="AiSummaryColumn.Width" Value="*"/>
@@ -46,8 +46,35 @@
                 </VisualState>
                 <VisualState x:Name="WideSettings">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind SettingsContent}" MinWidth="760"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind SettingsContent}" MinWidth="1100"/>
                     </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="AiSummaryColumn.Width" Value="180"/>
+                        <Setter Target="AiContentColumn.Width" Value="*"/>
+                        <Setter Target="AiRuntimeForm.(Grid.Row)" Value="0"/>
+                        <Setter Target="AiRuntimeForm.(Grid.Column)" Value="1"/>
+                        <Setter Target="AiRuntimeForm.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="PromptSummaryColumn.Width" Value="180"/>
+                        <Setter Target="PromptContentColumn.Width" Value="*"/>
+                        <Setter Target="PromptForm.(Grid.Row)" Value="0"/>
+                        <Setter Target="PromptForm.(Grid.Column)" Value="1"/>
+                        <Setter Target="PromptForm.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="ConfigSummaryColumn.Width" Value="180"/>
+                        <Setter Target="ConfigContentColumn.Width" Value="*"/>
+                        <Setter Target="ConfigurationForm.(Grid.Row)" Value="0"/>
+                        <Setter Target="ConfigurationForm.(Grid.Column)" Value="1"/>
+                        <Setter Target="ConfigurationForm.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="AppearanceSummaryColumn.Width" Value="180"/>
+                        <Setter Target="AppearanceContentColumn.Width" Value="*"/>
+                        <Setter Target="AppearanceForm.(Grid.Row)" Value="0"/>
+                        <Setter Target="AppearanceForm.(Grid.Column)" Value="1"/>
+                        <Setter Target="AppearanceForm.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="UpdateSummaryColumn.Width" Value="180"/>
+                        <Setter Target="UpdateContentColumn.Width" Value="*"/>
+                        <Setter Target="UpdateForm.(Grid.Row)" Value="0"/>
+                        <Setter Target="UpdateForm.(Grid.Column)" Value="1"/>
+                        <Setter Target="UpdateForm.(Grid.ColumnSpan)" Value="1"/>
+                    </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>

@@ -11,7 +11,7 @@
             <VisualStateGroup x:Name="DiffWidthStates">
                 <VisualState x:Name="NarrowDiff">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind DiffLayout}" MaxWidth="999.999"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind DiffLayout}" MaxWidth="1099.999"/>
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="DiffOutputColumn.Width" Value="0*"/>
@@ -22,8 +22,14 @@
                 </VisualState>
                 <VisualState x:Name="WideDiff">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind DiffLayout}" MinWidth="1000"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind DiffLayout}" MinWidth="1100"/>
                     </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="DiffOutputColumn.Width" Value="*"/>
+                        <Setter Target="DiffResultsPanel.(Grid.Row)" Value="0"/>
+                        <Setter Target="DiffResultsPanel.(Grid.Column)" Value="1"/>
+                        <Setter Target="DiffResultsPanel.(Grid.ColumnSpan)" Value="1"/>
+                    </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>

@@ -17,15 +17,25 @@
             <VisualStateGroup x:Name="ToolkitWidthStates">
                 <VisualState x:Name="NarrowToolkit">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind CenteredWorkflowCanvas}" MaxWidth="759.999"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind CenteredWorkflowCanvas}" MaxWidth="1099.999"/>
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
+                        <Setter Target="StageHeaderStack.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="ToolsAiStatusPanel.(Grid.Row)" Value="1"/>
+                        <Setter Target="ToolsAiStatusPanel.(Grid.Column)" Value="0"/>
+                        <Setter Target="StageToolSelector.Margin" Value="12,8,12,0"/>
                     </VisualState.Setters>
                 </VisualState>
                 <VisualState x:Name="WideToolkit">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind CenteredWorkflowCanvas}" MinWidth="760"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind CenteredWorkflowCanvas}" MinWidth="1100"/>
                     </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="StageHeaderStack.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="ToolsAiStatusPanel.(Grid.Row)" Value="0"/>
+                        <Setter Target="ToolsAiStatusPanel.(Grid.Column)" Value="1"/>
+                        <Setter Target="StageToolSelector.Margin" Value="16,12,16,0"/>
+                    </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
             <VisualStateGroup x:Name="ToolkitHeightStates">
@@ -49,13 +59,13 @@
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
         <Border Grid.Row="0" Style="{StaticResource WorkspaceHeaderStyle}">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                <StackPanel Style="{StaticResource PageHeaderStackStyle}">
+            <Grid x:Name="WorkflowHeaderGrid" ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel x:Name="StageHeaderStack" Style="{StaticResource PageHeaderStackStyle}">
                     <TextBlock x:Name="StageEyebrow" Text="STEP 2 OF 9" Style="{StaticResource PageEyebrowTextStyle}"/>
                     <TextBlock x:Name="StageTitle" Text="Inspect" Style="{StaticResource PageTitleTextStyle}"/>
                     <TextBlock x:Name="StageSubtitle" Style="{StaticResource PageSubtitleTextStyle}" Text="Establish the current state from configurations and logs."/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                <StackPanel x:Name="ToolsAiStatusPanel" Grid.Column="1" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
                     <Ellipse x:Name="ToolsAiStatusDot" Style="{StaticResource StatusDotStyle}" Fill="{ThemeResource AppTextDisabledBrush}"/>
                     <TextBlock x:Name="ToolsAiStatusText" Style="{StaticResource CaptionTextStyle}" Text="AI model unavailable" VerticalAlignment="Center"/>
                 </StackPanel>

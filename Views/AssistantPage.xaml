@@ -293,18 +293,36 @@
             <VisualStateGroup x:Name="AssistantWidthStates">
                 <VisualState x:Name="NarrowAssistant">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind MainLayout}" MaxWidth="899.999"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind MainLayout}" MaxWidth="1099.999"/>
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="AssistantPanel.(Grid.Column)" Value="0"/>
                         <Setter Target="AssistantPanel.(Grid.ColumnSpan)" Value="2"/>
                         <Setter Target="AssistantPanel.HorizontalAlignment" Value="Right"/>
+                        <Setter Target="AssistantHeaderInfo.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="AssistantHeaderActions.(Grid.Row)" Value="1"/>
+                        <Setter Target="AssistantHeaderActions.(Grid.Column)" Value="0"/>
+                        <Setter Target="AssistantHeaderActions.HorizontalAlignment" Value="Left"/>
+                        <Setter Target="AssistantHeaderGrid.RowSpacing" Value="8"/>
+                        <Setter Target="TerminalPaneHost.Height" Value="200"/>
+                        <Setter Target="ComposerGrid.ColumnSpacing" Value="4"/>
+                        <Setter Target="InputArea.Padding" Value="12,6,12,10"/>
                     </VisualState.Setters>
                 </VisualState>
                 <VisualState x:Name="WideAssistant">
                     <VisualState.StateTriggers>
-                        <controls:ElementWidthTrigger Source="{x:Bind MainLayout}" MinWidth="900"/>
+                        <controls:ElementWidthTrigger Source="{x:Bind MainLayout}" MinWidth="1100"/>
                     </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="AssistantHeaderInfo.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="AssistantHeaderActions.(Grid.Row)" Value="0"/>
+                        <Setter Target="AssistantHeaderActions.(Grid.Column)" Value="1"/>
+                        <Setter Target="AssistantHeaderActions.HorizontalAlignment" Value="Right"/>
+                        <Setter Target="AssistantHeaderGrid.RowSpacing" Value="0"/>
+                        <Setter Target="TerminalPaneHost.Height" Value="260"/>
+                        <Setter Target="ComposerGrid.ColumnSpacing" Value="8"/>
+                        <Setter Target="InputArea.Padding" Value="20,8,20,16"/>
+                    </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
@@ -321,8 +339,8 @@
 
         <!-- ======================= Header ======================= -->
         <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource WorkspaceHeaderStyle}">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                <StackPanel Grid.Column="0" Style="{StaticResource PageHeaderStackStyle}" VerticalAlignment="Center">
+            <Grid x:Name="AssistantHeaderGrid" ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel x:Name="AssistantHeaderInfo" Grid.Column="0" Style="{StaticResource PageHeaderStackStyle}" VerticalAlignment="Center">
                     <TextBlock Text="NETWORKER ASSIST" Style="{StaticResource PageEyebrowTextStyle}"/>
                     <TextBlock Text="Assist" Style="{StaticResource PageTitleTextStyle}"/>
                     <TextBlock
@@ -330,7 +348,7 @@
                         Text="Ask about network engineering, inspect files, or run commands with live activity."/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <StackPanel x:Name="AssistantHeaderActions" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <Button
                         x:Name="HeaderModelButton"
                         Style="{StaticResource SecondaryButtonStyle}"
@@ -486,7 +504,7 @@
             Visibility="Collapsed"/>
 
         <!-- ======================= Input ======================= -->
-        <Grid Grid.Row="3" Grid.Column="0" Padding="20,8,20,16">
+        <Grid x:Name="InputArea" Grid.Row="3" Grid.Column="0" Padding="20,8,20,16">
             <StackPanel Spacing="8">
                 <!-- Context strip: optional locally generated troubleshooting evidence -->
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
@@ -511,7 +529,7 @@
                             x:Name="PromptHistoryChips"
                             Visibility="Collapsed"
                             PromptSelected="PromptHistoryChip_Click"/>
-                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
+                        <Grid x:Name="ComposerGrid" ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
                             <Button
                                 x:Name="LocalToolsButton"
                                 Grid.Column="0"

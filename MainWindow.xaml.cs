@@ -38,10 +38,12 @@ namespace networker
         {
             InitializeComponent();
             Instance = this;
+            ShellLayout.SizeChanged += ShellLayout_SizeChanged;
 
             Root.Loaded += (_, _) =>
             {
                 EnforceMinimumWindowSize();
+                UpdateResponsiveShell();
                 try { ((App)Application.Current).Services.GetRequiredService<LaunchHealthService>().SignalHealthy(); } catch { }
             };
             AppWindow.Changed += (_, args) => { if (args.DidSizeChange) EnforceMinimumWindowSize(); };
@@ -79,6 +81,7 @@ namespace networker
 
             WorkflowStage initial = _session?.Current.SelectedStage ?? WorkflowStage.Start;
             NavigateToStage(initial);
+            UpdateResponsiveShell();
             _ = LlmSession.RefreshAsync();
         }
 
@@ -188,6 +191,8 @@ namespace networker
             {
                 var item = WorkflowItems.First(i => i.Stage == stage);
                 WorkflowTabs.SelectedItem = item;
+                CompactWorkflowSelector.SelectedItem = item;
+                CompactStageStatus.Text = $"{item.Number} of {WorkflowItems.Count} · {item.StatusText}";
                 WorkflowTabs.ScrollIntoView(item);
             }
             finally
@@ -234,6 +239,33 @@ namespace networker
                 return;
             }
             NavigateToStage(item.Stage);
+        }
+
+        private void CompactWorkflowSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_selectingTab || CompactWorkflowSelector.SelectedItem is not WorkflowTabItem item) return;
+            NavigateToStage(item.Stage);
+        }
+
+        private void ShellLayout_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateResponsiveShell();
+
+        private void UpdateResponsiveShell()
+        {
+            if (!ShellLayout.IsLoaded) return;
+            bool compact = ResponsiveLayout.IsCompact(ShellLayout.ActualWidth);
+            CompactWorkflowBar.Visibility = compact ? Visibility.Visible : Visibility.Collapsed;
+            WorkflowTabs.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+            FooterHints.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+            if (compact)
+            {
+                WorkflowAnnouncement.Margin = new Thickness(12, 0, 12, 4);
+                ShellFooter.Padding = new Thickness(8, 5, 8, 5);
+            }
+            else
+            {
+                WorkflowAnnouncement.Margin = new Thickness(18, 0, 18, 5);
+                ShellFooter.Padding = new Thickness(10, 6, 12, 6);
+            }
         }
 
         private void PreviousButton_Click(object sender, RoutedEventArgs e)
@@ -338,6 +370,7 @@ namespace networker
         {
             _session?.SaveNow();
             if (_session is not null) _session.Changed -= Session_Changed;
+            ShellLayout.SizeChanged -= ShellLayout_SizeChanged;
             LlmSession.Changed -= LlmSession_Changed;
             try { ((App)Application.Current).Services.GetRequiredService<AgentService>().Stop(); } catch { }
             try

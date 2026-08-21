@@ -72,6 +72,7 @@ operations run locally; selected workflows can optionally ask the configured mod
 - **Responsive workspace** — adaptive shell/status priority, Start and workflow layouts, Assistant panel,
   side-by-side editors, vault forms, and template detail views; bounded ultrawide page hosts,
   short-window editor caps, and shared horizontal scrolling for dense tables and code
+- Responsive behavior follows available logical WinUI width rather than raw monitor pixels. Compact windows use a stage selector and stacked forms; wide windows retain readable centered content caps.
 
 ## Architecture
 
